@@ -98,11 +98,11 @@ bool initAS5600(){
   as5600.setHysteresis(AS5600_HYSTERESIS_OFF);
 
   // analog output
-  as5600.setOutputStage(AS5600_OUTPUT_STAGE_ANALOG_FULL);
+  as5600.setOutputStage(AS5600_OUTPUT_STAGE_DIGITAL_PWM);
 
-  // setup filters
-  as5600.setSlowFilter(AS5600_SLOW_FILTER_16X);
-  as5600.setFastFilterThresh(AS5600_FAST_FILTER_THRESH_SLOW_ONLY);
+  // setup filters (copied from sst)
+  as5600.setSlowFilter(AS5600_SLOW_FILTER_4X);
+  as5600.setFastFilterThresh(AS5600_FAST_FILTER_THRESH_6LSB);
 
   // Reset position settings to defaults
   as5600.setZPosition(0);
@@ -195,8 +195,9 @@ void sensorTask(void *param) {
 
     // read AS5600 angle
     if (as_conn){
-      uint16_t rawAngle = as5600.getRawAngle();
-      r.angle = rawAngle;
+      uint16_t angle = as5600.getAngle();
+      r.angle = angle;
+      //Serial.println(angle);
     }
 
     if (mmc_conn){
