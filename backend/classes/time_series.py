@@ -41,6 +41,7 @@ class ChunkedTimeSeries:
         t = self.base.t
         x = self.base.x
         for i0, i1 in self.spans:
-            yield TimeSeries(t=t[i0:i1], x=x[i0:i1],
-                             units=self.base.units, frame=self.base.frame,
-                             meta={**self.base.meta, "chunk": (i0, i1)})
+            if i1 < self.base.t.shape[0]:
+                yield TimeSeries(t=t[i0:i1], x=x[i0:i1],
+                                units=self.base.units, frame=self.base.frame,
+                                meta={**self.base.meta, "chunk": (i0, i1)})

@@ -23,7 +23,7 @@ class FilterChunkPairs(Step):
         a: ChunkedTimeSeries = ws[self.inputs[0]]
         b: ChunkedTimeSeries = ws[self.inputs[1]]
 
-        diff_thresh = 1.6
+        diff_thresh = 0.5
         conf_thresh = 0.98
 
         jitter_rejects = 0
@@ -49,8 +49,24 @@ class FilterChunkPairs(Step):
                     continue
                 still_pairs.append([chunk_a, chunk_b])
 
-        print(f"Rejected {diff_rejects} diff, {jitter_rejects} jitter, remaining {len(still_pairs)}")
+        self.get_pair_stats(still_pairs)
+
+        print(f"Accel pose alignment: Rejected {diff_rejects} diff, {jitter_rejects} jitter, remaining {len(still_pairs)}")
         ws[self.outputs[0]] = still_pairs
+
+    def get_pair_stats(self, pairs):
+        pair_array = np.asarray([[a.x, b.x] for (a, b) in pairs]) # N_pairs, chunk_idx, chunk_len, xyz
+        print(pair_array.shape)
+        accel_means = np.mean(pair_array, axis=2)
+        print(accel_means.shape)
+        accel_means_mags = np.linalg.norm(accel_means, axis=2)
+        print(accel_means_mags.shape)
+        s1_mags = accel_means_mags[:, 0]
+        s2_mags = accel_means_mags[:, 1]
+        s2_scales = s2_mags / s1_mags
+        s2_scale_mean = np.mean(s2_scales, axis=0)
+        s2_scale_std = np.std(s2_scales, axis=0)
+        print(f"Chunk stats: s2 to s1 scale mean {s2_scale_mean} std {s2_scale_std}")
 
 
 @dataclass
@@ -77,7 +93,7 @@ class FilterColinearPairs(Step):
             if keep[i]:
                 filt_pairs.append(pairs[i])
 
-        print(f"Kept {len(filt_pairs)} out of {len(pairs)}")
+        print(f"Colinear pair removal: Kept {len(filt_pairs)} out of {len(pairs)}")
         
         ws[self.outputs[0]] = filt_pairs
 
@@ -157,7 +173,7 @@ class RotationFromPairs(Step):
     
 
 @dataclass
-class RelativeAccel(Step):
+class GetRelativeAccel(Step):
     """Rotate accel and calculate difference."""
 
     def run(self, ws: Workspace) -> None:
@@ -185,10 +201,10 @@ class RelativeAccel(Step):
 
 
 @dataclass
-class AlignedAccel(Step):
+class GetAccelTravelVector(Step):
     chunk_size: int = 10
     accel_threshold = 4.5 # m/s^2
-    """Get the primary travel vector and calculate motion along it"""
+    """Get the primary travel vector"""
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]]
@@ -212,23 +228,35 @@ class AlignedAccel(Step):
             if chunk_net_magnitude > self.accel_threshold:
                 if np.mean(chunk, axis=0)[0] < 0: # Only keep chunks with net negative X acceleration
                     good_chunks.append(chunk)
-        print(len(good_chunks), "interesting chunks found")
+        print("Accel travel vector:", len(good_chunks), "interesting chunks found")
         good_chunks = np.array(good_chunks)
 
         chunk_means = np.mean(good_chunks, axis=1)
         chunk_mags = np.linalg.norm(chunk_means, axis=1)
 
         travel_vector = np.mean(chunk_means, axis=0) / np.linalg.norm(np.mean(chunk_means, axis=0))
-        print("Travel vector:", travel_vector)
+        print("Accel travel vector:", travel_vector)
         
-        # Project accel onto travel vector and save it
         travel_unit_vector = travel_vector / np.linalg.norm(travel_vector)
-        a_proj = a.x @ travel_unit_vector
-
+        ws[self.outputs[0]] = travel_unit_vector
+        
         scatter_points = np.concat((np.reshape(chunk_mags, (-1, 1)), chunk_means), axis=1)
-        ws[self.outputs[0]] = scatter_points
+        ws[self.outputs[1]] = scatter_points
 
-        ws[self.outputs[1]] = TimeSeries(
+@dataclass
+class ProjectAccel(Step):
+    """Project accel onto the travel vector"""
+
+    def run(self, ws: Workspace) -> None:
+        travel_vector = ws[self.inputs[0]]
+        a = ws[self.inputs[1]]
+
+        # Project accel onto travel vector
+        a_proj = a.x @ travel_vector
+
+        print("Mean projected acceleration:", np.mean(a_proj))
+
+        ws[self.outputs[0]] = TimeSeries(
             t=a.t,
             x=a_proj,
             units=a.units,

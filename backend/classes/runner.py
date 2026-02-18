@@ -18,7 +18,7 @@ class PlotSpec:
     key: str
     title: str = ""
     bins: int = 50                # for hist
-    alpha: float = 0.7            # for scatter/hist
+    alpha: float = 0.2            # for scatter/hist
 
 @dataclass
 class Runner:
@@ -55,7 +55,7 @@ class Runner:
         return True
 
     def _plot_timeseries(self, ts: TimeSeries, title: str, path: Path) -> None:
-        fig = plt.figure()
+        fig = plt.figure(figsize=(12, 6))
         plt.plot(ts.t, ts.x)
         plt.title(title)
         plt.xlabel("t (s)")
@@ -71,6 +71,7 @@ class Runner:
             x = data[:, 0]
             for y in range(1, data.shape[1]):
                 plt.scatter(x, data[:, y], alpha=plot_spec.alpha)
+            plt.grid()
             plt.title(plot_spec.title)
             fig.tight_layout()
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,11 +81,12 @@ class Runner:
     def run(self, ws: Workspace, steps: List[Step]) -> Workspace:
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
-        for step in steps:
+        for i, step in enumerate(steps):
+            i_step_name = f"{i}_{step.name}"
             # Cache outputs if available
             loaded = False
             if self.read_cache and step.outputs:
-                loaded = self._load_cache(step.name, ws, step.outputs)
+                loaded = self._load_cache(i_step_name, ws, step.outputs)
 
             if not loaded:
                 # Sanity: ensure inputs exist
@@ -95,17 +97,18 @@ class Runner:
                 step.run(ws)
 
                 if self.write_cache and step.outputs:
-                    self._save_cache(step.name, ws, step.outputs)
+                    self._save_cache(i_step_name, ws, step.outputs)
 
             # Artifacts (plots)
             if self.make_plots:
                 plot_keys = step.plot_keys or step.outputs
                 for k in plot_keys:
+                    plot_dir = self.out_dir / "plots" / i_step_name
                     if isinstance(k, PlotSpec):
                         self._plot_data(
                             ws.get(k.key),
                             k,
-                            path=self.out_dir / "plots" / step.name / f"{k.key.replace('/', '_')}.png",
+                            path= plot_dir / f"{k.key.replace('/', '_')}.png",
                         )
                     else:
                         v = ws.get(k)
@@ -113,7 +116,7 @@ class Runner:
                             self._plot_timeseries(
                                 v,
                                 title=f"{k} ({step.name})",
-                                path=self.out_dir / "plots" / step.name / f"{k.replace('/', '_')}.png",
+                                path=plot_dir / f"{k.replace('/', '_')}.png",
                             )
 
         return ws

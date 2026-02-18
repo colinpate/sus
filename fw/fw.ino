@@ -16,23 +16,12 @@
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
 
-#include "sensor_reader.h"
-
+#include "log_server.h"
 
 static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_10;
 static constexpr gpio_num_t PERIPH_EN = GPIO_NUM_45;
-static constexpr uint8_t BUTTON_HOLD = 5; // 0.5s at 10Hz
-
+static constexpr uint8_t BUTTON_HOLD = 16; // 0.8s at 20Hz
 static constexpr uint32_t SAMPLE_HZ = 100;
-
-// SparkFun Thing Plus ESP32-S3 (from SparkFun schematic pin labels)
-/*static constexpr int SD_CLK = 38;
-static constexpr int SD_CMD = 34;
-static constexpr int SD_D0  = 39;
-static constexpr int SD_D1  = 40;
-static constexpr int SD_D2  = 47;
-static constexpr int SD_D3  = 33;*/
-// static constexpr int SD_DET = 48; // optional card-detect input
 
 // Two LIS3DH I2C addresses (set by SA0 pin on each sensor)
 static constexpr uint8_t LIS1_ADDR = 0x18;
@@ -60,13 +49,14 @@ static Adafruit_LIS3DH lis2(&Wire);
 static Adafruit_MMC5603 mmc(12345); // sensor ID (arbitrary)
 static Adafruit_AS5600 as5600;
 
-static SemaphoreHandle_t sdMutex;
 static SemaphoreHandle_t i2cMutex;
+static SemaphoreHandle_t sdMutex;
 static QueueHandle_t logQ;
 
 static volatile uint32_t dropped = 0;
-
 static File f;
+
+static bool serverActive = false;
 
 static uint32_t now_ms() {
   // esp_timer_get_time() returns microseconds since boot on ESP32 Arduino
@@ -220,7 +210,10 @@ void sensorTask(void *param) {
     if (xQueueSend(logQ, &r, 0) != pdTRUE) {
       dropped++;
     }
+
+    if (serverActive) break;
   }
+  while (true) vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 
@@ -235,13 +228,18 @@ void buttonTask(void *param) {
 
   uint8_t button_held_count = 0;
   while (1){
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(50));
     if (digitalRead(WAKE_PIN) == LOW){
+      Serial.println("Button pressed");
       button_held_count++;
       if (button_held_count >= BUTTON_HOLD){
         goToSleep();
       }
     } else {
+      if (button_held_count >= 1){
+        Serial.println("Starting web server!");
+        serverActive = true; // Turn on the web server if the button is tapped
+      }
       button_held_count = 0;
     }
   }
@@ -338,6 +336,22 @@ void writerTask(void *param) {
                     (unsigned long)dropped,
                     (unsigned long long)f.size());
     }
+
+    if (serverActive) break;
+  }
+  while (true) vTaskDelay(pdMS_TO_TICKS(1000));
+}
+
+void webTask(void* param) {
+  (void)param;
+  while (!serverActive) vTaskDelay(pdMS_TO_TICKS(10));
+  Serial.println("Waiting for sdMutex");
+  xSemaphoreTake(sdMutex, portMAX_DELAY);
+  Serial.println("Starting wifi and server");
+  startWifiAndServer();
+  while (true) {
+    server.handleClient();
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -366,7 +380,8 @@ void setup() {
 
   // Task stack sizes: bump if you add WiFi/networking + parsing
   xTaskCreatePinnedToCore(sensorTask, "sensor", 4096, nullptr, 2, nullptr, 1);
-  xTaskCreatePinnedToCore(writerTask, "writer", 4096, nullptr, 1, nullptr, 0);
+  xTaskCreatePinnedToCore(writerTask, "writer", 4096, nullptr, 1, nullptr, 1);
+  xTaskCreatePinnedToCore(webTask, "web", 4096, nullptr, 3, nullptr, 0);
   xTaskCreate(buttonTask, "power", 4096, nullptr, 0, nullptr);
 }
 

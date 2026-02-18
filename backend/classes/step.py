@@ -54,6 +54,12 @@ class ChunkStep(Step):
 
         span_len = int(self.chunk_t_s * ts.meta["fs_hz"])
         spans = [(i, i + span_len) for i in range(0, len(ts.x), span_len)]
+        if (spans[-1][1] - spans[-1][0]) < span_len:
+            spans = spans[:-1]
+
+        for i in range(len(spans)):
+            if (spans[i][1] - spans[i][0]) != span_len:
+                print(i)
 
         print(len(spans), "chunks of", self.chunk_t_s, "s each (", span_len, "samples )")
         
