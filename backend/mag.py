@@ -39,7 +39,7 @@ class ProjectMag(Step):
 @dataclass
 class MagToTravelPolyFit(Step):
     """Project magnet data onto mean vector"""
-    mag_threshold: int = 2000  # mG
+    mag_threshold: int = 1500  # mG
 
     def run(self, ws: Workspace) -> None:
         mag_proj_series: TimeSeries = ws[self.inputs[0]]

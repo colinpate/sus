@@ -120,7 +120,7 @@ void sensorTask(void *param) {
     Serial.println("LIS1 not found");
   } else {
     lis1_conn = true;
-    lis1.setDataRate(LIS3DH_DATARATE_200_HZ);
+    lis1.setDataRate(LIS3DH_DATARATE_100_HZ);
     lis1.setRange(LIS3DH_RANGE_16_G);
     lis1.setPerformanceMode(LIS3DH_MODE_HIGH_RESOLUTION);
   }
@@ -128,7 +128,7 @@ void sensorTask(void *param) {
     Serial.println("LIS2 not found");
   } else {
     lis2_conn = true;
-    lis2.setDataRate(LIS3DH_DATARATE_200_HZ);
+    lis2.setDataRate(LIS3DH_DATARATE_100_HZ);
     lis2.setRange(LIS3DH_RANGE_16_G);
     lis2.setPerformanceMode(LIS3DH_MODE_HIGH_RESOLUTION);
   }

@@ -17,7 +17,7 @@ class AngleToTravel(Step):
         
         # Get corrected angle
         top_angle = np.arccos(self.top_adjacent / self.hypotenuse)
-        top_zeroangle = np.percentile(a.x, 95)
+        top_zeroangle = np.percentile(a.x, 99)
         net_angle = -1 * (a.x - top_zeroangle) + top_angle
 
         travel = 2 * (self.top_adjacent - (self.hypotenuse * np.cos(net_angle)))

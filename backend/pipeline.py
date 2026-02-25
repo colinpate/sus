@@ -10,7 +10,7 @@ from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
 
 def main() -> None:
-    log_filename = "log023"
+    log_filename = "log030"
     out_dir = Path("run_artifacts") / log_filename
     log_path = Path(f"../logs/{log_filename}.csv")
 
@@ -126,19 +126,19 @@ def main() -> None:
         ),
 
         # Magnetometer processing
-        FilterStep(
-            name="lowpass_mag",
-            inputs=("mag",),
-            outputs=("mag_filt",),
-            plot_keys=("mag", "mag_filt"),
-            fc_hz=20,
-            btype="low",
-        ),
         ProjectMag(
             name="project_mag",
-            inputs=("mag_filt",),
+            inputs=("mag",),
             outputs=("mag_proj",),
             plot_keys=("mag_proj",)
+        ),
+        FilterStep(
+            name="lowpass_mag_proj",
+            inputs=("mag_proj",),
+            outputs=("mag_proj/filt",),
+            plot_keys=("mag_proj/filt",),
+            fc_hz=20,
+            btype="low",
         ),
         MagToTravelPolyFit(
             name="mag_to_travel_polyfit",
@@ -155,8 +155,9 @@ def main() -> None:
     ws = runner.run(ws, steps)
 
     # Example: access final result
-    diff: TimeSeries = ws["accel_filt/a"]
-    print("Final diff shape:", diff.x.shape)
+    print(ws.keys())
+    #diff: TimeSeries = ws["accel_filt/a"]
+    #print("Final diff shape:", diff.x.shape)
 
 
 if __name__ == "__main__":

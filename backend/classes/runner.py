@@ -119,4 +119,7 @@ class Runner:
                                 path=plot_dir / f"{k.replace('/', '_')}.png",
                             )
 
+        # Save a cache with everything
+        self._save_cache("all", ws, keys=ws.keys())
+
         return ws
