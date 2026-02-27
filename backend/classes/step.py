@@ -40,7 +40,7 @@ class FilterStep(Step):
             x=xf,
             units=ts.units,
             frame=ts.frame,
-            meta={**ts.meta, "fc_hz": self.fc_hz, "btype": self.btype},
+            meta={**ts.meta, f"{self.name}_fc_hz": self.fc_hz, f"{self.name}_btype": self.btype},
         )
 
 
