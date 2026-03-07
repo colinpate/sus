@@ -25,11 +25,12 @@ class AccelLoader:
     """Loads accelerometer data from a DataFrame with columns like 't', 'a_x', 'a_y', 'a_z'."""
     path: str
     sensor_id: str
+    scale: float = 9.81 / 1000
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
         cols = [f"{self.sensor_id}_x", f"{self.sensor_id}_y", f"{self.sensor_id}_z"]
-        accel = df[cols].values * 9.81 / 1000
+        accel = df[cols].values * self.scale
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
 
@@ -48,6 +49,7 @@ class AccelLoader:
 class MagLoader:
     """Loads magnetometer data from a DataFrame with columns like 't', 'mmc_mG*'"""
     path: str
+    lag: int = 0
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
@@ -55,6 +57,9 @@ class MagLoader:
         x = df[cols].values
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
+
+        if self.lag != 0:
+            x = np.roll(x, shift=-self.lag, axis=0)
 
         return {
             f"mag": TimeSeries(

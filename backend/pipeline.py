@@ -6,8 +6,8 @@ from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoade
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import FilterChunkPairs, FilterColinearPairs, RotationFromPairs, GetRelativeAccel, GetAccelTravelVector, ProjectAccel
 from angle import AngleToTravel
-from mag import ProjectMag, MagToTravelPolyFit
-from fusion import GetMagBaseline, FindCalibrationChunks
+from mag import ProjectMag, MagToTravelPolyFit, FindMagZVPoints, CorrectBadMagProj
+from fusion import GetMagBaseline, GetMagToTravelModel
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
 
@@ -20,8 +20,8 @@ def main() -> None:
     # Load sensors (OOP edge)
     loaders: List[SensorLoader] = [
         AccelLoader(sensor_id="lis1", path=log_path),
-        AccelLoader(sensor_id="lis2", path=log_path),
-        MagLoader(path=log_path),
+        AccelLoader(sensor_id="lis2", path=log_path, scale=9.81 / 1000 * 1.0),
+        MagLoader(path=log_path, lag=0),
         AngleLoader(path=log_path)
     ]
 
@@ -35,28 +35,28 @@ def main() -> None:
         FilterStep(
             name="lowpass_lis1",
             inputs=("accel/lis1",),
-            outputs=("accel_lp/lis1",),
-            plot_keys=("accel/lis1", "accel_lp/lis1"),
+            outputs=("accel/lpf/lis1",),
+            plot_keys=("accel/lis1", "accel/lpf/lis1"),
             fc_hz=20,
             btype="low",
         ),
         FilterStep(
             name="lowpass_lis2",
             inputs=("accel/lis2",),
-            outputs=("accel_lp/lis2",),
-            plot_keys=("accel/lis2", "accel_lp/lis2"),
+            outputs=("accel/lpf/lis2",),
+            plot_keys=("accel/lis2", "accel/lpf/lis2"),
             fc_hz=20,
             btype="low",
         ),
         ChunkStep(
             name="chunk_lis1",
-            inputs=("accel_lp/lis1",),
+            inputs=("accel/lpf/lis1",),
             outputs=("accel_chunks/lis1",),
             chunk_t_s=0.25,
         ),
         ChunkStep(
             name="chunk_lis2",
-            inputs=("accel_lp/lis2",),
+            inputs=("accel/lpf/lis2",),
             outputs=("accel_chunks/lis2",),
             chunk_t_s=0.25,
         ),
@@ -86,13 +86,13 @@ def main() -> None:
         FilterStep(
             name="lowpass_accelrel",
             inputs=("accel/relative",),
-            outputs=("accel_lp/relative",),
+            outputs=("accel/lpf/relative",),
             fc_hz=20,
             btype="low",
         ),
         GetAccelTravelVector(
             name="get_acc_trav_vec",
-            inputs=("accel_lp/relative",),
+            inputs=("accel/lpf/relative",),
             outputs=("accel_trav_vec", "mags_vs_means",),
             plot_keys=(
                 PlotSpec(kind="scatter", key="mags_vs_means"),
@@ -107,14 +107,14 @@ def main() -> None:
         FilterStep(
             name="lowpass_accelproj",
             inputs=("accel/proj",),
-            outputs=("accel_lp/proj",),
+            outputs=("accel/lpf/proj",),
             fc_hz=20,
             btype="low",
         ),
         FilterStep(
             name="highpass_accelproj",
-            inputs=("accel_lp/proj",),
-            outputs=("accel_lphp/proj",),
+            inputs=("accel/lpf/proj",),
+            outputs=("accel/lpfhp/proj",),
             fc_hz=1,
             btype="high",
         ),
@@ -123,14 +123,14 @@ def main() -> None:
         FilterStep(
             name="lowpass_angle",
             inputs=("angle",),
-            outputs=("angle/filt",),
-            plot_keys=("angle","angle/filt"),
+            outputs=("angle/lpf",),
+            plot_keys=("angle","angle/lpf"),
             fc_hz=20,
             btype="low",
         ),
         AngleToTravel(
             name="angle_to_travel",
-            inputs=("angle/filt",),
+            inputs=("angle/lpf",),
             outputs=("travel",),
         ),
 
@@ -138,37 +138,55 @@ def main() -> None:
         ProjectMag(
             name="project_mag",
             inputs=("mag",),
-            outputs=("mag_proj",),
-            plot_keys=("mag_proj",)
+            outputs=("mag/proj",),
+            plot_keys=("mag/proj",)
         ),
         FilterStep(
-            name="lowpass_mag_proj",
-            inputs=("mag_proj",),
-            outputs=("mag_proj/filt",),
-            plot_keys=("mag_proj/filt",),
+            name="lowpass_mag/proj",
+            inputs=("mag/proj",),
+            outputs=("mag/proj/lpf",),
+            plot_keys=("mag/proj/lpf",),
             fc_hz=20,
             btype="low",
         ),
-        MagToTravelPolyFit(
-            name="mag_to_travel_polyfit",
-            inputs=("mag_proj", "travel"),
-            outputs=("travel/mag_polyfit","travel_vs_mag","travel_vs_pred"),
-            plot_keys=(
-                PlotSpec(kind="scatter", key="travel_vs_mag"),
-                PlotSpec(kind="scatter", key="travel_vs_pred"),
-            )
+        FilterStep(
+            name="lowpass_mag",
+            inputs=("mag",),
+            outputs=("mag/lpf",),
+            plot_keys=("mag", "mag/lpf"),
+            fc_hz=20,
+            btype="low",
+        ),
+        CorrectBadMagProj(
+            name="find_bad_mag/proj",
+            inputs=("mag", "mag/proj/lpf"),
+            outputs=("mag/proj/lpf/corr", "mag/proj/lpf/bad_mask",)
+        ),
+        # MagToTravelPolyFit(
+        #     name="mag_to_travel_polyfit",
+        #     inputs=("mag/proj/lpf", "travel"),
+        #     outputs=("travel/mag_polyfit","travel_vs_mag","travel_vs_pred"),
+        #     plot_keys=(
+        #         PlotSpec(kind="scatter", key="travel_vs_mag"),
+        #         PlotSpec(kind="scatter", key="travel_vs_pred"),
+        #     )
+        # ),
+        FindMagZVPoints(
+            name="find_mag_zv_points",
+            inputs=("mag/proj/lpf",),
+            outputs=("mag_zv_points",)
         ),
 
         # Fusion steps
         GetMagBaseline(
             name="get_mag_baseline",
-            inputs=("mag_proj/filt", "accel_lphp/proj"),
+            inputs=("mag/proj/lpf", "accel/lpfhp/proj"),
             outputs=("mag_baseline",)
         ),
-        FindCalibrationChunks(
-            name="find_cal_chunks",
-            inputs=("mag_proj/filt", "accel_lphp/proj", "mag_baseline"),
-            outputs=("cal_chunks_a", "cal_chunks_mag", "cal_chunk_slices")
+        GetMagToTravelModel(
+            name="mag_to_travel_model",
+            inputs=("mag/proj/lpf", "accel/lpf/proj", "travel", "mag/proj/lpf/bad_mask", "mag_zv_points"),
+            outputs=("travel/mag_model",),
         )
     ]
 
@@ -177,7 +195,7 @@ def main() -> None:
 
     # Example: access final result
     print(ws.keys())
-    #diff: TimeSeries = ws["accel_lp/a"]
+    #diff: TimeSeries = ws["accel/lpf/a"]
     #print("Final diff shape:", diff.x.shape)
 
 def parse_args() -> Any:

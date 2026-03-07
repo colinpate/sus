@@ -94,6 +94,7 @@ class Runner:
                 if missing:
                     raise KeyError(f"Step '{step.name}' missing inputs: {missing}")
 
+                print("\nRunning step", i_step_name, "with inputs", step.inputs)
                 step.run(ws)
 
                 if self.write_cache and step.outputs:
