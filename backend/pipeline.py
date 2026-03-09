@@ -162,15 +162,6 @@ def main() -> None:
             inputs=("mag", "mag/proj/lpf"),
             outputs=("mag/proj/lpf/corr", "mag/proj/lpf/bad_mask",)
         ),
-        # MagToTravelPolyFit(
-        #     name="mag_to_travel_polyfit",
-        #     inputs=("mag/proj/lpf", "travel"),
-        #     outputs=("travel/mag_polyfit","travel_vs_mag","travel_vs_pred"),
-        #     plot_keys=(
-        #         PlotSpec(kind="scatter", key="travel_vs_mag"),
-        #         PlotSpec(kind="scatter", key="travel_vs_pred"),
-        #     )
-        # ),
         FindMagZVPoints(
             name="find_mag_zv_points",
             inputs=("mag/proj/lpf",),
@@ -178,15 +169,14 @@ def main() -> None:
         ),
 
         # Fusion steps
-        GetMagBaseline(
-            name="get_mag_baseline",
-            inputs=("mag/proj/lpf", "accel/lpfhp/proj"),
-            outputs=("mag_baseline",)
-        ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
-            inputs=("mag/proj/lpf", "accel/lpf/proj", "travel", "mag/proj/lpf/bad_mask", "mag_zv_points"),
-            outputs=("travel/mag_model",),
+            inputs=("mag/proj/lpf/corr", "accel/lpf/proj", "travel", "mag/proj/lpf/bad_mask", "mag_zv_points"),
+            outputs=("travel/mag_model", "fusion_scatter_points"),
+            plot_keys=(
+                PlotSpec(kind="scatter", key="fusion_scatter_points"),
+            ),
+            train_with_mask=True,
         )
     ]
 
@@ -194,7 +184,7 @@ def main() -> None:
     ws = runner.run(ws, steps)
 
     # Example: access final result
-    print(ws.keys())
+    #print(ws.keys())
     #diff: TimeSeries = ws["accel/lpf/a"]
     #print("Final diff shape:", diff.x.shape)
 

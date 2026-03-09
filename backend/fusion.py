@@ -53,27 +53,34 @@ class GetMagBaseline(Step):
 
         ws[self.outputs[0]] = np.array(mag_baseline)
 
-
+@dataclass
 class GetMagToTravelModel(Step):
     """ Train a model using least squares  """
     chunk_min_dx = 10
     chunk_len = 20
     min_mag = 500
+    train_with_mask: bool = False
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
         travel_ts: TimeSeries = ws[self.inputs[2]]
-        mag_proj_bad_mask: np.ndarray = ws[self.inputs[3]].x[:, 0].astype(bool)
+        mask_ts: np.ndarray = ws[self.inputs[3]]
         idxs: np.ndarray = ws[self.inputs[4]]
 
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         travel = travel_ts.x[:, 0]
+        mag_proj_bad_mask = mask_ts.x.flatten().astype(bool)
         t = mag_ts.t
         dt_s = np.diff(t, prepend=t[0]-0.01)
 
-        xs, mags = self.get_chunks(idxs, mag, accel, dt_s, mag_proj_bad_mask)
+        if self.train_with_mask:
+            training_mask = mag_proj_bad_mask
+        else:
+            training_mask = np.zeros(mag_ts.x.shape[0], dtype=bool)
+
+        xs, mags = self.get_chunks(idxs, mag, accel, dt_s, training_mask)
         input_arr = self.format_chunks_for_fit(xs, mags)
         result = self.least_squares_fit(input_arr)
         print("x0, y_scale, power:", result.x)
@@ -89,6 +96,9 @@ class GetMagToTravelModel(Step):
             frame=accel_ts.frame,
             meta={**accel_ts.meta},
         )
+
+        scatter_points = np.array([mag, travel, x_preds]).T
+        ws[self.outputs[1]] = scatter_points
 
     def get_chunks(self, idxs_filt, mag, acc, dt_s, mag_proj_bad_mask):
         chunk_len = self.chunk_len
@@ -171,19 +181,24 @@ class GetMagToTravelModel(Step):
     
     def calculate_rmse(self, result, mag, travel, mag_proj_bad_mask):
         # Calc RMSE
-        good_mag_mask = ~mag_proj_bad_mask
-        mags_flat = mag[good_mag_mask].flatten().copy() #input_arr[:, 0, :].flatten()
-        x_mag_flat = self.pred_x(mags_flat, result.x[0], result.x[1], result.x[2])
-        x_mag_flat -= np.mean(x_mag_flat)
+        for mask_str, bad_mask_i in [
+                ["With mask", mag_proj_bad_mask],
+                ["Without mask", np.zeros_like(mag_proj_bad_mask, dtype=bool)]
+            ]:
+            good_mag_mask = ~bad_mask_i
+            mags_flat = mag[good_mag_mask].flatten().copy() #input_arr[:, 0, :].flatten()
+            x_mag_flat = self.pred_x(mags_flat, result.x[0], result.x[1], result.x[2])
+            x_mag_flat -= np.mean(x_mag_flat)
 
-        trav_flat = travel[good_mag_mask].flatten().copy() #np.array(gt_list).flatten()
-        thresh = 50
-        trav_thresh_mask = trav_flat > thresh
-        trav_offset = np.mean(trav_flat)
-        trav_flat -= trav_offset
+            trav_flat = travel[good_mag_mask].flatten().copy() #np.array(gt_list).flatten()
+            thresh = 50
+            trav_thresh_mask = trav_flat > thresh
+            trav_offset = np.mean(trav_flat)
+            trav_flat -= trav_offset
 
-        print_err_stats(x_mag_flat, trav_flat, prefix="Mag-predicted x")
-        print_err_stats(x_mag_flat[trav_thresh_mask], trav_flat[trav_thresh_mask], prefix="Mag-predicted x (thresholded at {:.1f} mm)".format(thresh))
+            print_err_stats(x_mag_flat, trav_flat, prefix=f"Mag-predicted x ({mask_str})")
+            print_err_stats(x_mag_flat[trav_thresh_mask], trav_flat[trav_thresh_mask], prefix=f"Mag-predicted x ({mask_str}) (> {thresh:.1f} mm)")
+
 
 class GetLinearMagToTravelModel(Step):
     """Find chunks where we can be pretty sure about travel"""

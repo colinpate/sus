@@ -63,6 +63,7 @@ class FindBadMagProj(Step):
 
 class CorrectBadMagProj(Step): 
     raw_norm_maxdiff: int = 2000  # mG
+    min_corr_mg: int = 5000  # mG
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]] # Raw mag data
@@ -75,7 +76,8 @@ class CorrectBadMagProj(Step):
         mag_raw_norm = np.linalg.norm(mag_raw, axis=1)
         norm_diff = np.abs(mag_raw_norm - mag_proj)
         bad_data_mask = norm_diff > self.raw_norm_maxdiff
-        print(f"{np.mean(bad_data_mask)*100:.1f}% of magnet data points have raw norm differing from projected by more than {self.raw_norm_maxdiff} mG. ")
+        bad_data_mask *= mag_raw_norm > self.min_corr_mg  # Only correct points where raw mag is reasonably strong
+        print(f"{np.mean(bad_data_mask)*100:.2f}% of magnet data points have raw norm differing from projected by more than {self.raw_norm_maxdiff} mG. ")
 
         corrected_mag = mag_proj.copy()
         corrected_mag[bad_data_mask] = mag_raw_norm[bad_data_mask]
