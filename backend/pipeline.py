@@ -176,7 +176,14 @@ def main() -> None:
         ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
-            inputs=("mag/proj/lpf/corr", "accel/lpf/proj", "travel", "mag/proj/lpf/bad_mask", "mag_zv_points"),
+            inputs=(
+                "mag/proj/lpf/corr", 
+                "accel/lpf/proj", 
+                "travel", 
+                "mag/proj/lpf/bad_mask", 
+                "mag_zv_points",
+                "mag_travel_ref_point",
+                ),
             outputs=("travel/mag_model", "fusion_scatter_points"),
             plot_keys=(
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),

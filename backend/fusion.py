@@ -33,6 +33,7 @@ class GetMagToTravelModel(Step):
     chunk_len = 20
     min_mag = 500
     train_with_mask: bool = False
+    apply_ref_point: bool = True
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -40,6 +41,7 @@ class GetMagToTravelModel(Step):
         travel_ts: TimeSeries = ws[self.inputs[2]]
         mask_ts: np.ndarray = ws[self.inputs[3]]
         idxs: np.ndarray = ws[self.inputs[4]]
+        ref_point: np.ndarray = ws[self.inputs[5]]
 
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
@@ -58,20 +60,33 @@ class GetMagToTravelModel(Step):
         result = self.least_squares_fit(input_arr)
         print("x0, y_scale, power:", result.x)
 
-        self.calculate_rmse(result, mag, travel, mag_proj_bad_mask)
-
         x_preds = self.pred_x(mag, result.x[0], result.x[1], result.x[2])
+
+        if self.apply_ref_point:
+            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x)
+        else:
+            x_preds_adj = x_preds
+
+        self.calculate_rmse(x_preds, travel, x_preds_adj, thresh=50)
 
         ws[self.outputs[0]] = TimeSeries(
             t=accel_ts.t,
-            x=x_preds,
+            x=x_preds_adj,
             units="mm",
             frame=accel_ts.frame,
             meta={**accel_ts.meta},
         )
 
-        scatter_points = np.array([mag, travel, x_preds]).T
+        scatter_points = np.array([mag, travel, x_preds_adj]).T
         ws[self.outputs[1]] = scatter_points
+
+    def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs):
+        x0, y_scale, power = coeffs
+        ref_x_pred = self.pred_x(ref_mag, x0, y_scale, power)
+        offset = - ref_x_pred + ref_x
+        print("Adjusting predicted x by offset", offset, "to align reference point")
+        x_preds_ref = x_preds + offset
+        return x_preds_ref
 
     def get_chunks(self, idxs_filt, mag, acc, dt_s, mag_proj_bad_mask):
         chunk_len = self.chunk_len
@@ -152,25 +167,14 @@ class GetMagToTravelModel(Step):
         
         return result
     
-    def calculate_rmse(self, result, mag, travel, mag_proj_bad_mask):
+    def calculate_rmse(self, preds, travel, preds_adj, thresh):
         # Calc RMSE
-        for mask_str, bad_mask_i in [
-                ["With mask", mag_proj_bad_mask],
-                ["Without mask", np.zeros_like(mag_proj_bad_mask, dtype=bool)]
-            ]:
-            good_mag_mask = ~bad_mask_i
-            mags_flat = mag[good_mag_mask].flatten().copy() #input_arr[:, 0, :].flatten()
-            x_mag_flat = self.pred_x(mags_flat, result.x[0], result.x[1], result.x[2])
-            x_mag_flat -= np.mean(x_mag_flat)
+        trav_thresh_mask = travel > thresh
 
-            trav_flat = travel[good_mag_mask].flatten().copy() #np.array(gt_list).flatten()
-            thresh = 50
-            trav_thresh_mask = trav_flat > thresh
-            trav_offset = np.mean(trav_flat)
-            trav_flat -= trav_offset
-
-            print_err_stats(x_mag_flat, trav_flat, prefix=f"Mag-predicted x ({mask_str})")
-            print_err_stats(x_mag_flat[trav_thresh_mask], trav_flat[trav_thresh_mask], prefix=f"Mag-predicted x ({mask_str}) (> {thresh:.1f} mm)")
+        print_err_stats(preds, travel, prefix=f"Mag-predicted x")
+        print_err_stats(preds[trav_thresh_mask], travel[trav_thresh_mask], prefix=f"Mag-predicted x (> {thresh:.1f} mm)")
+        print_err_stats(preds[trav_thresh_mask], travel[trav_thresh_mask], prefix=f"Mag-predicted x (> {thresh:.1f} mm) (centered)", center=True)
+        print_err_stats(preds_adj[trav_thresh_mask], travel[trav_thresh_mask], prefix=f"Mag-predicted x adjusted with reference point (> {thresh:.1f} mm)")
 
 @dataclass
 class GetMagTravelRefPoint(Step):
@@ -216,6 +220,8 @@ class GetMagTravelRefPoint(Step):
             stride, 
             mag_baseline
         )
+        mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
+        print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
         abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks)
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
