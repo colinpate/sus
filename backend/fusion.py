@@ -25,33 +25,6 @@ def print_err_stats(x, gt, center=False, prefix=""):
     print(f"{prefix} RMSE: {rmse:.3f}, MAE: {mae:.3f}, ME: {me:.3f}")
     return rmse, mae, me
 
-@dataclass
-class GetMagBaseline(Step):
-    """Get the baseline for still magnetometer data"""
-    still_len_s: float = 0.1 # seconds
-    still_a_max: float = 0.5 # m/s^2
-
-    def run(self, ws: Workspace) -> None:
-        mag_ts: TimeSeries = ws[self.inputs[0]]
-        accel_ts: TimeSeries = ws[self.inputs[1]]
-
-        assert mag_ts.units == "milli-Gauss"
-        assert accel_ts.units == "m/s^2"
-        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
-        mag_proj = mag_ts.x
-        a_proj_lhp = accel_ts.x
-        
-        still_mags = []
-        for i in range(0, mag_proj.shape[0] - still_len, still_len):
-            mag_chunk = mag_proj[i:i+still_len]
-            a_chunk = a_proj_lhp[i:i+still_len]
-            if max(abs(a_chunk)) < self.still_a_max:
-                still_mags.append(mag_chunk)
-
-        mag_baseline = np.median(still_mags) + np.std(still_mags)
-        print("Mag baseline", mag_baseline, "std", np.std(still_mags))
-
-        ws[self.outputs[0]] = np.array(mag_baseline)
 
 @dataclass
 class GetMagToTravelModel(Step):
@@ -199,11 +172,11 @@ class GetMagToTravelModel(Step):
             print_err_stats(x_mag_flat, trav_flat, prefix=f"Mag-predicted x ({mask_str})")
             print_err_stats(x_mag_flat[trav_thresh_mask], trav_flat[trav_thresh_mask], prefix=f"Mag-predicted x ({mask_str}) (> {thresh:.1f} mm)")
 
-
-class GetLinearMagToTravelModel(Step):
-    """Find chunks where we can be pretty sure about travel"""
+@dataclass
+class GetMagTravelRefPoint(Step):
+    """Find chunks where we can be pretty sure about travel and use this to set up a static mag to travel reference point"""
     bump_mag_min: float = 1000 # mG
-    still_a_max: float = 1000 # m/s^2
+    still_a_max: float = 1000 # mm/s^2
     bump_dx_min: int = 20
 
     still_len_s: float = 0.1 # seconds
@@ -211,18 +184,15 @@ class GetLinearMagToTravelModel(Step):
     stride_s: float = 0.05 # seconds
     skips: int = 3 # number of following strides to skip if we find a good one, prevents repeats
 
-    mag_range: float = 2000
-    poly_degree: int = 1
-    ransac_k: int = 10
-    ransac_n_iter: int = 100
+    ref_mag_range: float = 2000
+    min_ref_mag: float = 1500
 
-    debug = False
+    debug: bool = False
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
-        mag_baseline: float = ws[self.inputs[2]]
-        gt_x_ts: TimeSeries | None = ws.get(self.inputs[3])
+        gt_x_ts: TimeSeries | None = ws.get(self.inputs[2])
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         t = mag_ts.t
@@ -233,75 +203,38 @@ class GetLinearMagToTravelModel(Step):
         still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
         bump_len = int(self.bump_len_s * mag_ts.meta["fs_hz"])
         stride = int(self.stride_s * mag_ts.meta["fs_hz"])
-        chunk_len = still_len + bump_len
-        still_mag_max = mag_baseline
-        self.mag_lower_thresh = mag_baseline
-        self.mag_upper_thresh = mag_baseline + self.mag_range
-        print("Mag bounds", int(self.mag_lower_thresh), int(self.mag_upper_thresh))
+        
+        mag_baseline = self.get_mag_baseline(mag, accel, still_len)
 
-        mag_chunks, a_intint_chunks, _ = self.find_chunks(
+        mag_chunks, a_intint_chunks, _, gt_x_chunks = self.find_chunks(
             accel, 
             mag, 
+            gt_x_ts.x if gt_x_ts is not None else None,
             dt_s, 
             still_len, 
             bump_len, 
             stride, 
-            chunk_len, 
-            still_mag_max
+            mag_baseline
         )
-        mag_chunks_filt, a_intint_chunks_filt = self.filter_chunks(
-            mag_chunks, 
-            a_intint_chunks, 
-            self.mag_lower_thresh, 
-            self.mag_upper_thresh
-        )
-        model = self.chunkwise_ransac(mag_chunks_filt, a_intint_chunks_filt)
+        abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks)
+        print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
-        x_preds = self.predict(model, mag)
-        if gt_x_ts is not None:
-            error = self.get_error_in_bounds(model, mag, gt_x_ts)
-            print(f"Final RMSE in bounds: {error}")
+        ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
 
-        ws[self.outputs[0]] = TimeSeries(
-            t=accel_ts.t,
-            x=x_preds,
-            units="mm",
-            frame=accel_ts.frame,
-            meta={**accel_ts.meta},
-        )
-        ws[self.outputs[1]] = np.array([self.mag_lower_thresh, self.mag_upper_thresh])
-        ws[self.outputs[2]] = np.concatenate((model.coef_, [model.intercept_]))
-
-    def get_error_in_bounds(self, model, mag, gt_x_ts):
-        x_preds = self.predict(model, mag)
-        gt_x = gt_x_ts.x[:, 0]
-        mag_mask = (mag > self.mag_lower_thresh) * (mag < self.mag_upper_thresh)
-        mag_filt = mag[mag_mask]
-        preds_filt = x_preds[mag_mask]
-        gt_filt = gt_x[mag_mask]
-        error = np.mean((gt_filt - preds_filt) ** 2) ** 0.5
-
-        if self.debug:
-            plt.figure(figsize=(12,6))
-            plt.scatter(mag_filt, gt_filt, alpha=0.1, label="Ground truth")
-            plt.scatter(mag_filt, preds_filt, alpha=0.5, label="Predictions")
-            plt.xlabel("Magnetometer (mG)")
-            plt.ylabel("Integrated travel (mm)")
-            plt.grid()
-            plt.legend()
-            plt.show()
-
-        return error
-
-    def find_chunks(self, accel, mag, dt_s, still_len, bump_len, stride, chunk_len, still_mag_max):
+    def find_chunks(self, accel, mag, gt_x, dt_s, still_len, bump_len, stride, still_mag_max):
         # Find the chunks
         a_mms = accel * 1000
         still_slice = slice(0, still_len)
         bump_slice = slice(still_len, still_len + bump_len)
+        chunk_len = still_len + bump_len
 
         slices = []
         a_intint_chunks = []
         mag_chunks = []
+        if gt_x is not None:
+            gt_x_chunks = []
+        else:
+            gt_x_chunks = None
         i = 0
         skip = 0
         for i in range(0, a_mms.shape[0] - chunk_len, stride):
@@ -341,98 +274,41 @@ class GetLinearMagToTravelModel(Step):
                 a_intint_chunks.append(a_intint)
                 mag_chunks.append(mag_bump)
                 slices.append(chunk_i)
+                if gt_x is not None:
+                    gt_x_chunks.append(gt_x[chunk_i][bump_slice])
         
         print("Calibration chunks:", len(a_intint_chunks), "chunks,", len(a_intint_chunks[0]), "samples per chunk")
 
-        return mag_chunks, a_intint_chunks, slices
+        return mag_chunks, a_intint_chunks, slices, gt_x_chunks
 
-    def filter_chunks(self, mag_chunks, a_intint_chunks, mag_lo, mag_hi):
-        mag_chunks_filt = []
-        aii_chunks_filt = []
-        for (mag_chunk, a_intint) in zip(mag_chunks, a_intint_chunks):
-            mask_i = (mag_chunk > mag_lo) * (mag_chunk < mag_hi)
-            if len(a_intint[mask_i]) > 0:
-                aii_chunks_filt.append(a_intint[mask_i])
-                mag_chunks_filt.append(mag_chunk[mask_i])
-        print("Filtered chunks:", len(aii_chunks_filt), "chunks,", len(aii_chunks_filt[0]), "samples per chunk")
-        return mag_chunks_filt, aii_chunks_filt
+    def get_abs_pos_ref(self, mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks=None):
+        x_points = np.concatenate(a_intint_chunks)
+        mag_points = np.concatenate(mag_chunks)
+        print("Absolute position reference input points", x_points.shape[0])
 
-    def mean_bin_std(self, mag_chunks_filt, a_intint_chunks_filt, num_bins=10):
-        x_points = np.concatenate(a_intint_chunks_filt)
-        mag_points = np.concatenate(mag_chunks_filt)
-        print("Mean bin std input points", x_points.shape[0])
+        mag_center = max(mag_baseline + self.min_ref_mag, np.median(mag_points))
+        center_range = self.ref_mag_range / 2
+        thresh_mask = (mag_points > mag_center - center_range) & (mag_points < mag_center + center_range)
+        print(f"Using {np.sum(thresh_mask)} points within mag range {mag_center - center_range} to {mag_center + center_range} for absolute position reference stats")
+        abs_pos_ref_x = np.median(x_points[thresh_mask])
+        abs_pos_ref_mag = np.median(mag_points[thresh_mask])
 
-        mag_max = np.percentile(mag_points, 95)
-        mag_min = np.percentile(mag_points, 5)
-        bin_size = (mag_max - mag_min) / num_bins
+        if gt_x_chunks is not None:
+            gt_x_points = np.concatenate(gt_x_chunks)
+            abs_pos_ref_error = abs_pos_ref_x - np.median(gt_x_points[thresh_mask])
+            print(f"Absolute position reference error compared to GT: {abs_pos_ref_error:.1f} mm")
 
-        bins = []
-        for i in range(num_bins):
-            bin_min = mag_min + (bin_size * i)
-            bin_max = mag_min + (bin_size * (i + 1))
+        return abs_pos_ref_x, abs_pos_ref_mag
+    
+    def get_mag_baseline(self, mag, accel, still_len):
+        a_mms = accel * 1000
+        still_mags = []
+        for i in range(0, mag.shape[0] - still_len, still_len):
+            mag_chunk = mag[i:i+still_len]
+            a_chunk = a_mms[i:i+still_len]
+            if max(abs(a_chunk)) < self.still_a_max:
+                still_mags.append(mag_chunk)
 
-            mask = (mag_points > bin_min) * (mag_points <= bin_max)
-            x_masked = x_points[mask]
-            bins.append(x_masked)
-
-        bin_stds = np.asarray([np.std(bin) for bin in bins])
-        bin_centers = np.asarray([mag_min + (bin_size * (i + 0.5)) for i in range(num_bins)])
-        min_std_bin = bin_centers[np.argmin(bin_stds)]
-        print("Min std bin center", int(min_std_bin), "std", np.min(bin_stds), "mean", int(np.mean(bins[np.argmin(bin_stds)])))
-
-        mean_bin_std = np.mean(bin_stds)
-        print("Mean bin std", mean_bin_std)
-        return mean_bin_std
-
-    def chunkwise_ransac(self, mag_chunks_filt, a_intint_chunks_filt):
-        if len(mag_chunks_filt) < self.ransac_k:
-            print("Not enough chunks for RANSAC, using all points for fit")
-            mag_points = np.concatenate(mag_chunks_filt)
-            x_points = np.concatenate(a_intint_chunks_filt)
-            poly = PolynomialFeatures(degree=self.poly_degree)
-            X_poly = poly.fit_transform(mag_points.reshape(-1, 1))
-            model = LinearRegression()
-            model.fit(X_poly, x_points)
-            return model
-        # RANSAC
-        mean_bin_std = self.mean_bin_std(mag_chunks_filt, a_intint_chunks_filt)
-        outlier_dist = mean_bin_std * 0.5
-        print("Outlier distance threshold", outlier_dist)
-        print(len(mag_chunks_filt), "chunks to RANSAC on")
-
-        best_model = None
-        best_inliers = None
-        for i in range(self.ransac_n_iter):
-            sampled_chunks = random.sample(list(zip(mag_chunks_filt, a_intint_chunks_filt)), self.ransac_k)
-            mag_points_i = np.concatenate([chunk_i[0] for chunk_i in sampled_chunks])
-            x_points_i = np.concatenate([chunk_i[1] for chunk_i in sampled_chunks])
-
-            # Train on just the sampled chunks
-            poly = PolynomialFeatures(degree=self.poly_degree)
-            X_poly = poly.fit_transform(mag_points_i.reshape(-1, 1))
-            model = LinearRegression()
-            model.fit(X_poly, x_points_i)
-
-            # Find inlier chunks based on distance to model
-            n_inliers = 0
-            for chunk_i in zip(mag_chunks_filt, a_intint_chunks_filt):
-                mag_chunk = chunk_i[0]
-                x_chunk = chunk_i[1]
-                mag_chunk_poly = poly.fit_transform(mag_chunk.reshape(-1, 1))
-                preds_chunk = model.predict(mag_chunk_poly)
-                dist = np.sqrt(np.mean((preds_chunk - x_chunk) ** 2))
-                if dist < outlier_dist:
-                    n_inliers += 1#preds_chunk.shape[0]
-
-            if best_inliers is None or n_inliers > best_inliers:
-                best_inliers = n_inliers
-                best_model = model
-                
-        print("Best model inliers:", best_inliers)
-        print("Best model coeffs, intercept:", best_model.coef_, best_model.intercept_)
-        return best_model
-
-    def predict(self, model, mag):
-        poly = PolynomialFeatures(degree=self.poly_degree)
-        mag_poly = poly.fit_transform(mag.reshape(-1, 1))
-        return model.predict(mag_poly)
+        mag_baseline = np.median(still_mags) + np.std(still_mags)
+        print("Mag baseline", mag_baseline, "std", np.std(still_mags))
+        return mag_baseline

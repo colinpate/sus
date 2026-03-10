@@ -6,8 +6,8 @@ from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoade
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import FilterChunkPairs, FilterColinearPairs, RotationFromPairs, GetRelativeAccel, GetAccelTravelVector, ProjectAccel
 from angle import AngleToTravel
-from mag import ProjectMag, MagToTravelPolyFit, FindMagZVPoints, CorrectBadMagProj
-from fusion import GetMagBaseline, GetMagToTravelModel
+from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
+from fusion import GetMagTravelRefPoint, GetMagToTravelModel
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
 
@@ -169,6 +169,11 @@ def main() -> None:
         ),
 
         # Fusion steps
+        GetMagTravelRefPoint(
+            name="get_mag_travel_ref_point",
+            inputs=("mag/proj/lpf/corr", "accel/lpfhp/proj", "travel"),
+            outputs=("mag_travel_ref_point",)
+        ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
             inputs=("mag/proj/lpf/corr", "accel/lpf/proj", "travel", "mag/proj/lpf/bad_mask", "mag_zv_points"),
