@@ -29,3 +29,44 @@ class AngleToTravel(Step):
             frame=a.frame,
             meta={**a.meta},
         )
+
+@dataclass
+class FindBoringRegions(Step):
+    """Find boring regions where travel is stable"""
+    travel_delta_threshold: float = 10  # mm
+    max_travel: float = 50 # mm
+    min_region_len_samp: int = 100
+    padding : int = 10
+
+    def run(self, ws: Workspace) -> None:
+        trav_ts: TimeSeries = ws[self.inputs[0]]
+        trav = trav_ts.x[:, 0]
+        print(trav.shape)
+
+        chunk_start = 0
+
+        chunks = []
+        i = 1
+        while i < len(trav):
+            i += 1
+            # Find end of boring region
+            cond_1 = np.abs(max(trav[chunk_start:i]) - min(trav[chunk_start:i])) > self.travel_delta_threshold
+            cond_2 = np.max(trav[chunk_start:i]) > self.max_travel
+            if cond_1 or cond_2:
+                chunk_end = i
+
+                # Only keep boring regions that are long enough
+                if (chunk_end - chunk_start) >= self.min_region_len_samp:
+                    chunks.append((max(0, chunk_start + self.padding), min(len(trav), chunk_end - self.padding)))
+
+                chunk_start = i
+
+        print(len(chunks), "boring regions found")
+
+        # Create mask for boring regions
+        mask = np.ones(len(trav), dtype=bool)
+        for start, end in chunks:
+            mask[start:end] = False
+
+        ws[self.outputs[0]] = chunks
+        ws[self.outputs[1]] = mask

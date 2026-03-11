@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import FilterChunkPairs, FilterColinearPairs, RotationFromPairs, GetRelativeAccel, GetAccelTravelVector, ProjectAccel
-from angle import AngleToTravel
+from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel
 from classes.time_series import TimeSeries
@@ -132,6 +132,11 @@ def main() -> None:
             name="angle_to_travel",
             inputs=("angle/lpf",),
             outputs=("travel",),
+        ),
+        FindBoringRegions(
+            name="find_boring_regions",
+            inputs=("travel",),
+            outputs=("boring_regions", "boring_mask"),
         ),
 
         # Magnetometer processing

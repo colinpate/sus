@@ -67,7 +67,7 @@ class GetMagToTravelModel(Step):
         else:
             x_preds_adj = x_preds
 
-        self.calculate_rmse(x_preds, travel, x_preds_adj, thresh=50)
+        self.calculate_rmse(x_preds, travel, x_preds_adj, thresh=0)
 
         ws[self.outputs[0]] = TimeSeries(
             t=accel_ts.t,
