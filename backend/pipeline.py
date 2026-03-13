@@ -7,7 +7,8 @@ from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import FilterChunkPairs, FilterColinearPairs, RotationFromPairs, GetRelativeAccel, GetAccelTravelVector, ProjectAccel
 from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
-from fusion import GetMagTravelRefPoint, GetMagToTravelModel
+from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats
+from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
 
@@ -154,18 +155,18 @@ def main() -> None:
             fc_hz=20,
             btype="low",
         ),
-        FilterStep(
-            name="lowpass_mag",
-            inputs=("mag",),
-            outputs=("mag/lpf",),
-            plot_keys=("mag", "mag/lpf"),
-            fc_hz=20,
-            btype="low",
-        ),
         CorrectBadMagProj(
             name="find_bad_mag/proj",
-            inputs=("mag", "mag/proj/lpf"),
-            outputs=("mag/proj/lpf/corr", "mag/proj/lpf/bad_mask",)
+            inputs=("mag", "mag/proj"),
+            outputs=("mag/proj/corr", "mag/proj/bad_mask",)
+        ),
+        FilterStep(
+            name="lowpass_mag/proj/corr",
+            inputs=("mag/proj/corr",),
+            outputs=("mag/proj/corr/lpf",),
+            plot_keys=("mag/proj/corr/lpf",),
+            fc_hz=20,
+            btype="low",
         ),
         FindMagZVPoints(
             name="find_mag_zv_points",
@@ -176,25 +177,56 @@ def main() -> None:
         # Fusion steps
         GetMagTravelRefPoint(
             name="get_mag_travel_ref_point",
-            inputs=("mag/proj/lpf/corr", "accel/lpfhp/proj", "travel"),
-            outputs=("mag_travel_ref_point",)
+            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "travel"),
+            outputs=("mag_travel_ref_point", "mag_baseline")
         ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
             inputs=(
-                "mag/proj/lpf/corr", 
+                "mag/proj/corr/lpf", 
                 "accel/lpf/proj", 
                 "travel", 
-                "mag/proj/lpf/bad_mask", 
+                "mag/proj/bad_mask", 
                 "mag_zv_points",
                 "mag_travel_ref_point",
                 ),
-            outputs=("travel/mag_model", "fusion_scatter_points"),
+            outputs=("travel/mag_model", "travel/mag_model/adj", "fusion_scatter_points"),
             plot_keys=(
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),
             train_with_mask=True,
-        )
+        ),
+        GetErrorStats(
+            name="x_preds_stats",
+            inputs=("travel/mag_model", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=0
+        ),
+        GetErrorStats(
+            name="x_preds_adj_stats",
+            inputs=("travel/mag_model/adj", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=0
+        ),
+        TravelSolver(
+            name="travel_solver",
+            inputs=(
+                "accel/lpfhp/proj", 
+                "mag/proj/corr/lpf", 
+                "travel/mag_model/adj", 
+                "mag_zv_points", 
+                "mag_baseline",
+                "travel",
+            ),
+            outputs=("travel/solved",),
+            plot_keys=("travel/solved",)
+        ),
+        GetErrorStats(
+            name="x_preds_solver",
+            inputs=("travel/solved", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=0
+        ),
     ]
 
     runner = Runner(out_dir=out_dir, write_cache=True, make_plots=True)

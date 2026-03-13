@@ -67,18 +67,22 @@ class GetMagToTravelModel(Step):
         else:
             x_preds_adj = x_preds
 
-        self.calculate_rmse(x_preds, travel, x_preds_adj, thresh=0)
-
         ws[self.outputs[0]] = TimeSeries(
+            t=accel_ts.t,
+            x=x_preds,
+            units="mm",
+            frame=accel_ts.frame,
+            meta={**accel_ts.meta},
+        )
+        ws[self.outputs[1]] = TimeSeries(
             t=accel_ts.t,
             x=x_preds_adj,
             units="mm",
             frame=accel_ts.frame,
             meta={**accel_ts.meta},
         )
-
         scatter_points = np.array([mag, travel, x_preds_adj]).T
-        ws[self.outputs[1]] = scatter_points
+        ws[self.outputs[2]] = scatter_points
 
     def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs):
         x0, y_scale, power = coeffs
@@ -167,14 +171,31 @@ class GetMagToTravelModel(Step):
         
         return result
     
-    def calculate_rmse(self, preds, travel, preds_adj, thresh):
-        # Calc RMSE
-        trav_thresh_mask = travel > thresh
+@dataclass
+class GetErrorStats(Step):
+    """ Get error stats for mag to travel model """
+    gt_thresh: float = 0
 
-        print_err_stats(preds, travel, prefix=f"Mag-predicted x")
-        print_err_stats(preds[trav_thresh_mask], travel[trav_thresh_mask], prefix=f"Mag-predicted x (> {thresh:.1f} mm)")
-        print_err_stats(preds[trav_thresh_mask], travel[trav_thresh_mask], prefix=f"Mag-predicted x (> {thresh:.1f} mm) (centered)", center=True)
-        print_err_stats(preds_adj[trav_thresh_mask], travel[trav_thresh_mask], prefix=f"Mag-predicted x adjusted with reference point (> {thresh:.1f} mm)")
+    def run(self, ws: Workspace) -> None:
+        preds_ts: TimeSeries = ws[self.inputs[0]]
+        gt_ts: TimeSeries = ws[self.inputs[1]]
+        mask_in: np.ndarray | None = None
+        if len(self.inputs) > 2:
+            mask_in = ws[self.inputs[2]]
+
+        preds = preds_ts.x[:, 0]
+        gt = gt_ts.x[:, 0]
+
+        mask = gt > self.gt_thresh
+        if mask_in is not None:
+            mask *= mask_in.flatten()
+            print(f"Calculating error stats with mask, using {np.sum(mask_in)/len(mask)*100:.1f}% samples")
+        preds_masked = preds[mask]
+        gt_masked = gt[mask]
+
+        print_err_stats(preds_masked, gt_masked, prefix=f"Thresh (> {self.gt_thresh:.1f} mm) (centered)", center=True)
+        print_err_stats(preds_masked, gt_masked, prefix=f"Thresh (> {self.gt_thresh:.1f} mm)")
+    
 
 @dataclass
 class GetMagTravelRefPoint(Step):
@@ -189,7 +210,7 @@ class GetMagTravelRefPoint(Step):
     skips: int = 3 # number of following strides to skip if we find a good one, prevents repeats
 
     ref_mag_range: float = 2000
-    min_ref_mag: float = 1500
+    min_ref_mag: float = 2000
 
     debug: bool = False
 
@@ -226,6 +247,7 @@ class GetMagTravelRefPoint(Step):
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
         ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
+        ws[self.outputs[1]] = np.array([mag_baseline])
 
     def find_chunks(self, accel, mag, gt_x, dt_s, still_len, bump_len, stride, still_mag_max):
         # Find the chunks
@@ -298,6 +320,7 @@ class GetMagTravelRefPoint(Step):
         print(f"Using {np.sum(thresh_mask)} points within mag range {mag_center - center_range} to {mag_center + center_range} for absolute position reference stats")
         abs_pos_ref_x = np.median(x_points[thresh_mask])
         abs_pos_ref_mag = np.median(mag_points[thresh_mask])
+        print(f"X STD: {np.std(x_points[thresh_mask]):.1f} Mag STD: {np.std(mag_points[thresh_mask]):.1f}")
 
         if gt_x_chunks is not None:
             gt_x_points = np.concatenate(gt_x_chunks)
