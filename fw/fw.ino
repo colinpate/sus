@@ -21,7 +21,7 @@
 static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_10;
 static constexpr gpio_num_t PERIPH_EN = GPIO_NUM_45;
 static constexpr uint8_t BUTTON_HOLD = 16; // 0.8s at 20Hz
-static constexpr uint32_t SAMPLE_HZ = 100;
+static constexpr uint32_t SAMPLE_HZ = 200;
 
 // Two LIS3DH I2C addresses (set by SA0 pin on each sensor)
 static constexpr uint8_t LIS1_ADDR = 0x18;
@@ -114,13 +114,13 @@ void sensorTask(void *param) {
   xSemaphoreTake(i2cMutex, portMAX_DELAY);
 
   // Faster I2C helps at 200 Hz with 3 sensors
-  Wire.setClock(200000); // 1 MHz (ESP32-S3 supports fast I2C; drop to 400k if needed)
+  Wire.setClock(400000); // 1 MHz (ESP32-S3 supports fast I2C; drop to 400k if needed)
 
   if (!lis1.begin(LIS1_ADDR)) {
     Serial.println("LIS1 not found");
   } else {
     lis1_conn = true;
-    lis1.setDataRate(LIS3DH_DATARATE_100_HZ);
+    lis1.setDataRate(LIS3DH_DATARATE_200_HZ);
     lis1.setRange(LIS3DH_RANGE_16_G);
     lis1.setPerformanceMode(LIS3DH_MODE_HIGH_RESOLUTION);
   }
@@ -128,7 +128,7 @@ void sensorTask(void *param) {
     Serial.println("LIS2 not found");
   } else {
     lis2_conn = true;
-    lis2.setDataRate(LIS3DH_DATARATE_100_HZ);
+    lis2.setDataRate(LIS3DH_DATARATE_200_HZ);
     lis2.setRange(LIS3DH_RANGE_16_G);
     lis2.setPerformanceMode(LIS3DH_MODE_HIGH_RESOLUTION);
   }
@@ -298,8 +298,8 @@ void writerTask(void *param) {
 
   xSemaphoreGive(sdMutex);
 
-  // Simple block accumulator (~512B) to reduce small writes
-  uint8_t block[512];
+  // Simple block accumulator (~1024B) to reduce small writes
+  uint8_t block[1024];
   size_t  used = 0;
 
   uint32_t lastFlushMs = now_ms();

@@ -12,6 +12,8 @@ from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
 
+DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
+
 def main() -> None:
     log_filename = parse_args().log_filename
     out_dir = Path("run_artifacts") / log_filename
@@ -40,6 +42,7 @@ def main() -> None:
             plot_keys=("accel/lis1", "accel/lpf/lis1"),
             fc_hz=20,
             btype="low",
+            dec_freq=DEC_FREQ,
         ),
         FilterStep(
             name="lowpass_lis2",
@@ -48,6 +51,7 @@ def main() -> None:
             plot_keys=("accel/lis2", "accel/lpf/lis2"),
             fc_hz=20,
             btype="low",
+            dec_freq=DEC_FREQ,
         ),
         ChunkStep(
             name="chunk_lis1",
@@ -90,6 +94,7 @@ def main() -> None:
             outputs=("accel/lpf/relative",),
             fc_hz=20,
             btype="low",
+            dec_freq=DEC_FREQ,
         ),
         GetAccelTravelVector(
             name="get_acc_trav_vec",
@@ -111,6 +116,8 @@ def main() -> None:
             outputs=("accel/lpf/proj",),
             fc_hz=20,
             btype="low",
+            dec_freq=DEC_FREQ,
+
         ),
         FilterStep(
             name="highpass_accelproj",
@@ -128,6 +135,7 @@ def main() -> None:
             plot_keys=("angle","angle/lpf"),
             fc_hz=20,
             btype="low",
+            dec_freq=DEC_FREQ,
         ),
         AngleToTravel(
             name="angle_to_travel",
@@ -148,25 +156,27 @@ def main() -> None:
             plot_keys=("mag/proj",)
         ),
         FilterStep(
+            name="lowpass_mag",
+            inputs=("mag",),
+            outputs=("mag/lpf",),
+            plot_keys=("mag/lpf",),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        FilterStep(
             name="lowpass_mag/proj",
             inputs=("mag/proj",),
             outputs=("mag/proj/lpf",),
             plot_keys=("mag/proj/lpf",),
             fc_hz=20,
             btype="low",
+            dec_freq=DEC_FREQ,
         ),
         CorrectBadMagProj(
-            name="find_bad_mag/proj",
-            inputs=("mag", "mag/proj"),
-            outputs=("mag/proj/corr", "mag/proj/bad_mask",)
-        ),
-        FilterStep(
-            name="lowpass_mag/proj/corr",
-            inputs=("mag/proj/corr",),
-            outputs=("mag/proj/corr/lpf",),
-            plot_keys=("mag/proj/corr/lpf",),
-            fc_hz=20,
-            btype="low",
+            name="find_bad_mag_proj",
+            inputs=("mag/lpf", "mag/proj/lpf"),
+            outputs=("mag/proj/corr/lpf", "mag/proj/bad_mask",)
         ),
         FindMagZVPoints(
             name="find_mag_zv_points",

@@ -23,9 +23,9 @@ class Step:
 
 @dataclass
 class FilterStep(Step):
-    """Very basic low-pass via moving average (placeholder)."""
     fc_hz: float
     btype: str = "low"
+    dec_freq: Optional[float] = None
 
     def run(self, ws: Workspace) -> None:
         ts: TimeSeries = ws[self.inputs[0]]
@@ -34,13 +34,27 @@ class FilterStep(Step):
         sos = butter(N=4, Wn=self.fc_hz, btype=self.btype, fs=fs_hz, output="sos")
 
         xf = sosfiltfilt(sos, ts.x, axis=0)
+        t = ts.t
+
+        if self.dec_freq is not None and self.dec_freq < fs_hz:
+            dec_factor = int(fs_hz / self.dec_freq)
+            if dec_factor > 1:
+                print(f"Decimating from {fs_hz} Hz to {fs_hz / dec_factor} Hz by factor of {dec_factor}")
+                xf = xf[::dec_factor]
+                t = ts.t[::dec_factor]
+                fs_hz = fs_hz / dec_factor
 
         ws[self.outputs[0]] = TimeSeries(
-            t=ts.t,
+            t=t,
             x=xf,
             units=ts.units,
             frame=ts.frame,
-            meta={**ts.meta, f"{self.name}_fc_hz": self.fc_hz, f"{self.name}_btype": self.btype},
+            meta={
+                **ts.meta, 
+                f"{self.name}_fc_hz": self.fc_hz, 
+                f"{self.name}_btype": self.btype,
+                "fs_hz": fs_hz,
+            },
         )
 
 
