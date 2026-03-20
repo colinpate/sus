@@ -51,6 +51,7 @@ class GetMagToTravelModel(Step):
         dt_s = np.diff(t, prepend=t[0]-0.01)
 
         if self.train_with_mask:
+            print("Trainign with mask, shape of bad mask", mag_proj_bad_mask.shape, "num bad samples", np.sum(mag_proj_bad_mask))
             training_mask = mag_proj_bad_mask
         else:
             training_mask = np.zeros(mag_ts.x.shape[0], dtype=bool)
