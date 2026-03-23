@@ -210,13 +210,13 @@ def main() -> None:
             name="x_preds_stats",
             inputs=("travel/mag_model", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=0
+            gt_thresh=30
         ),
         GetErrorStats(
             name="x_preds_adj_stats",
             inputs=("travel/mag_model/adj", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=0
+            gt_thresh=30
         ),
         TravelSolver(
             name="travel_solver",
@@ -239,7 +239,7 @@ def main() -> None:
         ),
     ]
 
-    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False)
+    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=True)
     ws = runner.run(ws, steps)
 
     # Example: access final result

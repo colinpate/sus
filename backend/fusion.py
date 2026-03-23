@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 
 def print_err_stats(x, gt, center=False, prefix=""):
     if center:
-        x = x - np.mean(x)
-        gt = gt - np.mean(gt)
+        x = x.copy() - np.mean(x)
+        gt = gt.copy() - np.mean(gt)
     error = x - gt
     rmse = np.mean(error ** 2) ** 0.5
     mae = np.mean(abs(error))
@@ -96,6 +96,7 @@ class GetMagToTravelModel(Step):
     def get_chunks(self, idxs_filt, mag, acc, dt_s, mag_proj_bad_mask):
         chunk_len = self.chunk_len
         min_dx = self.chunk_min_dx
+        print("Min mag:", self.min_mag)
 
         xs = []
         mags = []
@@ -113,10 +114,12 @@ class GetMagToTravelModel(Step):
             if max(x_chunk) - min(x_chunk) < min_dx:
                 continue
             mag_chunk = mag[idx - chunk_len:idx + chunk_len]
+            if min(mag_chunk) < self.min_mag:
+                continue
             xs.append(x_chunk)
             mags.append(mag_chunk)
 
-        print(len(xs))
+        print("Xs:", len(xs))
 
         return xs, mags
 
@@ -131,8 +134,7 @@ class GetMagToTravelModel(Step):
 
         input_list = []
         for i, (x_i, mag_i) in enumerate(zip(xs, mags)):
-            if np.count_nonzero(mag_i[pt_idxes] < self.min_mag) == 0:
-                input_list.append([mag_i[pt_idxes], x_i[pt_idxes]])
+            input_list.append([mag_i[pt_idxes], x_i[pt_idxes]])
 
         input_arr = np.array(input_list)
         print(input_arr.shape)

@@ -195,7 +195,7 @@ void sensorTask(void *param) {
       // Store as int16 milliGauss to preserve precision and keep records fixed-size.
       mmc.getEvent(&magEvent);
 
-      float temp_c = mmc.readTemperature();
+      float temp_c = 0; //mmc.readTemperature(); // Doesn't work in continuous mode
 
 
       r.mmc_mG[0] = (int16_t)llround((double)magEvent.magnetic.x * 10.0); // uT -> mG
