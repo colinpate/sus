@@ -31,7 +31,7 @@ class GetMagToTravelModel(Step):
     """ Train a model using least squares  """
     chunk_min_dx = 10
     chunk_len = 20
-    min_mag = 500
+    min_mag = 700
     train_with_mask: bool = False
     apply_ref_point: bool = True
 

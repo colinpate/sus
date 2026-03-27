@@ -4,7 +4,16 @@ from argparse import ArgumentParser
 
 from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader
 from classes.step import Step, FilterStep, ChunkStep
-from accel_rotation import FilterChunkPairs, FilterColinearPairs, RotationFromPairs, GetRelativeAccel, GetAccelTravelVector, ProjectAccel
+from accel_rotation import (
+    FilterChunkPairs, 
+    FilterColinearPairs, 
+    RotationFromPairs, 
+    GetRelativeAccel, 
+    GetAccelTravelVector, 
+    ProjectAccel,
+    GetAccelError,
+    CorrectStaticOffset
+)
 from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats
@@ -73,7 +82,17 @@ def main() -> None:
         FilterColinearPairs(
             name="filter_colinear",
             inputs=("filtered_pairs",),
-            outputs=("filtered_pairs_col",)
+            outputs=("filtered_pairs_col", "lis1_chunks_filt", "lis2_chunks_filt")
+        ),
+        CorrectStaticOffset(
+            name="correct_lis1_offset",
+            inputs=("lis1_chunks_filt", "accel/lis1"),
+            outputs=("lis1_chunks_filt", "accel/lis1"),
+        ),
+        CorrectStaticOffset(
+            name="correct_lis2_offset",
+            inputs=("lis2_chunks_filt", "accel/lis2"),
+            outputs=("lis2_chunks_filt", "accel/lis2"),
         ),
         RotationFromPairs(
             name="accel_rot_from_pairs",
@@ -117,7 +136,6 @@ def main() -> None:
             fc_hz=20,
             btype="low",
             dec_freq=DEC_FREQ,
-
         ),
         FilterStep(
             name="highpass_accelproj",
@@ -141,6 +159,11 @@ def main() -> None:
             name="angle_to_travel",
             inputs=("angle/lpf",),
             outputs=("travel",),
+        ),
+        GetAccelError(
+            name="accel_proj_error",
+            inputs=("accel/lpf/proj", "travel"),
+            outputs=(),
         ),
         FindBoringRegions(
             name="find_boring_regions",

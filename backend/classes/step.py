@@ -39,10 +39,10 @@ class FilterStep(Step):
         if self.dec_freq is not None and self.dec_freq < fs_hz:
             dec_factor = round(fs_hz / self.dec_freq)
             if dec_factor > 1:
-                print(f"Decimating from {fs_hz} Hz to {fs_hz / dec_factor} Hz by factor of {dec_factor}")
+                #print(f"Decimating from {fs_hz:.1f} Hz to {fs_hz / dec_factor:.1f} Hz by factor of {dec_factor}")
                 xf = xf[::dec_factor]
                 t = ts.t[::dec_factor]
-                fs_hz = fs_hz / dec_factor
+                fs_hz = round(fs_hz / dec_factor)
 
         ws[self.outputs[0]] = TimeSeries(
             t=t,
