@@ -258,7 +258,7 @@ def main() -> None:
             name="x_preds_solver",
             inputs=("travel/solved", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=0
+            gt_thresh=30
         ),
     ]
 

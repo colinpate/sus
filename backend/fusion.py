@@ -89,7 +89,12 @@ class GetMagToTravelModel(Step):
         x0, y_scale, power = coeffs
         ref_x_pred = self.pred_x(ref_mag, x0, y_scale, power)
         offset = - ref_x_pred + ref_x
-        print("Adjusting predicted x by offset", offset, "to align reference point")
+        min_mag_pred = self.pred_x(self.min_mag, x0, y_scale, power)
+        # if min_mag_pred < -offset:
+        #     print(f"Offset too low: {offset:.1f} using -{min_mag_pred:.1f}")
+        #     offset = -min_mag_pred
+        # else:
+        #     print("Adjusting predicted x by offset", offset, "to align reference point")
         x_preds_ref = x_preds + offset
         return x_preds_ref
 
@@ -328,10 +333,23 @@ class GetMagTravelRefPoint(Step):
         if gt_x_chunks is not None:
             gt_x_points = np.concatenate(gt_x_chunks)
             abs_pos_ref_error = abs_pos_ref_x - np.median(gt_x_points[thresh_mask])
+            #self.plot_points(x_points, mag_points, gt_x_points)
             print(f"Absolute position reference error compared to GT: {abs_pos_ref_error:.1f} mm")
 
         return abs_pos_ref_x, abs_pos_ref_mag
     
+    def plot_points(self, x_points, mag_points, gt_x_points=None):
+        plt.figure(figsize=(10, 6))
+        if gt_x_points is not None:
+            plt.scatter(mag_points, gt_x_points, alpha=0.5, label="GT x points")
+        plt.scatter(mag_points, x_points, alpha=0.5, label="Calibration points")
+        plt.xlabel("Mag (mG)")
+        plt.ylabel("Integrated accel (mm)")
+        plt.title("Calibration points for absolute position reference")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
     def get_mag_baseline(self, mag, accel, still_len):
         a_mms = accel * 1000
         still_mags = []
