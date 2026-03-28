@@ -24,6 +24,7 @@ static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_10;
 static constexpr gpio_num_t PERIPH_EN = GPIO_NUM_45;
 static constexpr uint8_t BUTTON_HOLD = 16; // 0.8s at 20Hz
 static constexpr uint32_t SAMPLE_HZ = 200;
+static constexpr uint32_t WEB_TASK_STACK_BYTES = 12 * 1024;
 
 static SemaphoreHandle_t i2cMutex;
 static SemaphoreHandle_t sdMutex;
@@ -251,7 +252,7 @@ void setup() {
   // Task stack sizes: bump if you add WiFi/networking + parsing
   xTaskCreatePinnedToCore(sensorTask, "sensor", 4096, nullptr, 2, nullptr, 1);
   xTaskCreatePinnedToCore(writerTask, "writer", 4096, nullptr, 1, nullptr, 1);
-  xTaskCreatePinnedToCore(webTask, "web", 4096, nullptr, 3, nullptr, 0);
+  xTaskCreatePinnedToCore(webTask, "web", WEB_TASK_STACK_BYTES, nullptr, 3, nullptr, 0);
   xTaskCreate(buttonTask, "power", 4096, nullptr, 0, nullptr);
 }
 
