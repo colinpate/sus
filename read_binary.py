@@ -6,7 +6,8 @@ import struct
 from typing import Dict, Iterator, Tuple
 
 LEGACY_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "H" + "i")
-CURRENT_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
+IMU_GYRO_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
+DUAL_MAG_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
 
 FORMATS: Dict[str, Dict[str, object]] = {
     "legacy": {
@@ -23,9 +24,9 @@ FORMATS: Dict[str, Dict[str, object]] = {
             "temp_C",
         ],
     },
-    "current": {
-        "size": CURRENT_STRUCT.size,
-        "struct": CURRENT_STRUCT,
+    "imu_gyro": {
+        "size": IMU_GYRO_STRUCT.size,
+        "struct": IMU_GYRO_STRUCT,
         "header": [
             "t_ms",
             "seq",
@@ -39,17 +40,33 @@ FORMATS: Dict[str, Dict[str, object]] = {
             "temp_C",
         ],
     },
+    "dual_mag": {
+        "size": DUAL_MAG_STRUCT.size,
+        "struct": DUAL_MAG_STRUCT,
+        "header": [
+            "t_ms",
+            "seq",
+            "lis1_x", "lis1_y", "lis1_z",
+            "lis2_x", "lis2_y", "lis2_z",
+            "gyro1_dps10_x", "gyro1_dps10_y", "gyro1_dps10_z",
+            "gyro2_dps10_x", "gyro2_dps10_y", "gyro2_dps10_z",
+            "mmc_mG_x", "mmc_mG_y", "mmc_mG_z",
+            "lis3mdl_mG_x", "lis3mdl_mG_y", "lis3mdl_mG_z",
+            "angle_raw",
+            "temp_deciC",
+            "temp_C",
+        ],
+    },
 }
 
 def detect_format(path: str) -> str:
     size = os.path.getsize(path)
-    if size % CURRENT_STRUCT.size == 0:
-        return "current"
-    if size % LEGACY_STRUCT.size == 0:
-        return "legacy"
+    for fmt in ("dual_mag", "imu_gyro", "legacy"):
+        if size % FORMATS[fmt]["size"] == 0:
+            return fmt
     raise ValueError(
         f"Could not determine record format for {path}: size {size} is not a multiple "
-        f"of {LEGACY_STRUCT.size} or {CURRENT_STRUCT.size} bytes"
+        f"of {LEGACY_STRUCT.size}, {IMU_GYRO_STRUCT.size}, or {DUAL_MAG_STRUCT.size} bytes"
     )
 
 def iter_records(path: str, fmt: str) -> Iterator[Tuple]:
@@ -101,7 +118,7 @@ def convert(bin_path: str, csv_path: str, add_seconds: bool = True, fmt: str | N
                     temp_deciC,
                     f"{temp_deciC / 10.0:.1f}",
                 ]
-            else:
+            elif fmt == "imu_gyro":
                 (
                     t_ms, seq,
                     lis1_x, lis1_y, lis1_z,
@@ -121,6 +138,32 @@ def convert(bin_path: str, csv_path: str, add_seconds: bool = True, fmt: str | N
                     gyro1_x, gyro1_y, gyro1_z,
                     gyro2_x, gyro2_y, gyro2_z,
                     mmc_x, mmc_y, mmc_z,
+                    angle_raw,
+                    temp_deciC,
+                    f"{temp_deciC / 10.0:.1f}",
+                ]
+            else:
+                (
+                    t_ms, seq,
+                    lis1_x, lis1_y, lis1_z,
+                    lis2_x, lis2_y, lis2_z,
+                    gyro1_x, gyro1_y, gyro1_z,
+                    gyro2_x, gyro2_y, gyro2_z,
+                    mmc_x, mmc_y, mmc_z,
+                    lis3mdl_x, lis3mdl_y, lis3mdl_z,
+                    angle_raw,
+                    temp_deciC,
+                ) = rec
+
+                row = [
+                    t_ms,
+                    seq,
+                    lis1_x, lis1_y, lis1_z,
+                    lis2_x, lis2_y, lis2_z,
+                    gyro1_x, gyro1_y, gyro1_z,
+                    gyro2_x, gyro2_y, gyro2_z,
+                    mmc_x, mmc_y, mmc_z,
+                    lis3mdl_x, lis3mdl_y, lis3mdl_z,
                     angle_raw,
                     temp_deciC,
                     f"{temp_deciC / 10.0:.1f}",
