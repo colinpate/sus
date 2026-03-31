@@ -297,7 +297,7 @@ class GetAccelTravelVector(Step):
         for chunk in chunks:
             chunk_net_magnitude = np.linalg.norm(np.mean(chunk, axis=0))
             if chunk_net_magnitude > self.accel_threshold:
-                if np.mean(chunk, axis=0)[0] < 0: # Only keep chunks with net negative X acceleration
+                if np.mean(chunk, axis=0)[0] > 0: # Only keep chunks with net positive X acceleration
                     good_chunks.append(chunk)
         print("Accel travel vector:", len(good_chunks), "interesting chunks found")
         good_chunks = np.array(good_chunks)
@@ -398,6 +398,9 @@ class GetAccelError(Step):
         a_gt = np.diff(v, prepend=v[0]) / dt_s / 1000 # convert to m/s^2
 
         error = a_proj - a_gt
+        ratio_error = error / (a_gt + 1e-6)
         error = error[abs(a_gt) > self.threshold]  # Only evaluate on parts where we have significant travel acceleration
+        ratio_error = ratio_error[abs(a_gt) > self.threshold]
 
         print(f"RMSE error (m/s^2): {np.sqrt(np.mean(error**2)):.2f}, MAE error (m/s^2): {np.mean(np.abs(error)):.2f}, Mean error (m/s^2): {np.mean(error):.2f}")
+        print(f"RMSE ratio error: {np.sqrt(np.mean(ratio_error**2)):.2f}, MAE ratio error: {np.mean(np.abs(ratio_error)):.2f}, Mean ratio error: {np.mean(ratio_error):.2f}")
