@@ -32,6 +32,10 @@
 #endif
 #endif
 
+#ifndef LIS3MDL_ADDR
+#define LIS3MDL_ADDR 0x1C
+#endif
+
 static constexpr uint8_t MMC_ADDR = 0x30;
 
 #pragma pack(push, 1)
@@ -43,17 +47,19 @@ struct LogRecord {
   int16_t gyro1_dps10[3];
   int16_t gyro2_dps10[3];
   int16_t mmc_mG[3];
+  int16_t lis3mdl_mG[3];
   uint16_t angle;
   int32_t temp_C;
 };
 #pragma pack(pop)
 
-static_assert(sizeof(LogRecord) == 44, "Unexpected LogRecord size");
+static_assert(sizeof(LogRecord) == 50, "Unexpected LogRecord size");
 
 struct SensorConnections {
   bool imu1 = false;
   bool imu2 = false;
   bool mmc = false;
+  bool lis3mdl = false;
   bool angle = false;
 };
 

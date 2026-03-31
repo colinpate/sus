@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
-from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader
+from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader, LISMagLoader, GyroLoader
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import (
     FilterChunkPairs, 
@@ -33,7 +33,10 @@ def main() -> None:
     loaders: List[SensorLoader] = [
         AccelLoader(sensor_id="lis1", path=log_path),
         AccelLoader(sensor_id="lis2", path=log_path, scale=9.81 / 1000 * 1.0),
+        GyroLoader(sensor_id="gyro1", path=log_path),
+        GyroLoader(sensor_id="gyro2", path=log_path),
         MagLoader(path=log_path, lag=0),
+        LISMagLoader(path=log_path, lag=0),
         AngleLoader(path=log_path)
     ]
 
@@ -43,6 +46,24 @@ def main() -> None:
 
     # Define pipeline (functional core + fusion)
     steps: List[Step] = [
+        FilterStep(
+            name="lowpass_gyro1",
+            inputs=("gyro/gyro1",),
+            outputs=("gyro/lpf/gyro1",),
+            plot_keys=("gyro/gyro1", "gyro/lpf/gyro1"),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        FilterStep(
+            name="lowpass_gyro2",
+            inputs=("gyro/gyro2",),
+            outputs=("gyro/lpf/gyro2",),
+            plot_keys=("gyro/gyro2", "gyro/lpf/gyro2"),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
         # Get rotation matrix to align accelerometer data
         FilterStep(
             name="lowpass_lis1",
@@ -188,6 +209,15 @@ def main() -> None:
             dec_freq=DEC_FREQ,
         ),
         FilterStep(
+            name="lowpass_mag_lis",
+            inputs=("mag_lis",),
+            outputs=("mag_lis/lpf",),
+            plot_keys=("mag_lis/lpf",),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        FilterStep(
             name="lowpass_mag/proj",
             inputs=("mag/proj",),
             outputs=("mag/proj/lpf",),
@@ -203,7 +233,7 @@ def main() -> None:
         ),
         FindMagZVPoints(
             name="find_mag_zv_points",
-            inputs=("mag/proj/lpf",),
+            inputs=("mag/proj/corr/lpf",),
             outputs=("mag_zv_points",)
         ),
 
@@ -217,11 +247,12 @@ def main() -> None:
             name="mag_to_travel_model",
             inputs=(
                 "mag/proj/corr/lpf", 
-                "accel/lpf/proj", 
+                "accel/lpfhp/proj", 
                 "travel", 
                 "mag/proj/bad_mask", 
                 "mag_zv_points",
                 "mag_travel_ref_point",
+                "mag_baseline"
                 ),
             outputs=("travel/mag_model", "travel/mag_model/adj", "fusion_scatter_points"),
             plot_keys=(
@@ -233,7 +264,7 @@ def main() -> None:
             name="x_preds_stats",
             inputs=("travel/mag_model", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=30
+            gt_thresh=0
         ),
         GetErrorStats(
             name="x_preds_adj_stats",
@@ -259,6 +290,12 @@ def main() -> None:
             inputs=("travel/solved", "travel", "boring_mask"),
             outputs=(),
             gt_thresh=30
+        ),
+        GetErrorStats(
+            name="x_preds_solver",
+            inputs=("travel/solved", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=0
         ),
     ]
 
