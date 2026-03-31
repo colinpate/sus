@@ -31,7 +31,8 @@ class GetMagToTravelModel(Step):
     """ Train a model using least squares  """
     chunk_min_dx = 10
     chunk_len = 20
-    min_mag = 700
+    fit_balance_bins = 8
+    fit_balance_mode = "center_mag"
     train_with_mask: bool = False
     apply_ref_point: bool = True
 
@@ -42,7 +43,9 @@ class GetMagToTravelModel(Step):
         mask_ts: np.ndarray = ws[self.inputs[3]]
         idxs: np.ndarray = ws[self.inputs[4]]
         ref_point: np.ndarray = ws[self.inputs[5]]
+        mag_baseline: float = ws[self.inputs[6]]
 
+        self.min_mag = mag_baseline[0] # max(700, mag_baseline)
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         travel = travel_ts.x[:, 0]
@@ -114,12 +117,17 @@ class GetMagToTravelModel(Step):
             if np.mean(badmask_chunk) > 0.1:
                 continue
             v_chunk = np.cumsum(a_chunk * dt_chunk)
-            x_chunk = np.cumsum((v_chunk - v_chunk[chunk_len]) * dt_chunk)
+            v_chunk -= v_chunk[chunk_len]
+            x_chunk = np.cumsum(v_chunk * dt_chunk)
             x_chunk -= x_chunk[chunk_len]
             if max(x_chunk) - min(x_chunk) < min_dx:
                 continue
             mag_chunk = mag[idx - chunk_len:idx + chunk_len]
             if min(mag_chunk) < self.min_mag:
+                continue
+            dm_chunk = np.diff(mag_chunk, prepend=mag_chunk[0])
+            dm_dx = dm_chunk / (v_chunk + 1e-6)
+            if np.median(dm_dx) < 0.05:
                 continue
             xs.append(x_chunk)
             mags.append(mag_chunk)
@@ -142,6 +150,7 @@ class GetMagToTravelModel(Step):
             input_list.append([mag_i[pt_idxes], x_i[pt_idxes]])
 
         input_arr = np.array(input_list)
+        print("Min mag at indices:", np.min(input_arr[:, 0, :]), "mean", np.mean(input_arr[:, 0, :]), "max", np.max(input_arr[:, 0, :]))
         print(input_arr.shape)
         return input_arr
     
@@ -149,8 +158,43 @@ class GetMagToTravelModel(Step):
         mag_i = np.copy(mag_i)
         mag_i[(mag_i - x0) < 0] = x0
         return ((mag_i - x0) ** power) * y_scale
+
+    def get_fit_chunk_weights(self, input_arr):
+        if input_arr.shape[0] == 0:
+            return np.array([])
+
+        if self.fit_balance_mode == "max_mag":
+            rep_mag = np.max(input_arr[:, 0, :], axis=1)
+        elif self.fit_balance_mode == "mean_mag":
+            rep_mag = np.mean(input_arr[:, 0, :], axis=1)
+        else:
+            rep_mag = input_arr[:, 0, 0]
+
+        rep_mag = np.asarray(rep_mag, dtype=float)
+        n_bins = int(np.clip(self.fit_balance_bins, 1, len(rep_mag)))
+        if n_bins <= 1 or np.allclose(rep_mag, rep_mag[0]):
+            return np.ones_like(rep_mag)
+
+        edges = np.linspace(np.min(rep_mag), np.max(rep_mag), n_bins + 1)
+        bin_idx = np.digitize(rep_mag, edges[1:-1], right=False)
+        counts = np.bincount(bin_idx, minlength=n_bins).astype(float)
+        weights = 1.0 / np.maximum(counts[bin_idx], 10)
+
+        # Normalize so the average chunk keeps about unit weight.
+        weights *= len(weights) / np.sum(weights)
+
+        print(
+            "Balanced fit chunk counts by mag bin:",
+            counts.astype(int),
+            "rep mag percentiles:",
+            np.percentile(rep_mag, [0, 25, 50, 75, 100]),
+            "edges:",
+            edges,
+        )
+        return weights
     
     def least_squares_fit(self, input_arr, power_prior = 1/3, power_weight = 1000):
+        chunk_weights = self.get_fit_chunk_weights(input_arr)
 
         def calculate_res(vec):
             x0, y_scale, power = vec[0], vec[1], vec[2]
@@ -162,12 +206,13 @@ class GetMagToTravelModel(Step):
             mag_pts = input_arr[:, 0, 1:]
             x_mag_preds = self.pred_x(mag_pts, x0, y_scale, power=power)
             res = x_acc_preds - x_mag_preds
+            #res *= np.sqrt(chunk_weights)[:, np.newaxis]
 
             power_res = power - power_prior
 
             return np.concatenate([res.flatten(), np.array([power_res]) * power_weight])
 
-        guess_vec = [0, 1/3, 1/3]
+        guess_vec = [self.min_mag, 3, 1/3]
         result = least_squares(
                 fun=calculate_res,
                 x0=guess_vec, 
@@ -249,8 +294,9 @@ class GetMagTravelRefPoint(Step):
             stride, 
             mag_baseline
         )
-        mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
-        print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
+        if len(mag_chunks):
+            mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
+            print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
         abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks)
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
@@ -313,11 +359,17 @@ class GetMagTravelRefPoint(Step):
                 if gt_x is not None:
                     gt_x_chunks.append(gt_x[chunk_i][bump_slice])
         
-        print("Calibration chunks:", len(a_intint_chunks), "chunks,", len(a_intint_chunks[0]), "samples per chunk")
+        if len(a_intint_chunks) == 0:
+            print("No chunks found")
+        else:
+            print("Calibration chunks:", len(a_intint_chunks), "chunks,", len(a_intint_chunks[0]), "samples per chunk")
 
         return mag_chunks, a_intint_chunks, slices, gt_x_chunks
 
     def get_abs_pos_ref(self, mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks=None):
+        if len(mag_chunks) == 0:
+            print("No calibration chunks found, cannot determine absolute position reference point, returning 0 and mag baseline + min ref mag")
+            return 0, mag_baseline + self.min_ref_mag
         x_points = np.concatenate(a_intint_chunks)
         mag_points = np.concatenate(mag_chunks)
         print("Absolute position reference input points", x_points.shape[0])
