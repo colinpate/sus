@@ -35,9 +35,9 @@ def main() -> None:
         AccelLoader(sensor_id="lis2", path=log_path, scale=9.81 / 1000 * 1.0),
         GyroLoader(sensor_id="gyro1", path=log_path),
         GyroLoader(sensor_id="gyro2", path=log_path),
-        MagLoader(path=log_path, lag=0),
+        MagLoader(path=log_path, lag=1),
         LISMagLoader(path=log_path, lag=0),
-        AngleLoader(path=log_path)
+        AngleLoader(path=log_path, lag=-1)
     ]
 
     ws: Workspace = {}
@@ -195,7 +195,7 @@ def main() -> None:
         # Magnetometer processing
         ProjectMag(
             name="project_mag",
-            inputs=("mag",),
+            inputs=("mag", "accel/proj"),
             outputs=("mag/proj",),
             plot_keys=("mag/proj",)
         ),
@@ -289,13 +289,13 @@ def main() -> None:
             name="x_preds_solver",
             inputs=("travel/solved", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=30
+            gt_thresh=0
         ),
         GetErrorStats(
             name="x_preds_solver",
             inputs=("travel/solved", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=0
+            gt_thresh=30
         ),
     ]
 

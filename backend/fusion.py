@@ -178,7 +178,7 @@ class GetMagToTravelModel(Step):
         edges = np.linspace(np.min(rep_mag), np.max(rep_mag), n_bins + 1)
         bin_idx = np.digitize(rep_mag, edges[1:-1], right=False)
         counts = np.bincount(bin_idx, minlength=n_bins).astype(float)
-        weights = 1.0 / np.maximum(counts[bin_idx], 10)
+        weights = 1.0 / np.maximum(counts[bin_idx], 100)
 
         # Normalize so the average chunk keeps about unit weight.
         weights *= len(weights) / np.sum(weights)

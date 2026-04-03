@@ -22,6 +22,7 @@ class AngleToTravel(Step):
 
         travel = 2 * (self.top_adjacent - (self.hypotenuse * np.cos(net_angle)))
         print("Travel min, max:", np.min(travel), np.max(travel))
+        print("Travel top zero angle:", top_zeroangle)
 
         ws[self.outputs[0]] = TimeSeries(
             t=a.t,

@@ -121,6 +121,7 @@ class LISMagLoader(MagLoader):
 class AngleLoader:
     """Loads angle data from a DataFrame with columns"""
     path: str
+    lag: int = 0
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
@@ -129,6 +130,9 @@ class AngleLoader:
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
 
+        if self.lag != 0:
+            x = np.roll(x, shift=-self.lag, axis=0)
+            
         return {
             f"angle": TimeSeries(
                 t=t,

@@ -394,8 +394,8 @@ class GetAccelError(Step):
         t = travel_ts.t
 
         dt_s = np.diff(t, prepend=t[0]-0.01)
-        v = np.diff(travel, prepend=travel[0]) / dt_s
-        a_gt = np.diff(v, prepend=v[0]) / dt_s / 1000 # convert to m/s^2
+        v = np.gradient(travel, t, edge_order = 2)
+        a_gt = np.gradient(v, t, edge_order = 2) / 1000.0
 
         error = a_proj - a_gt
         ratio_error = error / (a_gt + 1e-6)
