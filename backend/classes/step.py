@@ -15,6 +15,7 @@ class Step:
     inputs: Tuple[str, ...]
     outputs: Tuple[str, ...]
     plot_keys: Tuple[str, ...] = ()
+    read_cache: bool = False
 
     def run(self, ws: Workspace) -> None:
         """Implement in subclasses."""

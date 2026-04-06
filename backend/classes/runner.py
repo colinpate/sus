@@ -52,6 +52,8 @@ class Runner:
             x_key = f"{k}__x"
             if t_key in data and x_key in data:
                 ws[k] = TimeSeries(t=data[t_key], x=data[x_key])
+            elif k in data:
+                ws[k] = data[k]
         return True
 
     def _plot_timeseries(self, ts: TimeSeries, title: str, path: Path) -> None:
@@ -85,7 +87,7 @@ class Runner:
             i_step_name = f"{i}_{step.name}"
             # Cache outputs if available
             loaded = False
-            if self.read_cache and step.outputs:
+            if (self.read_cache or step.read_cache) and step.outputs:
                 loaded = self._load_cache(i_step_name, ws, step.outputs)
 
             if not loaded:

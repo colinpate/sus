@@ -190,6 +190,7 @@ def main() -> None:
             name="find_boring_regions",
             inputs=("travel",),
             outputs=("boring_regions", "boring_mask"),
+            read_cache=True
         ),
 
         # Magnetometer processing
