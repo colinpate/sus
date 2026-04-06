@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import random
 from unittest import result
 
+import scipy
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import least_squares
@@ -35,6 +36,7 @@ class GetMagToTravelModel(Step):
     fit_balance_mode = "center_mag"
     train_with_mask: bool = False
     apply_ref_point: bool = True
+    bad_thresh: float = 0.5
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -51,7 +53,6 @@ class GetMagToTravelModel(Step):
         travel = travel_ts.x[:, 0]
         mag_proj_bad_mask = mask_ts.x.flatten().astype(bool)
         t = mag_ts.t
-        dt_s = np.diff(t, prepend=t[0]-0.01)
 
         if self.train_with_mask:
             print("Trainign with mask, shape of bad mask", mag_proj_bad_mask.shape, "num bad samples", np.sum(mag_proj_bad_mask))
@@ -59,7 +60,7 @@ class GetMagToTravelModel(Step):
         else:
             training_mask = np.zeros(mag_ts.x.shape[0], dtype=bool)
 
-        xs, mags = self.get_chunks(idxs, mag, accel, dt_s, training_mask)
+        xs, mags = self.get_chunks(idxs, mag, accel, t, training_mask)
         input_arr = self.format_chunks_for_fit(xs, mags)
         result = self.least_squares_fit(input_arr)
         print("x0, y_scale, power:", result.x)
@@ -101,7 +102,7 @@ class GetMagToTravelModel(Step):
         x_preds_ref = x_preds + offset
         return x_preds_ref
 
-    def get_chunks(self, idxs_filt, mag, acc, dt_s, mag_proj_bad_mask):
+    def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask):
         chunk_len = self.chunk_len
         min_dx = self.chunk_min_dx
         print("Min mag:", self.min_mag)
@@ -111,14 +112,14 @@ class GetMagToTravelModel(Step):
         for idx in idxs_filt:
             if idx < chunk_len or idx + chunk_len >= len(mag):
                 continue
-            dt_chunk = dt_s[idx - chunk_len:idx + chunk_len]
+            t_chunk = t_s[idx - chunk_len:idx + chunk_len]
             a_chunk = acc[idx - chunk_len:idx + chunk_len] * 1000
             badmask_chunk = mag_proj_bad_mask[idx - chunk_len:idx + chunk_len]
-            if np.mean(badmask_chunk) > 0.1:
+            if np.mean(badmask_chunk) > self.bad_thresh:
                 continue
-            v_chunk = np.cumsum(a_chunk * dt_chunk)
+            v_chunk = scipy.integrate.cumulative_trapezoid(a_chunk, t_chunk, initial=0)
             v_chunk -= v_chunk[chunk_len]
-            x_chunk = np.cumsum(v_chunk * dt_chunk)
+            x_chunk = scipy.integrate.cumulative_trapezoid(v_chunk, t_chunk, initial=0)
             x_chunk -= x_chunk[chunk_len]
             if max(x_chunk) - min(x_chunk) < min_dx:
                 continue

@@ -13,6 +13,7 @@ from classes.step import Step
 class ProjectMag(Step):
     """Project magnet data onto mean vector"""
     mag_threshold: int = 3000  # mG
+    normalize: bool = False
     still_a_max: float = 1000 # mm/s^2
     still_len_s: float = 0.1
 
@@ -23,11 +24,12 @@ class ProjectMag(Step):
         x = a.x
         accel = accel_ts.x
         still_len = int(self.still_len_s * a.meta["fs_hz"])
-
-        mag_baseline = self.get_mag_baseline(x, accel, still_len)
         
         # Threshold magnet data and project along the direction of travel
         mag_filtered_thresh = x[np.linalg.norm(x, axis=1) > self.mag_threshold]
+
+        if self.normalize:
+            mag_filtered_thresh = mag_filtered_thresh / (np.linalg.norm(mag_filtered_thresh, axis=1, keepdims=True) + 1e-8)
         mean_vector = np.mean(mag_filtered_thresh, axis=0)
         # Project mag data onto mean vector to get travel along that direction
         mag_travel_vector = mean_vector / np.linalg.norm(mean_vector)

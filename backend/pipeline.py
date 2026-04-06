@@ -35,7 +35,7 @@ def main() -> None:
         AccelLoader(sensor_id="lis2", path=log_path, scale=9.81 / 1000 * 1.0),
         GyroLoader(sensor_id="gyro1", path=log_path),
         GyroLoader(sensor_id="gyro2", path=log_path),
-        MagLoader(path=log_path, lag=1),
+        MagLoader(path=log_path, lag=0),
         LISMagLoader(path=log_path, lag=0),
         AngleLoader(path=log_path, lag=-1)
     ]
@@ -197,7 +197,8 @@ def main() -> None:
             name="project_mag",
             inputs=("mag", "accel/proj"),
             outputs=("mag/proj",),
-            plot_keys=("mag/proj",)
+            plot_keys=("mag/proj",),
+            normalize=True,
         ),
         FilterStep(
             name="lowpass_mag",
