@@ -13,11 +13,11 @@ DEFAULT_LOGS = [
     "log031",
     "log038",
     "log056_ccdh",
+    "log060_upperpred",
     "log078",
     "log079",
     "log080",
     "log085",
-    "log086",
     "log088",
     "log091",
 ]
