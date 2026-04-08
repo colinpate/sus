@@ -85,6 +85,7 @@ class MagLoader:
     lag: int = 0
     cols: Tuple[str, str, str] = ("mmc_mG_x", "mmc_mG_y", "mmc_mG_z")
     data_name: str = "mag"
+    signal_config: Optional[Dict[str, Any]] = None
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
@@ -96,8 +97,18 @@ class MagLoader:
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
 
-        if self.lag != 0:
-            x = np.roll(x, shift=-self.lag, axis=0)
+        signal_config = self.signal_config or {}
+        lag = int(signal_config.get("lag", self.lag))
+        if lag != 0:
+            x = np.roll(x, shift=-lag, axis=0)
+
+        offset = signal_config.get("offset")
+        if offset is not None:
+            offset_vec = np.asarray(offset, dtype=float)
+            if offset_vec.shape != (3,):
+                raise ValueError(f"{self.data_name} offset must be length-3, got shape {offset_vec.shape}")
+            x = x - offset_vec
+            print(f"Applying {self.data_name} offset {offset_vec}")
 
         return {
             self.data_name: TimeSeries(
@@ -105,7 +116,7 @@ class MagLoader:
                 x=x,
                 units="milli-Gauss",
                 frame="sensor",
-                meta={"fs_hz": fs_hz},
+                meta={"fs_hz": fs_hz, "offset": offset, "lag": lag},
             )
         }
 

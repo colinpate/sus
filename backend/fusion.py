@@ -271,7 +271,8 @@ class GetMagTravelRefPoint(Step):
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
-        gt_x_ts: TimeSeries | None = ws.get(self.inputs[2])
+        mag_baseline: float = ws[self.inputs[2]][0]
+        gt_x_ts: TimeSeries | None = ws.get(self.inputs[3])
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         t = mag_ts.t
@@ -282,8 +283,6 @@ class GetMagTravelRefPoint(Step):
         still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
         bump_len = int(self.bump_len_s * mag_ts.meta["fs_hz"])
         stride = int(self.stride_s * mag_ts.meta["fs_hz"])
-        
-        mag_baseline = self.get_mag_baseline(mag, accel, still_len)
 
         mag_chunks, a_intint_chunks, _, gt_x_chunks = self.find_chunks(
             accel, 
@@ -302,7 +301,6 @@ class GetMagTravelRefPoint(Step):
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
         ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
-        ws[self.outputs[1]] = np.array([mag_baseline])
 
     def find_chunks(self, accel, mag, gt_x, dt_s, still_len, bump_len, stride, still_mag_max):
         # Find the chunks
@@ -403,7 +401,21 @@ class GetMagTravelRefPoint(Step):
         plt.grid()
         plt.show()
 
-    def get_mag_baseline(self, mag, accel, still_len):
+
+class GetMagBaseline(Step):
+    """Find the mag baseline by looking at still regions and taking the median + std"""
+    still_len_s: float = 0.1 # seconds
+    still_a_max: float = 1000 # mm/s^2
+
+    def run(self, ws: Workspace) -> None:
+        mag_ts: TimeSeries = ws[self.inputs[0]]
+        accel_ts: TimeSeries = ws[self.inputs[1]]
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+
+        assert mag_ts.units == "milli-Gauss"
+        assert accel_ts.units == "m/s^2"
+        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
         a_mms = accel * 1000
         still_mags = []
         for i in range(0, mag.shape[0] - still_len, still_len):
@@ -414,4 +426,4 @@ class GetMagTravelRefPoint(Step):
 
         mag_baseline = np.median(still_mags) + np.std(still_mags)
         print("Mag baseline", mag_baseline, "std", np.std(still_mags))
-        return mag_baseline
+        ws[self.outputs[0]] = np.array([mag_baseline])

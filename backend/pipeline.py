@@ -16,10 +16,11 @@ from accel_rotation import (
 )
 from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
-from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats
+from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
+from classes.log_config import attach_log_config, get_log_config_path, get_signal_config, load_log_config
 
 DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
 
@@ -27,6 +28,9 @@ def main() -> None:
     log_filename = parse_args().log_filename
     out_dir = Path("run_artifacts") / log_filename
     log_path = Path(f"../logs/{log_filename}.csv")
+    log_config = load_log_config(log_path)
+    if log_config:
+        print(f"Loaded log config from {get_log_config_path(log_path)}")
 
 
     # Load sensors (OOP edge)
@@ -35,12 +39,13 @@ def main() -> None:
         AccelLoader(sensor_id="lis2", path=log_path, scale=9.81 / 1000 * 1.0),
         GyroLoader(sensor_id="gyro1", path=log_path),
         GyroLoader(sensor_id="gyro2", path=log_path),
-        MagLoader(path=log_path, lag=0),
-        LISMagLoader(path=log_path, lag=0),
+        MagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag")),
+        LISMagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag_lis")),
         AngleLoader(path=log_path, lag=-1)
     ]
 
     ws: Workspace = {}
+    attach_log_config(ws, log_config)
     for loader in loaders:
         ws.update(loader.load())
 
@@ -240,10 +245,15 @@ def main() -> None:
         ),
 
         # Fusion steps
+        GetMagBaseline(
+            name="get_mag_baseline",
+            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj"),
+            outputs=("mag_baseline",)
+        ),
         GetMagTravelRefPoint(
             name="get_mag_travel_ref_point",
-            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "travel"),
-            outputs=("mag_travel_ref_point", "mag_baseline")
+            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
+            outputs=("mag_travel_ref_point",)
         ),
         GetMagToTravelModel(
             name="mag_to_travel_model",

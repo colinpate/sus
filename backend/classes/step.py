@@ -7,6 +7,7 @@ import numpy as np
 
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries, ChunkedTimeSeries
+from classes.log_config import get_step_config
 
 
 @dataclass(kw_only=True)
@@ -20,6 +21,14 @@ class Step:
     def run(self, ws: Workspace) -> None:
         """Implement in subclasses."""
         raise NotImplementedError
+
+    def config(self, ws: Workspace) -> Dict[str, Any]:
+        return get_step_config(ws, self.name, self.__class__.__name__)
+
+    def param(self, ws: Workspace, name: str, default: Any = None) -> Any:
+        if default is None and hasattr(self, name):
+            default = getattr(self, name)
+        return self.config(ws).get(name, default)
     
 
 @dataclass
