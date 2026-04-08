@@ -1,0 +1,16 @@
+{
+  "signals": {
+    "mag": {
+      "offset": [120.0, -35.0, 80.0]
+    },
+    "mag_lis": {
+      "offset": [0.0, 0.0, 0.0]
+    }
+  },
+  "steps": {
+    "angle_to_travel": {
+      "top_adjacent": 119.5,
+      "top_zeroangle": 2.418
+    }
+  }
+}
