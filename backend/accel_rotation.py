@@ -399,8 +399,10 @@ class GetAccelError(Step):
 
         error = a_proj - a_gt
         ratio_error = error / (a_gt + 1e-6)
-        error = error[abs(a_gt) > self.threshold]  # Only evaluate on parts where we have significant travel acceleration
-        ratio_error = ratio_error[abs(a_gt) > self.threshold]
+        mask = abs(a_gt) > self.threshold
+        error = error[mask]  # Only evaluate on parts where we have significant travel acceleration
+        ratio_error = ratio_error[mask]
 
+        print("Accel STD (m/s^2):", np.std(a_gt[mask]), " mean abs:", np.mean(np.abs(a_gt[mask])))
         print(f"RMSE error (m/s^2): {np.sqrt(np.mean(error**2)):.2f}, MAE error (m/s^2): {np.mean(np.abs(error)):.2f}, Mean error (m/s^2): {np.mean(error):.2f}")
         print(f"RMSE ratio error: {np.sqrt(np.mean(ratio_error**2)):.2f}, MAE ratio error: {np.mean(np.abs(ratio_error)):.2f}, Mean ratio error: {np.mean(ratio_error):.2f}")

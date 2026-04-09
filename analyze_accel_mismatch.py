@@ -194,7 +194,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "logs",
         nargs="*",
-        default=["log022", "log029", "log030", "log031", "log038", "log056_ccdh", "log078", "log079", "log080", "log085", "log086", "log088", "log091"],
+        default=["log022", "log029", "log030", "log031", "log038", "log056_ccdh", "log078", "log079", "log080", "log085", "log088", "log091"],
         help="Log names without extension",
     )
     parser.add_argument(

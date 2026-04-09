@@ -53,15 +53,19 @@ def infer_dt_seconds(time_s: np.ndarray) -> float:
     return float(np.median(finite_diffs))
 
 
-def get_error_stats(x: np.ndarray, gt: np.ndarray, center: bool = False) -> tuple[float, float, float]:
+def get_error_stats(x: np.ndarray, gt: np.ndarray, center: bool = False, thresh: float | None = None) -> tuple[float, float, float]:
     x = flatten_1d(x)
     gt = flatten_1d(gt)
     if x.shape != gt.shape:
         raise ValueError(f"Error inputs must match in shape, got {x.shape} vs {gt.shape}")
+    if thresh is not None:
+        err_mask = np.abs(gt) > thresh
     if center:
         x = x - np.mean(x)
         gt = gt - np.mean(gt)
     err = x - gt
+    if thresh is not None:
+        err = err[err_mask]
     return (
         float(np.sqrt(np.mean(err**2))),
         float(np.mean(np.abs(err))),
@@ -69,7 +73,7 @@ def get_error_stats(x: np.ndarray, gt: np.ndarray, center: bool = False) -> tupl
     )
 
 
-def build_mask(cache: np.lib.npyio.NpzFile, pred_key: str, gt_key: str, error_threshold: float | None) -> np.ndarray:
+def build_mask(cache: np.lib.npyio.NpzFile, pred_key: str, gt_key: str, error_threshold: float | None = None) -> np.ndarray:
     boring_mask = np.asarray(cache["boring_mask"]).astype(bool).reshape(-1)
     pred = flatten_1d(cache[f"{pred_key}__x"])
     gt = flatten_1d(cache[f"{gt_key}__x"])
@@ -109,16 +113,16 @@ def summarize_log(log_name: str, cache_root: Path, center_errors: bool, error_th
     for pred_key, gt_key in COMPARISONS:
         pred = flatten_1d(cache[f"{pred_key}__x"])
         gt = flatten_1d(cache[f"{gt_key}__x"])
-        mask = build_mask(cache, pred_key, gt_key, error_threshold)
+        mask = build_mask(cache, pred_key, gt_key)
         masked_pred = pred[mask]
         masked_gt = gt[mask]
         if len(masked_pred) == 0:
             raise ValueError(f"{log_name}: no finite boring-mask samples for {pred_key} vs {gt_key}")
 
-        rmse, mae, me = get_error_stats(masked_pred, masked_gt, center=center_errors)
+        rmse, mae, me = get_error_stats(masked_pred, masked_gt, center=center_errors, thresh=error_threshold)
         error_rows[pred_key] = {
             "log": log_name,
-            "n": int(np.sum(mask)),
+            "n": int(len(masked_pred)),
             "rmse": rmse,
             "mae": mae,
             "me": me,
