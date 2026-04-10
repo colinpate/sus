@@ -26,8 +26,8 @@ DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
 
 def main() -> None:
     log_filename = parse_args().log_filename
-    out_dir = Path("run_artifacts") / log_filename
-    log_path = Path(f"../logs/{log_filename}.csv")
+    out_dir = Path("backend/run_artifacts") / log_filename
+    log_path = Path(f"logs/{log_filename}.csv")
     log_config = load_log_config(log_path)
     if log_config:
         print(f"Loaded log config from {get_log_config_path(log_path)}")

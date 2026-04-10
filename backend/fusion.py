@@ -37,6 +37,13 @@ class GetMagToTravelModel(Step):
     train_with_mask: bool = False
     apply_ref_point: bool = True
     bad_thresh: float = 0.5
+    pred_soft_mg: float = 50.0
+
+    # For re-calculating mag baseline, if desired
+    still_len_s: float = 0.1
+    still_a_max: float = 1000
+    min_mag_relaxed_still_std_scale: float = 0.5
+    min_mag_relax_min_chunks: int = 50
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -47,12 +54,13 @@ class GetMagToTravelModel(Step):
         ref_point: np.ndarray = ws[self.inputs[5]]
         mag_baseline: float = ws[self.inputs[6]]
 
-        self.min_mag = mag_baseline[0] # max(700, mag_baseline)
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         travel = travel_ts.x[:, 0]
         mag_proj_bad_mask = mask_ts.x.flatten().astype(bool)
         t = mag_ts.t
+
+        baseline_min_mag = mag_baseline[0]
 
         if self.train_with_mask:
             print("Trainign with mask, shape of bad mask", mag_proj_bad_mask.shape, "num bad samples", np.sum(mag_proj_bad_mask))
@@ -60,7 +68,45 @@ class GetMagToTravelModel(Step):
         else:
             training_mask = np.zeros(mag_ts.x.shape[0], dtype=bool)
 
-        xs, mags = self.get_chunks(idxs, mag, accel, t, training_mask)
+        self.min_mag = baseline_min_mag
+        xs, mags, all_mags = self.get_chunks(idxs, mag, accel, t, training_mask, self.min_mag)
+        mag_mins = [np.min(mag_chunk) for mag_chunk in all_mags]
+        relaxed_min_mag = np.sort(mag_mins)[-self.min_mag_relax_min_chunks]
+
+        # still_median, still_std = self.get_still_mag_stats(mag_ts, accel_ts)
+        # relaxed_min_mag = still_median + self.min_mag_relaxed_still_std_scale * still_std
+
+        use_relaxed_min_mag = (
+            np.isfinite(relaxed_min_mag)
+            and len(xs) < self.min_mag_relax_min_chunks
+            and relaxed_min_mag < baseline_min_mag
+        )
+        if use_relaxed_min_mag:
+            print(
+                "Relaxing min mag from",
+                baseline_min_mag,
+                "to",
+                relaxed_min_mag,
+                # "still median",
+                # still_median,
+                # "still std",
+                # still_std,
+                "initial chunks",
+                len(xs),
+            )
+            xs, mags, _ = self.get_chunks(idxs, mag, accel, t, training_mask, relaxed_min_mag)
+        else:
+            print(
+                "Using raw min mag",
+                baseline_min_mag,
+                # "still median",
+                # still_median,
+                # "still std",
+                # still_std,
+                "chunks",
+                len(xs),
+            )
+
         input_arr = self.format_chunks_for_fit(xs, mags)
         result = self.least_squares_fit(input_arr)
         print("x0, y_scale, power:", result.x)
@@ -102,13 +148,32 @@ class GetMagToTravelModel(Step):
         x_preds_ref = x_preds + offset
         return x_preds_ref
 
-    def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask):
+    def get_still_mag_stats(self, mag_ts: TimeSeries, accel_ts: TimeSeries):
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
+        a_mms = accel * 1000
+        still_mags = []
+        for i in range(0, mag.shape[0] - still_len, still_len):
+            mag_chunk = mag[i:i + still_len]
+            a_chunk = a_mms[i:i + still_len]
+            if max(abs(a_chunk)) < self.still_a_max:
+                still_mags.append(mag_chunk)
+
+        if len(still_mags) == 0:
+            return np.nan, np.nan
+
+        still_arr = np.concatenate(still_mags)
+        return float(np.median(still_arr)), float(np.std(still_arr))
+
+    def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask, min_mag):
         chunk_len = self.chunk_len
         min_dx = self.chunk_min_dx
-        print("Min mag:", self.min_mag)
+        print("Min mag:", min_mag)
 
         xs = []
         mags = []
+        all_mags = []
         for idx in idxs_filt:
             if idx < chunk_len or idx + chunk_len >= len(mag):
                 continue
@@ -124,18 +189,19 @@ class GetMagToTravelModel(Step):
             if max(x_chunk) - min(x_chunk) < min_dx:
                 continue
             mag_chunk = mag[idx - chunk_len:idx + chunk_len]
-            if min(mag_chunk) < self.min_mag:
-                continue
             dm_chunk = np.diff(mag_chunk, prepend=mag_chunk[0])
             dm_dx = dm_chunk / (v_chunk + 1e-6)
             if np.median(dm_dx) < 0.05:
+                continue
+            all_mags.append(mag_chunk)
+            if min(mag_chunk) < min_mag:
                 continue
             xs.append(x_chunk)
             mags.append(mag_chunk)
 
         print("Xs:", len(xs))
 
-        return xs, mags
+        return xs, mags, all_mags
 
     def format_chunks_for_fit(self, xs, mags):
         # Formulate input data and residuals and threshold by min mag
@@ -156,9 +222,9 @@ class GetMagToTravelModel(Step):
         return input_arr
     
     def pred_x(self, mag_i, x0, y_scale, power):
-        mag_i = np.copy(mag_i)
-        mag_i[(mag_i - x0) < 0] = x0
-        return ((mag_i - x0) ** power) * y_scale
+        dx = np.asarray(mag_i, dtype=float) - x0
+        soft = (np.abs(dx) + self.pred_soft_mg) ** power - (self.pred_soft_mg ** power)
+        return np.sign(dx) * soft * y_scale
 
     def get_fit_chunk_weights(self, input_arr):
         if input_arr.shape[0] == 0:
