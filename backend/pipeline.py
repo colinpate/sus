@@ -316,7 +316,7 @@ def main() -> None:
         ),
     ]
 
-    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=True)
+    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False)
     ws = runner.run(ws, steps)
 
     # Example: access final result

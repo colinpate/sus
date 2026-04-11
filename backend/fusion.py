@@ -38,6 +38,8 @@ class GetMagToTravelModel(Step):
     apply_ref_point: bool = True
     bad_thresh: float = 0.5
     pred_soft_mg: float = 50.0
+    ref_zero_percentile: float = 8.0
+    ref_neg_fallback_max_pct: float = 0.1
 
     # For re-calculating mag baseline, if desired
     still_len_s: float = 0.1
@@ -72,9 +74,6 @@ class GetMagToTravelModel(Step):
         xs, mags, all_mags = self.get_chunks(idxs, mag, accel, t, training_mask, self.min_mag)
         mag_mins = [np.min(mag_chunk) for mag_chunk in all_mags]
         relaxed_min_mag = np.sort(mag_mins)[-self.min_mag_relax_min_chunks]
-
-        # still_median, still_std = self.get_still_mag_stats(mag_ts, accel_ts)
-        # relaxed_min_mag = still_median + self.min_mag_relaxed_still_std_scale * still_std
 
         use_relaxed_min_mag = (
             np.isfinite(relaxed_min_mag)
@@ -114,7 +113,7 @@ class GetMagToTravelModel(Step):
         x_preds = self.pred_x(mag, result.x[0], result.x[1], result.x[2])
 
         if self.apply_ref_point:
-            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x)
+            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x, mag)#, boring_mask)
         else:
             x_preds_adj = x_preds
 
@@ -136,17 +135,26 @@ class GetMagToTravelModel(Step):
         ws[self.outputs[2]] = scatter_points
         ws[self.outputs[3]] = np.array([result.x[0], result.x[1], result.x[2]])
 
-    def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs):
+    def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs, mag=None, active_mask=None):
         x0, y_scale, power = coeffs
         ref_x_pred = self.pred_x(ref_mag, x0, y_scale, power)
         offset = - ref_x_pred + ref_x
-        min_mag_pred = self.pred_x(self.min_mag, x0, y_scale, power)
-        # if min_mag_pred < -offset:
-        #     print(f"Offset too low: {offset:.1f} using -{min_mag_pred:.1f}")
-        #     offset = -min_mag_pred
-        # else:
-        #     print("Adjusting predicted x by offset", offset, "to align reference point")
         x_preds_ref = x_preds + offset
+
+        if mag is not None and (active_mask is None or np.any(active_mask)):
+            neg_pct = float(np.mean(x_preds_ref[active_mask] < 0))
+            print("Ref-point fallback check: {:.1f}% of active samples have negative predicted travel".format(neg_pct * 100))
+            if neg_pct > self.ref_neg_fallback_max_pct:
+                zero_mag = float(np.percentile(mag[active_mask], self.ref_zero_percentile))
+                zero_offset = -float(self.pred_x(zero_mag, x0, y_scale, power))
+                if zero_offset > offset:
+                    print(
+                        f"Ref-point fallback: neg_pct={neg_pct * 100:.1f}% exceeds {self.ref_neg_fallback_max_pct * 100:.1f}%, "
+                        f"switching offset from {offset:.1f} to {zero_offset:.1f} using mag p{self.ref_zero_percentile:.0f}={zero_mag:.1f}"
+                    )
+                    offset = zero_offset
+                    x_preds_ref = x_preds + offset
+
         return x_preds_ref
 
     def get_still_mag_stats(self, mag_ts: TimeSeries, accel_ts: TimeSeries):
