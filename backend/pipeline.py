@@ -266,7 +266,12 @@ def main() -> None:
                 "mag_travel_ref_point",
                 "mag_baseline"
                 ),
-            outputs=("travel/mag_model", "travel/mag_model/adj", "fusion_scatter_points"),
+            outputs=(
+                "travel/mag_model",
+                "travel/mag_model/adj",
+                "fusion_scatter_points",
+                "mag_model_coeffs"
+            ),
             plot_keys=(
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),

@@ -134,6 +134,7 @@ class GetMagToTravelModel(Step):
         )
         scatter_points = np.array([mag, travel, x_preds_adj]).T
         ws[self.outputs[2]] = scatter_points
+        ws[self.outputs[3]] = np.array([result.x[0], result.x[1], result.x[2]])
 
     def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs):
         x0, y_scale, power = coeffs
