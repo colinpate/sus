@@ -1,10 +1,19 @@
 import argparse
 
 import numpy as np
+import pandas as pd
+from scipy.signal import butter, sosfiltfilt
 
+from backend.angle_corruption import (
+    ANGLE_ERROR_HALO_S,
+    find_corrupt_angle_samples,
+    interpolate_masked_signal,
+    project_mask_to_timeline,
+)
 from stats_aggregator import DEFAULT_LOGS
 
-HYPOTENUSE_MM = 120.0
+HYPOTENUSE_MM = 125.0
+DEC_FREQ_HZ = 100.0
 
 
 def parse_csv_floats(value: str) -> list[float]:
@@ -14,9 +23,8 @@ def parse_csv_floats(value: str) -> list[float]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Sweep zero-angle percentiles and top-link dimensions to find settings that "
-            "keep angle-derived travel physically plausible while staying consistent with "
-            "projected acceleration."
+            "Sweep zero-angle percentiles and top-link dimensions using a cleaned angle "
+            "trace so AS5600 rail glitches do not dominate the travel-vs-accel error."
         )
     )
     parser.add_argument(
@@ -34,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--baseline-top-adjacent-total",
         type=float,
-        default=237.5,
+        default=242.0,
         help="Current measured distance between the upper linkage points, in mm.",
     )
     parser.add_argument(
@@ -46,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--candidate-top-adjacent-totals",
         type=parse_csv_floats,
-        default=parse_csv_floats("237.5,238.0,238.5,239.0,239.5"),
+        default=parse_csv_floats("240,241,242,243,244"),
         help="Comma-separated candidate total upper-link distances in mm.",
     )
     parser.add_argument(
@@ -56,20 +64,18 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated candidate zero-angle percentiles.",
     )
     parser.add_argument(
+        "--accel-threshold",
+        type=float,
+        default=0.5,
+        help="Only score accel error where |angle-derived accel| exceeds this threshold in m/s^2.",
+    )
+    parser.add_argument(
         "--top-k",
         type=int,
         default=5,
         help="How many top-ranked candidates to print per log.",
     )
     return parser.parse_args()
-
-
-def get_accel_mask(ws, raw_accel_max: float = 150.0, proj_accel_min: float = 1.0) -> np.ndarray:
-    accel_raw = ws["accel/lis2__x"][:, 0]
-    raw_mask = np.abs(accel_raw) < raw_accel_max
-    accel_proj = ws["accel/proj__x"][:, 0]
-    proj_mask = np.abs(accel_proj) > proj_accel_min
-    return raw_mask & proj_mask
 
 
 def get_travel(angle: np.ndarray, top_adjacent_mm: float, top_zeroangle: float) -> np.ndarray:
@@ -83,15 +89,51 @@ def get_travel_accel(travel_mm: np.ndarray, t_s: np.ndarray) -> np.ndarray:
     return np.gradient(vel_mm_s, t_s, edge_order=2) / 1000.0
 
 
+def load_clean_angle(log: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    df = pd.read_csv(f"logs/{log}.csv", usecols=["t_s", "angle_raw"])
+    t_raw = df["t_s"].to_numpy(dtype=float)
+    angle_raw = df["angle_raw"].to_numpy()
+
+    bad_raw_mask = find_corrupt_angle_samples(angle_raw)
+    angle_raw_rad = angle_raw * np.pi * 2 / 4096
+    angle_clean = interpolate_masked_signal(angle_raw_rad, bad_raw_mask, sample_pos=t_raw)
+
+    fs_hz = 1 / np.median(np.diff(t_raw))
+    sos = butter(N=4, Wn=20.0, btype="low", fs=fs_hz, output="sos")
+    angle_lpf = sosfiltfilt(sos, angle_clean)
+
+    dec_factor = max(1, round(fs_hz / DEC_FREQ_HZ))
+    angle_dec = angle_lpf[::dec_factor]
+    t_dec = t_raw[::dec_factor]
+    bad_eval_mask = project_mask_to_timeline(t_raw, bad_raw_mask, t_dec, halo_s=ANGLE_ERROR_HALO_S)
+
+    return angle_dec, t_dec, bad_eval_mask, float(np.mean(bad_raw_mask) * 100.0)
+
+
+def load_log_inputs(log: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
+    ws = np.load(f"backend/run_artifacts/{log}/cache/all.npz")
+    angle, t_s, bad_eval_mask, bad_raw_pct = load_clean_angle(log)
+    accel_proj_ms2 = ws["accel/lpf/proj__x"][:, 0]
+
+    if angle.shape != accel_proj_ms2.shape or angle.shape != t_s.shape:
+        raise ValueError(
+            f"{log}: cleaned angle, travel time, and accel projection must align, got "
+            f"{angle.shape}, {t_s.shape}, {accel_proj_ms2.shape}"
+        )
+
+    return angle, accel_proj_ms2, t_s, bad_eval_mask, bad_raw_pct
+
+
 def evaluate_candidate(
     *,
     angle: np.ndarray,
     accel_proj_ms2: np.ndarray,
     t_s: np.ndarray,
-    accel_mask: np.ndarray,
+    valid_mask: np.ndarray,
     top_adjacent_total_mm: float,
     zero_percentile: float,
     max_travel_mm: float,
+    accel_threshold: float,
 ) -> dict[str, float]:
     top_adjacent_mm = top_adjacent_total_mm / 2.0
     if top_adjacent_mm >= HYPOTENUSE_MM:
@@ -100,12 +142,16 @@ def evaluate_candidate(
             f"got {top_adjacent_mm:.3f} mm."
         )
 
-    zero_angle = float(np.percentile(angle, zero_percentile))
+    zero_angle = float(np.percentile(angle[valid_mask], zero_percentile))
     travel = get_travel(angle, top_adjacent_mm, zero_angle)
     travel_accel = get_travel_accel(travel, t_s)
 
+    accel_mask = valid_mask & np.isfinite(travel_accel) & np.isfinite(accel_proj_ms2) & (np.abs(travel_accel) > accel_threshold)
+    if not np.any(accel_mask):
+        raise ValueError("No valid accel samples remain after masking")
+
     accel_err = travel_accel[accel_mask] - accel_proj_ms2[accel_mask]
-    oob = np.maximum(travel - max_travel_mm, 0.0)
+    oob = np.maximum(travel[valid_mask] - max_travel_mm, 0.0)
 
     return {
         "top_adjacent_total_mm": top_adjacent_total_mm,
@@ -113,14 +159,15 @@ def evaluate_candidate(
         "zero_percentile": zero_percentile,
         "zero_angle_rad": zero_angle,
         "zero_angle_deg": float(np.degrees(zero_angle)),
-        "travel_min": float(np.min(travel)),
-        "travel_max": float(np.max(travel)),
-        "travel_p999": float(np.percentile(travel, 99.9)),
-        "travel_mean": float(np.mean(travel)),
-        "n_over": int(np.sum(travel > max_travel_mm)),
+        "travel_min": float(np.min(travel[valid_mask])),
+        "travel_max": float(np.max(travel[valid_mask])),
+        "travel_p999": float(np.percentile(travel[valid_mask], 99.9)),
+        "travel_mean": float(np.mean(travel[valid_mask])),
+        "n_over": int(np.sum(travel[valid_mask] > max_travel_mm)),
         "oob_rms": float(np.sqrt(np.mean(oob**2))),
         "accel_rmse": float(np.sqrt(np.mean(accel_err**2))),
         "accel_mean_err": float(np.mean(accel_err)),
+        "n_eval": int(np.sum(accel_mask)),
     }
 
 
@@ -129,7 +176,7 @@ def candidate_rank_key(candidate: dict[str, float]) -> tuple[float, float, float
         float(candidate["n_over"]),
         candidate["oob_rms"],
         candidate["accel_rmse"],
-        abs(candidate["top_adjacent_total_mm"] - 237.5),
+        abs(candidate["top_adjacent_total_mm"] - 242.0),
     )
 
 
@@ -141,7 +188,8 @@ def format_candidate(candidate: dict[str, float], max_travel_mm: float) -> str:
         f"p99.9={candidate['travel_p999']:.2f} mm, "
         f"n>{max_travel_mm:.0f}={candidate['n_over']}, "
         f"acc_rmse={candidate['accel_rmse']:.4f}, "
-        f"acc_mean_err={candidate['accel_mean_err']:.4f}"
+        f"acc_mean_err={candidate['accel_mean_err']:.4f}, "
+        f"n_eval={candidate['n_eval']}"
     )
 
 
@@ -152,20 +200,18 @@ def main() -> None:
     best_rows: list[dict[str, float]] = []
 
     for log in args.logs:
-        ws = np.load(f"backend/run_artifacts/{log}/cache/all.npz")
-        angle = ws["angle__x"][:, 0]
-        t_s = ws["angle__t"]
-        accel_proj_ms2 = ws["accel/proj__x"][:, 0]
-        accel_mask = get_accel_mask(ws)
+        angle, accel_proj_ms2, t_s, bad_eval_mask, bad_raw_pct = load_log_inputs(log)
+        valid_mask = ~bad_eval_mask
 
         baseline = evaluate_candidate(
             angle=angle,
             accel_proj_ms2=accel_proj_ms2,
             t_s=t_s,
-            accel_mask=accel_mask,
+            valid_mask=valid_mask,
             top_adjacent_total_mm=args.baseline_top_adjacent_total,
             zero_percentile=args.baseline_zero_percentile,
             max_travel_mm=args.max_travel,
+            accel_threshold=args.accel_threshold,
         )
 
         candidates = []
@@ -176,10 +222,11 @@ def main() -> None:
                         angle=angle,
                         accel_proj_ms2=accel_proj_ms2,
                         t_s=t_s,
-                        accel_mask=accel_mask,
+                        valid_mask=valid_mask,
                         top_adjacent_total_mm=top_adjacent_total_mm,
                         zero_percentile=zero_percentile,
                         max_travel_mm=args.max_travel,
+                        accel_threshold=args.accel_threshold,
                     )
                 )
 
@@ -190,6 +237,10 @@ def main() -> None:
         best_rows.append(best)
 
         print(log)
+        print(
+            f"  raw angle corruption: {bad_raw_pct:.2f}% after raw padding, "
+            f"{np.mean(bad_eval_mask) * 100.0:.2f}% excluded on the 100 Hz travel timeline"
+        )
         print("  baseline:", format_candidate(baseline, args.max_travel))
         print("  best candidate:", format_candidate(best, args.max_travel))
         print("  top candidates:")

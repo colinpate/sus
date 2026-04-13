@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from angle_corruption import find_corrupt_angle_samples, interpolate_masked_signal
 from classes.time_series import TimeSeries
 
 Workspace = Dict[str, Any]
@@ -136,13 +137,24 @@ class AngleLoader:
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
-        angle_raw = df["angle_raw"].values
-        x = angle_raw * np.pi * 2 / 4096
+        angle_raw = df["angle_raw"].to_numpy()
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
+        bad_mask = find_corrupt_angle_samples(angle_raw)
+
+        x_raw = angle_raw * np.pi * 2 / 4096
+        x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
+        if np.any(bad_mask):
+            print(
+                f"Interpolated {np.sum(bad_mask)} corrupted angle samples "
+                f"({np.mean(bad_mask) * 100:.2f}%) from {self.path}"
+            )
 
         if self.lag != 0:
             x = np.roll(x, shift=-self.lag, axis=0)
+            bad_mask = np.roll(bad_mask, shift=-self.lag, axis=0)
+
+        source_path = str(Path(self.path).resolve())
             
         return {
             f"angle": TimeSeries(
@@ -150,6 +162,17 @@ class AngleLoader:
                 x=x,
                 units="radians",
                 frame="sensor",
-                meta={"fs_hz": fs_hz},
-            )
+                meta={
+                    "fs_hz": fs_hz,
+                    "source_path": source_path,
+                    "angle_bad_pct": float(np.mean(bad_mask) * 100.0),
+                },
+            ),
+            "angle/bad_mask": TimeSeries(
+                t=t,
+                x=bad_mask,
+                units="bool",
+                frame="sensor",
+                meta={"fs_hz": fs_hz, "source_path": source_path},
+            ),
         }

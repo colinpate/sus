@@ -6,6 +6,8 @@ from typing import Iterable
 
 import numpy as np
 
+from backend.angle_corruption import project_mask_to_timeline
+
 DEFAULT_LOGS = [
     "log022",
     "log029",
@@ -20,6 +22,10 @@ DEFAULT_LOGS = [
     "log085",
     "log088",
     "log091",
+    "log096",
+    "log098",
+    "log099",
+    "log100"
 ]
 
 COMPARISONS = (
@@ -91,6 +97,7 @@ def build_mask(cache: np.lib.npyio.NpzFile, pred_key: str, gt_key: str, error_th
     gt = flatten_1d(cache[f"{gt_key}__x"])
     finite_mask = np.isfinite(pred) & np.isfinite(gt)
     mask = boring_mask & finite_mask
+    mask = mask & ~build_angle_bad_mask(cache, cache[f"{gt_key}__t"])
     if error_threshold is not None:
         mask = mask & (abs(gt) > error_threshold)
     if pred.shape != gt.shape or pred.shape != boring_mask.shape:
@@ -99,6 +106,18 @@ def build_mask(cache: np.lib.npyio.NpzFile, pred_key: str, gt_key: str, error_th
             f"pred={pred.shape}, gt={gt.shape}, mask={boring_mask.shape}"
         )
     return mask
+
+
+def build_angle_bad_mask(cache: np.lib.npyio.NpzFile, target_t: np.ndarray) -> np.ndarray:
+    target_t = flatten_1d(target_t)
+    if "angle/bad_mask__x" not in cache or "angle/bad_mask__t" not in cache:
+        return np.zeros(len(target_t), dtype=bool)
+
+    return project_mask_to_timeline(
+        cache["angle/bad_mask__t"],
+        flatten_1d(cache["angle/bad_mask__x"]).astype(bool),
+        target_t,
+    )
 
 
 def summarize_log(log_name: str, cache_root: Path, center_errors: bool, error_threshold: float | None) -> tuple[dict[str, object], dict[str, dict[str, object]]]:
@@ -188,7 +207,8 @@ def diagnostic_rows(log_name: str, cache_root: Path, center_errors: bool) -> tup
     ):
         raise ValueError(f"{log_name}: diagnostic arrays do not align")
 
-    mask = boring_mask & np.isfinite(travel) & np.isfinite(mag) & np.isfinite(accel_hp_abs)
+    angle_bad_mask = build_angle_bad_mask(cache, cache["travel__t"])
+    mask = boring_mask & np.isfinite(travel) & np.isfinite(mag) & np.isfinite(accel_hp_abs) & ~angle_bad_mask
     if not np.any(mask):
         raise ValueError(f"{log_name}: no finite diagnostic samples on boring_mask")
 
