@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import json
 import os
 import struct
-from typing import Dict, Iterator, Tuple
+from pathlib import Path
+from typing import Any, Dict, Iterator, Tuple
 
 LEGACY_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "H" + "i")
 IMU_GYRO_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
@@ -58,6 +60,56 @@ FORMATS: Dict[str, Dict[str, object]] = {
         ],
     },
 }
+
+
+def get_metadata_path(log_path: str) -> Path:
+    return Path(log_path).with_suffix(".meta.json")
+
+
+def load_metadata(metadata_path: Path) -> Dict[str, Any]:
+    if not metadata_path.exists():
+        return {}
+
+    with metadata_path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    if not isinstance(metadata, dict):
+        raise ValueError(f"Expected top-level object in {metadata_path}")
+
+    return metadata
+
+
+def write_metadata(
+    log_path: str,
+    hypotenuse: float | None = None,
+    top_adjacent: float | None = None,
+) -> Path | None:
+    if hypotenuse is None and top_adjacent is None:
+        return None
+
+    metadata_path = get_metadata_path(log_path)
+    metadata = load_metadata(metadata_path)
+
+    steps = metadata.get("steps")
+    if not isinstance(steps, dict):
+        steps = {}
+        metadata["steps"] = steps
+
+    angle_to_travel = steps.get("angle_to_travel")
+    if not isinstance(angle_to_travel, dict):
+        angle_to_travel = {}
+        steps["angle_to_travel"] = angle_to_travel
+
+    if hypotenuse is not None:
+        angle_to_travel["hypotenuse"] = hypotenuse
+    if top_adjacent is not None:
+        angle_to_travel["top_adjacent"] = top_adjacent
+
+    with metadata_path.open("w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+        f.write("\n")
+
+    return metadata_path
 
 def detect_format(path: str) -> str:
     size = os.path.getsize(path)
@@ -181,6 +233,16 @@ def main() -> None:
     p.add_argument("-o", "--output", help="Output .csv path (default: input name with .csv)")
     p.add_argument("--no-seconds", action="store_true", help="Do not add computed t_s column")
     p.add_argument(
+        "--hypotenuse",
+        type=float,
+        help="Write steps.angle_to_travel.hypotenuse to the input log's .meta.json file",
+    )
+    p.add_argument(
+        "--top-adjacent",
+        type=float,
+        help="Write steps.angle_to_travel.top_adjacent to the input log's .meta.json file",
+    )
+    p.add_argument(
         "--format",
         choices=sorted(FORMATS.keys()),
         help="Override record format detection",
@@ -196,6 +258,14 @@ def main() -> None:
 
     convert(bin_path, csv_path, add_seconds=not args.no_seconds, fmt=args.format)
     print(f"Wrote: {csv_path}")
+
+    metadata_path = write_metadata(
+        bin_path,
+        hypotenuse=args.hypotenuse,
+        top_adjacent=args.top_adjacent,
+    )
+    if metadata_path is not None:
+        print(f"Wrote: {metadata_path}")
 
 if __name__ == "__main__":
     main()
