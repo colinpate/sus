@@ -1,11 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#include <Adafruit_LIS3DH.h>
-#include <Adafruit_AS5600.h>
-#include <Adafruit_MMC56x3.h>
-#include <Adafruit_Sensor.h>
-
 #include "FS.h"
 #include "SD_MMC.h"
 
@@ -18,36 +13,18 @@
 
 #include "log_server.h"
 
+// Switch to IMU_SELECTION_LSM6DSOX to build against Adafruit_LSM6DS.
+#define IMU_SELECTION_LIS3DH 0
+#define IMU_SELECTION_LSM6DSOX 1
+#define IMU_SELECTION IMU_SELECTION_LSM6DSOX
+
+#include "sensor_reader.h"
+
 static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_10;
 static constexpr gpio_num_t PERIPH_EN = GPIO_NUM_45;
 static constexpr uint8_t BUTTON_HOLD = 16; // 0.8s at 20Hz
 static constexpr uint32_t SAMPLE_HZ = 200;
-
-// Two LIS3DH I2C addresses (set by SA0 pin on each sensor)
-static constexpr uint8_t LIS1_ADDR = 0x18;
-static constexpr uint8_t LIS2_ADDR = 0x19;
-
-// MMC5603 default I2C address is 0x30 in Adafruit libs
-static constexpr uint8_t MMC_ADDR  = MMC56X3_DEFAULT_ADDRESS;
-
-#pragma pack(push, 1)
-struct LogRecord {
-  uint32_t t_ms; // 4B
-  uint32_t seq; // 4B
-  int16_t  lis1[3]; // 6B
-  int16_t  lis2[3]; // 6B
-  int16_t  mmc_mG[3]; // 6B mG
-  uint16_t angle; // 2B
-  int32_t temp_C; // 4B
-};
-#pragma pack(pop)
-
-static_assert(sizeof(LogRecord) == 32, "Unexpected LogRecord size");
-
-static Adafruit_LIS3DH lis1(&Wire);
-static Adafruit_LIS3DH lis2(&Wire);
-static Adafruit_MMC5603 mmc(12345); // sensor ID (arbitrary)
-static Adafruit_AS5600 as5600;
+static constexpr uint32_t WEB_TASK_STACK_BYTES = 12 * 1024;
 
 static SemaphoreHandle_t i2cMutex;
 static SemaphoreHandle_t sdMutex;
@@ -72,78 +49,13 @@ static String make_log_filename(fs::FS &fs) {
   }
   return String("/log999.bin");
 }
-
-bool initAS5600(){
-  if (!as5600.begin()){
-    Serial.println("Failed to init AS5600");
-    return false;
-  }
-
-  Serial.println("AS5600 found!");
-
-  as5600.enableWatchdog(false);
-  // Normal (high) power mode
-  as5600.setPowerMode(AS5600_POWER_MODE_NOM);
-  // No Hysteresis
-  as5600.setHysteresis(AS5600_HYSTERESIS_OFF);
-
-  // analog output
-  as5600.setOutputStage(AS5600_OUTPUT_STAGE_DIGITAL_PWM);
-
-  // setup filters (copied from sst)
-  as5600.setSlowFilter(AS5600_SLOW_FILTER_4X);
-  as5600.setFastFilterThresh(AS5600_FAST_FILTER_THRESH_6LSB);
-
-  // Reset position settings to defaults
-  as5600.setZPosition(0);
-  as5600.setMPosition(4095);
-  as5600.setMaxAngle(4095);
-
-  return true;
-}
-
 void sensorTask(void *param) {
   (void)param;
 
-  bool lis1_conn = false;
-  bool lis2_conn = false;
-  bool mmc_conn = false;
-  bool as_conn = false;
+  SensorConnections sensorConnections;
 
-  // Configure sensors
   xSemaphoreTake(i2cMutex, portMAX_DELAY);
-
-  // Faster I2C helps at 200 Hz with 3 sensors
-  Wire.setClock(400000); // 1 MHz (ESP32-S3 supports fast I2C; drop to 400k if needed)
-
-  if (!lis1.begin(LIS1_ADDR)) {
-    Serial.println("LIS1 not found");
-  } else {
-    lis1_conn = true;
-    lis1.setDataRate(LIS3DH_DATARATE_200_HZ);
-    lis1.setRange(LIS3DH_RANGE_16_G);
-    lis1.setPerformanceMode(LIS3DH_MODE_HIGH_RESOLUTION);
-  }
-  if (!lis2.begin(LIS2_ADDR)) {
-    Serial.println("LIS2 not found");
-  } else {
-    lis2_conn = true;
-    lis2.setDataRate(LIS3DH_DATARATE_200_HZ);
-    lis2.setRange(LIS3DH_RANGE_16_G);
-    lis2.setPerformanceMode(LIS3DH_MODE_HIGH_RESOLUTION);
-  }
-
-  if (!mmc.begin(MMC_ADDR, &Wire)) {
-    Serial.println("MMC5603 not found");
-  } else {
-    mmc_conn = true;
-    mmc.setDataRate(200); // in Hz, from 1-255 or 1000
-    mmc.setContinuousMode(true);
-  }
-
-  // Set up the AS5600 (angle sensor)
-  as_conn = initAS5600();
-
+  sensorConnections = initSensors(Wire);
   xSemaphoreGive(i2cMutex);
 
   uint32_t seq = 0;
@@ -162,49 +74,8 @@ void sensorTask(void *param) {
     r.t_ms = now_ms();
     r.seq  = seq++;
 
-    sensors_event_t magEvent;
-
     xSemaphoreTake(i2cMutex, portMAX_DELAY);
-
-    // LIS3DH: read() updates lis.x/y/z (raw int16 counts)
-    if (lis1_conn){
-      lis1.read();
-
-      r.lis1[0] = (int16_t)round(lis1.x_g * 1000.0f);
-      r.lis1[1] = (int16_t)round(lis1.y_g * 1000.0f);
-      r.lis1[2] = (int16_t)round(lis1.z_g * 1000.0f);
-    }
-
-    if (lis2_conn){
-      lis2.read();
-
-      r.lis2[0] = (int16_t)round(lis2.x_g * 1000.0f);
-      r.lis2[1] = (int16_t)round(lis2.y_g * 1000.0f);
-      r.lis2[2] = (int16_t)round(lis2.z_g * 1000.0f);
-    }
-
-    // read AS5600 angle
-    if (as_conn){
-      uint16_t angle = as5600.getAngle();
-      r.angle = angle;
-      //Serial.println(angle);
-    }
-
-    if (mmc_conn){
-      // MMC5603: getEvent returns microtesla floats in event.magnetic.{x,y,z}
-      // Store as int16 milliGauss to preserve precision and keep records fixed-size.
-      mmc.getEvent(&magEvent);
-
-      float temp_c = 0; //mmc.readTemperature(); // Doesn't work in continuous mode
-
-
-      r.mmc_mG[0] = (int16_t)llround((double)magEvent.magnetic.x * 10.0); // uT -> mG
-      r.mmc_mG[1] = (int16_t)llround((double)magEvent.magnetic.y * 10.0);
-      r.mmc_mG[2] = (int16_t)llround((double)magEvent.magnetic.z * 10.0);
-
-      r.temp_C = (int32_t)round(temp_c * 10.0);
-    }
-    
+    readSensors(sensorConnections, r);
     xSemaphoreGive(i2cMutex);
 
     if (xQueueSend(logQ, &r, 0) != pdTRUE) {
@@ -381,7 +252,7 @@ void setup() {
   // Task stack sizes: bump if you add WiFi/networking + parsing
   xTaskCreatePinnedToCore(sensorTask, "sensor", 4096, nullptr, 2, nullptr, 1);
   xTaskCreatePinnedToCore(writerTask, "writer", 4096, nullptr, 1, nullptr, 1);
-  xTaskCreatePinnedToCore(webTask, "web", 4096, nullptr, 3, nullptr, 0);
+  xTaskCreatePinnedToCore(webTask, "web", WEB_TASK_STACK_BYTES, nullptr, 3, nullptr, 0);
   xTaskCreate(buttonTask, "power", 4096, nullptr, 0, nullptr);
 }
 
@@ -390,4 +261,3 @@ void loop() {
   vTaskDelay(pdMS_TO_TICKS(1000));
   Serial.println("Runnning all good!");
 }
-

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
-from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader
+from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader, LISMagLoader, GyroLoader
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import (
     FilterChunkPairs, 
@@ -16,33 +16,59 @@ from accel_rotation import (
 )
 from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
-from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats
+from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
+from classes.log_config import attach_log_config, get_log_config_path, get_signal_config, load_log_config
 
 DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
 
 def main() -> None:
     log_filename = parse_args().log_filename
-    out_dir = Path("run_artifacts") / log_filename
-    log_path = Path(f"../logs/{log_filename}.csv")
+    out_dir = Path("backend/run_artifacts") / log_filename
+    log_path = Path(f"logs/{log_filename}.csv")
+    log_config = load_log_config(log_path)
+    if log_config:
+        print(f"Loaded log config from {get_log_config_path(log_path)}")
 
 
     # Load sensors (OOP edge)
     loaders: List[SensorLoader] = [
         AccelLoader(sensor_id="lis1", path=log_path),
         AccelLoader(sensor_id="lis2", path=log_path, scale=9.81 / 1000 * 1.0),
-        MagLoader(path=log_path, lag=0),
-        AngleLoader(path=log_path)
+        GyroLoader(sensor_id="gyro1", path=log_path),
+        GyroLoader(sensor_id="gyro2", path=log_path),
+        MagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag")),
+        LISMagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag_lis")),
+        AngleLoader(path=log_path, lag=-1)
     ]
 
     ws: Workspace = {}
+    attach_log_config(ws, log_config)
     for loader in loaders:
         ws.update(loader.load())
 
     # Define pipeline (functional core + fusion)
     steps: List[Step] = [
+        FilterStep(
+            name="lowpass_gyro1",
+            inputs=("gyro/gyro1",),
+            outputs=("gyro/lpf/gyro1",),
+            plot_keys=("gyro/gyro1", "gyro/lpf/gyro1"),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        FilterStep(
+            name="lowpass_gyro2",
+            inputs=("gyro/gyro2",),
+            outputs=("gyro/lpf/gyro2",),
+            plot_keys=("gyro/gyro2", "gyro/lpf/gyro2"),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
         # Get rotation matrix to align accelerometer data
         FilterStep(
             name="lowpass_lis1",
@@ -169,20 +195,31 @@ def main() -> None:
             name="find_boring_regions",
             inputs=("travel",),
             outputs=("boring_regions", "boring_mask"),
+            read_cache=True
         ),
 
         # Magnetometer processing
         ProjectMag(
             name="project_mag",
-            inputs=("mag",),
+            inputs=("mag", "accel/proj"),
             outputs=("mag/proj",),
-            plot_keys=("mag/proj",)
+            plot_keys=("mag/proj",),
+            normalize=True,
         ),
         FilterStep(
             name="lowpass_mag",
             inputs=("mag",),
             outputs=("mag/lpf",),
             plot_keys=("mag/lpf",),
+            fc_hz=20,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        FilterStep(
+            name="lowpass_mag_lis",
+            inputs=("mag_lis",),
+            outputs=("mag_lis/lpf",),
+            plot_keys=("mag_lis/lpf",),
             fc_hz=20,
             btype="low",
             dec_freq=DEC_FREQ,
@@ -203,27 +240,38 @@ def main() -> None:
         ),
         FindMagZVPoints(
             name="find_mag_zv_points",
-            inputs=("mag/proj/lpf",),
+            inputs=("mag/proj/corr/lpf",),
             outputs=("mag_zv_points",)
         ),
 
         # Fusion steps
+        GetMagBaseline(
+            name="get_mag_baseline",
+            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj"),
+            outputs=("mag_baseline",)
+        ),
         GetMagTravelRefPoint(
             name="get_mag_travel_ref_point",
-            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "travel"),
-            outputs=("mag_travel_ref_point", "mag_baseline")
+            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
+            outputs=("mag_travel_ref_point",)
         ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
             inputs=(
                 "mag/proj/corr/lpf", 
-                "accel/lpf/proj", 
+                "accel/lpfhp/proj", 
                 "travel", 
                 "mag/proj/bad_mask", 
                 "mag_zv_points",
                 "mag_travel_ref_point",
+                "mag_baseline"
                 ),
-            outputs=("travel/mag_model", "travel/mag_model/adj", "fusion_scatter_points"),
+            outputs=(
+                "travel/mag_model",
+                "travel/mag_model/adj",
+                "fusion_scatter_points",
+                "mag_model_coeffs"
+            ),
             plot_keys=(
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),
@@ -233,7 +281,7 @@ def main() -> None:
             name="x_preds_stats",
             inputs=("travel/mag_model", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=30
+            gt_thresh=0
         ),
         GetErrorStats(
             name="x_preds_adj_stats",
@@ -258,11 +306,17 @@ def main() -> None:
             name="x_preds_solver",
             inputs=("travel/solved", "travel", "boring_mask"),
             outputs=(),
+            gt_thresh=0
+        ),
+        GetErrorStats(
+            name="x_preds_solver",
+            inputs=("travel/solved", "travel", "boring_mask"),
+            outputs=(),
             gt_thresh=30
         ),
     ]
 
-    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=True)
+    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False)
     ws = runner.run(ws, steps)
 
     # Example: access final result

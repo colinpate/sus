@@ -14,6 +14,8 @@ static constexpr size_t kDownloadChunkSize = 2048;
 static uint8_t downloadBuf[kDownloadChunkSize];
 
 void startWifiAndServer() {
+  Serial.printf("web stack free before WiFi start: %u bytes\n",
+                (unsigned)uxTaskGetStackHighWaterMark(nullptr));
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
@@ -77,6 +79,8 @@ void startWifiAndServer() {
 
   // Stream download
   server.on("/download", HTTP_GET, []() {
+    Serial.printf("web stack free at download start: %u bytes\n",
+                  (unsigned)uxTaskGetStackHighWaterMark(nullptr));
     if (!server.hasArg("name")) {
       server.send(400, "text/plain", "missing ?name=\n");
       return;
@@ -115,9 +119,13 @@ void startWifiAndServer() {
     }
 
     df.close();
+    Serial.printf("web stack free after download: %u bytes\n",
+                  (unsigned)uxTaskGetStackHighWaterMark(nullptr));
     //xSemaphoreGive(sdMutex);
   });
 
   server.begin();
+  Serial.printf("web stack free after server start: %u bytes\n",
+                (unsigned)uxTaskGetStackHighWaterMark(nullptr));
   Serial.println("HTTP server started");
 }

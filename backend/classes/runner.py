@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
+from classes.log_config import EMPTY_LOG_CONFIG_HASH, get_log_config, get_log_config_hash
 
 PlotKind = Literal["timeseries", "scatter", "hist"]
 
@@ -32,7 +33,9 @@ class Runner:
 
     def _save_cache(self, step_name: str, ws: Workspace, keys: Tuple[str, ...]) -> None:
         self._cache_path(step_name).parent.mkdir(parents=True, exist_ok=True)
-        payload = {}
+        payload = {
+            "__log_config_hash": np.array(get_log_config_hash(get_log_config(ws))),
+        }
         for k in keys:
             v = ws[k]
             if isinstance(v, TimeSeries):
@@ -47,11 +50,19 @@ class Runner:
         if not p.exists():
             return False
         data = np.load(p, allow_pickle=False)
+        current_hash = get_log_config_hash(get_log_config(ws))
+        cached_hash = data["__log_config_hash"].item() if "__log_config_hash" in data else None
+        if cached_hash is None and current_hash != EMPTY_LOG_CONFIG_HASH:
+            return False
+        if cached_hash is not None and cached_hash != current_hash:
+            return False
         for k in keys:
             t_key = f"{k}__t"
             x_key = f"{k}__x"
             if t_key in data and x_key in data:
                 ws[k] = TimeSeries(t=data[t_key], x=data[x_key])
+            elif k in data:
+                ws[k] = data[k]
         return True
 
     def _plot_timeseries(self, ts: TimeSeries, title: str, path: Path) -> None:
@@ -85,7 +96,7 @@ class Runner:
             i_step_name = f"{i}_{step.name}"
             # Cache outputs if available
             loaded = False
-            if self.read_cache and step.outputs:
+            if (self.read_cache or step.read_cache) and step.outputs:
                 loaded = self._load_cache(i_step_name, ws, step.outputs)
 
             if not loaded:
@@ -95,6 +106,9 @@ class Runner:
                     raise KeyError(f"Step '{step.name}' missing inputs: {missing}")
 
                 print("\nRunning step", i_step_name, "with inputs", step.inputs)
+                step_config = step.config(ws)
+                if step_config:
+                    print("Using step config:", step_config)
                 step.run(ws)
 
                 if self.write_cache and step.outputs:

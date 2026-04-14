@@ -212,3 +212,6 @@ __marimo__/
 *.npz
 *.bin
 *.csv
+
+# Local firmware secrets
+fw/wifi_config.h

@@ -13,14 +13,23 @@ from classes.step import Step
 class ProjectMag(Step):
     """Project magnet data onto mean vector"""
     mag_threshold: int = 3000  # mG
+    normalize: bool = False
+    still_a_max: float = 1000 # mm/s^2
+    still_len_s: float = 0.1
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]]
+        accel_ts: TimeSeries = ws[self.inputs[1]]
 
         x = a.x
+        accel = accel_ts.x
+        still_len = int(self.still_len_s * a.meta["fs_hz"])
         
         # Threshold magnet data and project along the direction of travel
         mag_filtered_thresh = x[np.linalg.norm(x, axis=1) > self.mag_threshold]
+
+        if self.normalize:
+            mag_filtered_thresh = mag_filtered_thresh / (np.linalg.norm(mag_filtered_thresh, axis=1, keepdims=True) + 1e-8)
         mean_vector = np.mean(mag_filtered_thresh, axis=0)
         # Project mag data onto mean vector to get travel along that direction
         mag_travel_vector = mean_vector / np.linalg.norm(mean_vector)
@@ -34,6 +43,20 @@ class ProjectMag(Step):
             frame=a.frame,
             meta={**a.meta},
         )
+    
+    def get_mag_baseline(self, mag, accel, still_len):
+        a_mms = accel * 1000
+        still_mags = []
+        mag_mag = np.linalg.norm(mag, axis=1)
+        for i in range(0, mag.shape[0] - still_len, still_len):
+            mag_chunk = mag_mag[i:i+still_len]
+            a_chunk = a_mms[i:i+still_len]
+            if max(abs(a_chunk)) < self.still_a_max:
+                still_mags.append(mag_chunk)
+
+        mag_baseline = np.median(still_mags) + np.std(still_mags)
+        print("Raw mag baseline", mag_baseline, "std", np.std(still_mags))
+        return mag_baseline
 
 
 class FindBadMagProj(Step): 

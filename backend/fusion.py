@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import random
 from unittest import result
 
+import scipy
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import least_squares
@@ -31,9 +32,21 @@ class GetMagToTravelModel(Step):
     """ Train a model using least squares  """
     chunk_min_dx = 10
     chunk_len = 20
-    min_mag = 700
+    fit_balance_bins = 8
+    fit_balance_mode = "center_mag"
     train_with_mask: bool = False
     apply_ref_point: bool = True
+    bad_thresh: float = 0.5
+    pred_soft_mg: float = 50.0
+    ref_zero_percentile: float = 8.0
+    ref_neg_fallback_max_pct: float = 0.1
+    ref_fallback_accel_quantile: float = 70.0
+
+    # For re-calculating mag baseline, if desired
+    still_len_s: float = 0.1
+    still_a_max: float = 1000
+    min_mag_relaxed_still_std_scale: float = 0.5
+    min_mag_relax_min_chunks: int = 50
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -42,13 +55,15 @@ class GetMagToTravelModel(Step):
         mask_ts: np.ndarray = ws[self.inputs[3]]
         idxs: np.ndarray = ws[self.inputs[4]]
         ref_point: np.ndarray = ws[self.inputs[5]]
+        mag_baseline: float = ws[self.inputs[6]]
 
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         travel = travel_ts.x[:, 0]
         mag_proj_bad_mask = mask_ts.x.flatten().astype(bool)
         t = mag_ts.t
-        dt_s = np.diff(t, prepend=t[0]-0.01)
+
+        baseline_min_mag = mag_baseline[0]
 
         if self.train_with_mask:
             print("Trainign with mask, shape of bad mask", mag_proj_bad_mask.shape, "num bad samples", np.sum(mag_proj_bad_mask))
@@ -56,7 +71,42 @@ class GetMagToTravelModel(Step):
         else:
             training_mask = np.zeros(mag_ts.x.shape[0], dtype=bool)
 
-        xs, mags = self.get_chunks(idxs, mag, accel, dt_s, training_mask)
+        self.min_mag = baseline_min_mag
+        xs, mags, all_mags = self.get_chunks(idxs, mag, accel, t, training_mask, self.min_mag)
+        mag_mins = [np.min(mag_chunk) for mag_chunk in all_mags]
+        relaxed_min_mag = np.sort(mag_mins)[-self.min_mag_relax_min_chunks]
+
+        use_relaxed_min_mag = (
+            np.isfinite(relaxed_min_mag)
+            and len(xs) < self.min_mag_relax_min_chunks
+            and relaxed_min_mag < baseline_min_mag
+        )
+        if use_relaxed_min_mag:
+            print(
+                "Relaxing min mag from",
+                baseline_min_mag,
+                "to",
+                relaxed_min_mag,
+                # "still median",
+                # still_median,
+                # "still std",
+                # still_std,
+                "initial chunks",
+                len(xs),
+            )
+            xs, mags, _ = self.get_chunks(idxs, mag, accel, t, training_mask, relaxed_min_mag)
+        else:
+            print(
+                "Using raw min mag",
+                baseline_min_mag,
+                # "still median",
+                # still_median,
+                # "still std",
+                # still_std,
+                "chunks",
+                len(xs),
+            )
+
         input_arr = self.format_chunks_for_fit(xs, mags)
         result = self.least_squares_fit(input_arr)
         print("x0, y_scale, power:", result.x)
@@ -64,7 +114,8 @@ class GetMagToTravelModel(Step):
         x_preds = self.pred_x(mag, result.x[0], result.x[1], result.x[2])
 
         if self.apply_ref_point:
-            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x)
+            ref_fallback_mask = self.build_ref_fallback_mask(accel, mag_proj_bad_mask)
+            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x, mag, ref_fallback_mask)
         else:
             x_preds_adj = x_preds
 
@@ -84,49 +135,105 @@ class GetMagToTravelModel(Step):
         )
         scatter_points = np.array([mag, travel, x_preds_adj]).T
         ws[self.outputs[2]] = scatter_points
+        ws[self.outputs[3]] = np.array([result.x[0], result.x[1], result.x[2]])
 
-    def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs):
+    def build_ref_fallback_mask(self, accel: np.ndarray, mag_proj_bad_mask: np.ndarray) -> np.ndarray:
+        accel = np.asarray(accel, dtype=float).reshape(-1)
+        mag_proj_bad_mask = np.asarray(mag_proj_bad_mask, dtype=bool).reshape(-1)
+        accel_abs = np.abs(accel)
+        finite_mask = np.isfinite(accel_abs)
+        candidate_mask = finite_mask & ~mag_proj_bad_mask
+        if not np.any(candidate_mask):
+            return np.zeros_like(accel_abs, dtype=bool)
+
+        accel_thresh = float(np.percentile(accel_abs[candidate_mask], self.ref_fallback_accel_quantile))
+        motion_mask = candidate_mask & (accel_abs > accel_thresh)
+        if not np.any(motion_mask):
+            return np.zeros_like(accel_abs, dtype=bool)
+        return motion_mask
+
+    def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs, mag=None, active_mask=None):
         x0, y_scale, power = coeffs
         ref_x_pred = self.pred_x(ref_mag, x0, y_scale, power)
         offset = - ref_x_pred + ref_x
-        min_mag_pred = self.pred_x(self.min_mag, x0, y_scale, power)
-        # if min_mag_pred < -offset:
-        #     print(f"Offset too low: {offset:.1f} using -{min_mag_pred:.1f}")
-        #     offset = -min_mag_pred
-        # else:
-        #     print("Adjusting predicted x by offset", offset, "to align reference point")
         x_preds_ref = x_preds + offset
+
+        if mag is not None and active_mask is not None:
+            active_mask = np.asarray(active_mask, dtype=bool).reshape(-1)
+            if np.any(active_mask):
+                neg_pct = float(np.mean(x_preds_ref[active_mask] < 0))
+                print(
+                    "Ref-point fallback check: {:.1f}% of motion-mask samples have negative predicted travel".format(
+                        neg_pct * 100
+                    )
+                )
+                if neg_pct > self.ref_neg_fallback_max_pct:
+                    zero_mag = float(np.percentile(mag, self.ref_zero_percentile))
+                    zero_offset = -float(self.pred_x(zero_mag, x0, y_scale, power))
+                    if zero_offset > offset:
+                        print(
+                            f"Ref-point fallback: neg_pct={neg_pct * 100:.1f}% exceeds {self.ref_neg_fallback_max_pct * 100:.1f}%, "
+                            f"switching offset from {offset:.1f} to {zero_offset:.1f} using mag p{self.ref_zero_percentile:.0f}={zero_mag:.1f}"
+                        )
+                        offset = zero_offset
+                        x_preds_ref = x_preds + offset
+
         return x_preds_ref
 
-    def get_chunks(self, idxs_filt, mag, acc, dt_s, mag_proj_bad_mask):
+    def get_still_mag_stats(self, mag_ts: TimeSeries, accel_ts: TimeSeries):
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
+        a_mms = accel * 1000
+        still_mags = []
+        for i in range(0, mag.shape[0] - still_len, still_len):
+            mag_chunk = mag[i:i + still_len]
+            a_chunk = a_mms[i:i + still_len]
+            if max(abs(a_chunk)) < self.still_a_max:
+                still_mags.append(mag_chunk)
+
+        if len(still_mags) == 0:
+            return np.nan, np.nan
+
+        still_arr = np.concatenate(still_mags)
+        return float(np.median(still_arr)), float(np.std(still_arr))
+
+    def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask, min_mag):
         chunk_len = self.chunk_len
         min_dx = self.chunk_min_dx
-        print("Min mag:", self.min_mag)
+        print("Min mag:", min_mag)
 
         xs = []
         mags = []
+        all_mags = []
         for idx in idxs_filt:
             if idx < chunk_len or idx + chunk_len >= len(mag):
                 continue
-            dt_chunk = dt_s[idx - chunk_len:idx + chunk_len]
+            t_chunk = t_s[idx - chunk_len:idx + chunk_len]
             a_chunk = acc[idx - chunk_len:idx + chunk_len] * 1000
             badmask_chunk = mag_proj_bad_mask[idx - chunk_len:idx + chunk_len]
-            if np.mean(badmask_chunk) > 0.1:
+            if np.mean(badmask_chunk) > self.bad_thresh:
                 continue
-            v_chunk = np.cumsum(a_chunk * dt_chunk)
-            x_chunk = np.cumsum((v_chunk - v_chunk[chunk_len]) * dt_chunk)
+            v_chunk = scipy.integrate.cumulative_trapezoid(a_chunk, t_chunk, initial=0)
+            v_chunk -= v_chunk[chunk_len]
+            x_chunk = scipy.integrate.cumulative_trapezoid(v_chunk, t_chunk, initial=0)
             x_chunk -= x_chunk[chunk_len]
             if max(x_chunk) - min(x_chunk) < min_dx:
                 continue
             mag_chunk = mag[idx - chunk_len:idx + chunk_len]
-            if min(mag_chunk) < self.min_mag:
+            dm_chunk = np.diff(mag_chunk, prepend=mag_chunk[0])
+            dm_dx = dm_chunk / (v_chunk + 1e-6)
+            if np.median(dm_dx) < 0.05:
+                continue
+            all_mags.append(mag_chunk)
+            if min(mag_chunk) < min_mag:
                 continue
             xs.append(x_chunk)
             mags.append(mag_chunk)
 
         print("Xs:", len(xs))
 
-        return xs, mags
+        return xs, mags, all_mags
 
     def format_chunks_for_fit(self, xs, mags):
         # Formulate input data and residuals and threshold by min mag
@@ -142,15 +249,51 @@ class GetMagToTravelModel(Step):
             input_list.append([mag_i[pt_idxes], x_i[pt_idxes]])
 
         input_arr = np.array(input_list)
+        print("Min mag at indices:", np.min(input_arr[:, 0, :]), "mean", np.mean(input_arr[:, 0, :]), "max", np.max(input_arr[:, 0, :]))
         print(input_arr.shape)
         return input_arr
     
     def pred_x(self, mag_i, x0, y_scale, power):
-        mag_i = np.copy(mag_i)
-        mag_i[(mag_i - x0) < 0] = x0
-        return ((mag_i - x0) ** power) * y_scale
+        dx = np.asarray(mag_i, dtype=float) - x0
+        soft = (np.abs(dx) + self.pred_soft_mg) ** power - (self.pred_soft_mg ** power)
+        return np.sign(dx) * soft * y_scale
+
+    def get_fit_chunk_weights(self, input_arr):
+        if input_arr.shape[0] == 0:
+            return np.array([])
+
+        if self.fit_balance_mode == "max_mag":
+            rep_mag = np.max(input_arr[:, 0, :], axis=1)
+        elif self.fit_balance_mode == "mean_mag":
+            rep_mag = np.mean(input_arr[:, 0, :], axis=1)
+        else:
+            rep_mag = input_arr[:, 0, 0]
+
+        rep_mag = np.asarray(rep_mag, dtype=float)
+        n_bins = int(np.clip(self.fit_balance_bins, 1, len(rep_mag)))
+        if n_bins <= 1 or np.allclose(rep_mag, rep_mag[0]):
+            return np.ones_like(rep_mag)
+
+        edges = np.linspace(np.min(rep_mag), np.max(rep_mag), n_bins + 1)
+        bin_idx = np.digitize(rep_mag, edges[1:-1], right=False)
+        counts = np.bincount(bin_idx, minlength=n_bins).astype(float)
+        weights = 1.0 / np.maximum(counts[bin_idx], 100)
+
+        # Normalize so the average chunk keeps about unit weight.
+        weights *= len(weights) / np.sum(weights)
+
+        print(
+            "Balanced fit chunk counts by mag bin:",
+            counts.astype(int),
+            "rep mag percentiles:",
+            np.percentile(rep_mag, [0, 25, 50, 75, 100]),
+            "edges:",
+            edges,
+        )
+        return weights
     
     def least_squares_fit(self, input_arr, power_prior = 1/3, power_weight = 1000):
+        #chunk_weights = self.get_fit_chunk_weights(input_arr)
 
         def calculate_res(vec):
             x0, y_scale, power = vec[0], vec[1], vec[2]
@@ -162,12 +305,13 @@ class GetMagToTravelModel(Step):
             mag_pts = input_arr[:, 0, 1:]
             x_mag_preds = self.pred_x(mag_pts, x0, y_scale, power=power)
             res = x_acc_preds - x_mag_preds
+            #res *= np.sqrt(chunk_weights)[:, np.newaxis]
 
             power_res = power - power_prior
 
             return np.concatenate([res.flatten(), np.array([power_res]) * power_weight])
 
-        guess_vec = [0, 1/3, 1/3]
+        guess_vec = [self.min_mag, 3, 1/3]
         result = least_squares(
                 fun=calculate_res,
                 x0=guess_vec, 
@@ -225,7 +369,8 @@ class GetMagTravelRefPoint(Step):
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
-        gt_x_ts: TimeSeries | None = ws.get(self.inputs[2])
+        mag_baseline: float = ws[self.inputs[2]][0]
+        gt_x_ts: TimeSeries | None = ws.get(self.inputs[3])
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
         t = mag_ts.t
@@ -236,8 +381,6 @@ class GetMagTravelRefPoint(Step):
         still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
         bump_len = int(self.bump_len_s * mag_ts.meta["fs_hz"])
         stride = int(self.stride_s * mag_ts.meta["fs_hz"])
-        
-        mag_baseline = self.get_mag_baseline(mag, accel, still_len)
 
         mag_chunks, a_intint_chunks, _, gt_x_chunks = self.find_chunks(
             accel, 
@@ -249,13 +392,13 @@ class GetMagTravelRefPoint(Step):
             stride, 
             mag_baseline
         )
-        mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
-        print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
+        if len(mag_chunks):
+            mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
+            print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
         abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks)
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
         ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
-        ws[self.outputs[1]] = np.array([mag_baseline])
 
     def find_chunks(self, accel, mag, gt_x, dt_s, still_len, bump_len, stride, still_mag_max):
         # Find the chunks
@@ -313,11 +456,17 @@ class GetMagTravelRefPoint(Step):
                 if gt_x is not None:
                     gt_x_chunks.append(gt_x[chunk_i][bump_slice])
         
-        print("Calibration chunks:", len(a_intint_chunks), "chunks,", len(a_intint_chunks[0]), "samples per chunk")
+        if len(a_intint_chunks) == 0:
+            print("No chunks found")
+        else:
+            print("Calibration chunks:", len(a_intint_chunks), "chunks,", len(a_intint_chunks[0]), "samples per chunk")
 
         return mag_chunks, a_intint_chunks, slices, gt_x_chunks
 
     def get_abs_pos_ref(self, mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks=None):
+        if len(mag_chunks) == 0:
+            print("No calibration chunks found, cannot determine absolute position reference point, returning 0 and mag baseline + min ref mag")
+            return 0, mag_baseline + self.min_ref_mag
         x_points = np.concatenate(a_intint_chunks)
         mag_points = np.concatenate(mag_chunks)
         print("Absolute position reference input points", x_points.shape[0])
@@ -350,7 +499,21 @@ class GetMagTravelRefPoint(Step):
         plt.grid()
         plt.show()
 
-    def get_mag_baseline(self, mag, accel, still_len):
+
+class GetMagBaseline(Step):
+    """Find the mag baseline by looking at still regions and taking the median + std"""
+    still_len_s: float = 0.1 # seconds
+    still_a_max: float = 1000 # mm/s^2
+
+    def run(self, ws: Workspace) -> None:
+        mag_ts: TimeSeries = ws[self.inputs[0]]
+        accel_ts: TimeSeries = ws[self.inputs[1]]
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+
+        assert mag_ts.units == "milli-Gauss"
+        assert accel_ts.units == "m/s^2"
+        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
         a_mms = accel * 1000
         still_mags = []
         for i in range(0, mag.shape[0] - still_len, still_len):
@@ -361,4 +524,4 @@ class GetMagTravelRefPoint(Step):
 
         mag_baseline = np.median(still_mags) + np.std(still_mags)
         print("Mag baseline", mag_baseline, "std", np.std(still_mags))
-        return mag_baseline
+        ws[self.outputs[0]] = np.array([mag_baseline])

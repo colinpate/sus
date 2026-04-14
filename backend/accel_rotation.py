@@ -4,6 +4,7 @@ from scipy.optimize import least_squares
 
 import numpy as np
 
+from angle_corruption import project_mask_to_timeline
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries, ChunkedTimeSeries
 from classes.step import Step
@@ -297,7 +298,7 @@ class GetAccelTravelVector(Step):
         for chunk in chunks:
             chunk_net_magnitude = np.linalg.norm(np.mean(chunk, axis=0))
             if chunk_net_magnitude > self.accel_threshold:
-                if np.mean(chunk, axis=0)[0] < 0: # Only keep chunks with net negative X acceleration
+                if np.mean(chunk, axis=0)[0] > 0: # Only keep chunks with net positive X acceleration
                     good_chunks.append(chunk)
         print("Accel travel vector:", len(good_chunks), "interesting chunks found")
         good_chunks = np.array(good_chunks)
@@ -388,16 +389,36 @@ class GetAccelError(Step):
     def run(self, ws: Workspace) -> None:
         a_proj_ts = ws[self.inputs[0]]
         travel_ts = ws[self.inputs[1]]
+        angle_bad_mask_ts = ws.get("angle/bad_mask")
 
         travel = travel_ts.x[:, 0]
         a_proj = a_proj_ts.x[:, 0]
         t = travel_ts.t
 
         dt_s = np.diff(t, prepend=t[0]-0.01)
-        v = np.diff(travel, prepend=travel[0]) / dt_s
-        a_gt = np.diff(v, prepend=v[0]) / dt_s / 1000 # convert to m/s^2
+        v = np.gradient(travel, t, edge_order = 2)
+        a_gt = np.gradient(v, t, edge_order = 2) / 1000.0
 
         error = a_proj - a_gt
-        error = error[abs(a_gt) > self.threshold]  # Only evaluate on parts where we have significant travel acceleration
+        ratio_error = error / (a_gt + 1e-6)
+        mask = abs(a_gt) > self.threshold
+        if isinstance(angle_bad_mask_ts, TimeSeries):
+            bad_mask = project_mask_to_timeline(
+                angle_bad_mask_ts.t,
+                angle_bad_mask_ts.x[:, 0].astype(bool),
+                t,
+            )
+            if np.any(bad_mask):
+                print(
+                    "Masking",
+                    f"{np.mean(bad_mask) * 100:.2f}%",
+                    "of travel samples due to corrupted angle data",
+                )
+                mask &= ~bad_mask
 
+        error = error[mask]  # Only evaluate on parts where we have significant travel acceleration
+        ratio_error = ratio_error[mask]
+
+        print("Accel STD (m/s^2):", np.std(a_gt[mask]), " mean abs:", np.mean(np.abs(a_gt[mask])))
         print(f"RMSE error (m/s^2): {np.sqrt(np.mean(error**2)):.2f}, MAE error (m/s^2): {np.mean(np.abs(error)):.2f}, Mean error (m/s^2): {np.mean(error):.2f}")
+        print(f"RMSE ratio error: {np.sqrt(np.mean(ratio_error**2)):.2f}, MAE ratio error: {np.mean(np.abs(ratio_error)):.2f}, Mean ratio error: {np.mean(ratio_error):.2f}")

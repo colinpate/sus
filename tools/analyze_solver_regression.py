@@ -1,0 +1,354 @@
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+from scipy.optimize import least_squares
+from scipy.sparse import lil_matrix
+
+
+def flatten_1d(arr: np.ndarray) -> np.ndarray:
+    arr = np.asarray(arr, dtype=float)
+    if arr.ndim == 2 and arr.shape[1] == 1:
+        return arr[:, 0]
+    return arr.reshape(-1)
+
+
+def centered_rmse(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray) -> float:
+    pred = flatten_1d(pred)[mask]
+    gt = flatten_1d(gt)[mask]
+    pred = pred - np.mean(pred)
+    gt = gt - np.mean(gt)
+    return float(np.sqrt(np.mean((pred - gt) ** 2)))
+
+
+def centered_std(x: np.ndarray, mask: np.ndarray) -> float:
+    x = flatten_1d(x)[mask]
+    x = x - np.mean(x)
+    return float(np.std(x))
+
+
+def dense_index_mask(length: int, indices: np.ndarray) -> np.ndarray:
+    mask = np.zeros(length, dtype=bool)
+    idx = np.asarray(indices, dtype=int).reshape(-1)
+    idx = idx[(idx >= 0) & (idx < length)]
+    mask[idx] = True
+    return mask
+
+
+def mean_pct(mask: np.ndarray) -> float:
+    if len(mask) == 0:
+        return float("nan")
+    return 100.0 * float(np.mean(mask))
+
+
+def make_jac_sparsity(n: int, n_res_per_step: int = 5) -> lil_matrix:
+    n_var = 2 * n + 2
+    n_res = n_res_per_step * (n - 1) + 1
+    j = lil_matrix((n_res, n_var), dtype=bool)
+    for i in range(1, n):
+        r0 = (i - 1) * n_res_per_step
+        j[r0 + 0, n + i] = True
+        j[r0 + 0, n + i - 1] = True
+        j[r0 + 0, 2 * n] = True
+        j[r0 + 1, i] = True
+        j[r0 + 1, i - 1] = True
+        j[r0 + 1, n + i - 1] = True
+        j[r0 + 1, 2 * n] = True
+        j[r0 + 1, 2 * n + 1] = True
+        j[r0 + 2, i] = True
+        j[r0 + 2, 2 * n + 1] = True
+        j[r0 + 3, n + i] = True
+        j[r0 + 4, i] = True
+    j[n_res - 1, 2 * n] = True
+    return j.tocsr()
+
+
+@dataclass
+class SolverVariant:
+    name: str
+    off_floor: float = 0.1
+    v0: float = 2.5
+    x0: float = 500.0
+    mag_x: float = 200.0
+    zupt_v: float = 320.0
+    b: float = 1.0
+    oob: float = 1000.0
+
+
+class SolverReplay:
+    def __init__(self, cache: np.lib.npyio.NpzFile):
+        self.travel = flatten_1d(cache["travel__x"])
+        self.time_s = flatten_1d(cache["travel__t"])
+        self.mask = np.asarray(cache["boring_mask"]).astype(bool).reshape(-1)
+        self.accel = flatten_1d(cache["accel/lpfhp/proj__x"]) * 1000.0
+        self.mag = flatten_1d(cache["mag/proj/corr/lpf__x"])
+        self.mag_preds = flatten_1d(cache["travel/mag_model/adj__x"])
+        self.solved_cache = flatten_1d(cache["travel/solved__x"])
+        self.dt_s = np.diff(self.time_s, prepend=self.time_s[0] - 0.01)
+        self.zv = dense_index_mask(len(self.travel), cache["mag_zv_points"])
+        self.mag_baseline = float(flatten_1d(cache["mag_baseline"])[0])
+        self.mag_thresh = max(500.0, self.mag_baseline)
+        self.travel_max = 170.0
+        self.jac = make_jac_sparsity(len(self.travel))
+
+    def calc_terms(self, vec: np.ndarray, variant: SolverVariant) -> dict[str, np.ndarray | float]:
+        n = len(self.travel)
+        x = vec[:n]
+        v = vec[n : 2 * n]
+        b = vec[2 * n]
+        bx = 0.0
+
+        dt = self.dt_s[1:]
+        a = self.accel[: n - 1] - b
+        v_res = v[:-1] + a * dt - v[1:]
+        x_res = x[:-1] + v[:-1] * dt + 0.5 * a * dt**2 - x[1:]
+        gate = ((self.mag[1:] > self.mag_thresh).astype(float) + variant.off_floor) / (1.0 + variant.off_floor)
+        mag_res = (self.mag_preds[1:] - x[1:] - bx) * gate
+        zv_res = self.zv[1:] * v[1:]
+        oob_res = x[1:] * (x[1:] < 0)
+        oob_res += (x[1:] - self.travel_max) * (x[1:] > self.travel_max)
+
+        res = np.zeros((5, n), dtype=float)
+        res[0, 1:] = v_res * variant.v0
+        res[1, 1:] = x_res * variant.x0
+        res[2, 1:] = mag_res * variant.mag_x
+        res[3, 1:] = zv_res * variant.zupt_v
+        res[4, 1:] = oob_res * variant.oob
+        return {
+            "x": x,
+            "v": v,
+            "b": np.array([b]),
+            "gate": gate,
+            "v_res": v_res,
+            "x_res": x_res,
+            "mag_res": mag_res,
+            "zv_res": zv_res,
+            "oob_res": oob_res,
+            "stacked": np.concatenate((res[:, 1:].ravel(order="F"), [b * variant.b])),
+        }
+
+    def solve(self, variant: SolverVariant) -> tuple[np.ndarray, dict[str, np.ndarray | float], dict[str, np.ndarray | float]]:
+        n = len(self.travel)
+        x0 = np.zeros(2 * n + 2)
+        x0[:n] = self.mag_preds
+        x0[n : 2 * n] = np.cumsum(self.accel) * np.mean(self.dt_s)
+
+        def calc(vec: np.ndarray) -> np.ndarray:
+            return np.asarray(self.calc_terms(vec, variant)["stacked"], dtype=float)
+
+        result = least_squares(
+            calc,
+            x0,
+            jac_sparsity=self.jac,
+            jac="2-point",
+            method="trf",
+            x_scale="jac",
+            max_nfev=100,
+            verbose=0,
+        )
+        return result.x, self.calc_terms(x0, variant), self.calc_terms(result.x, variant)
+
+
+def term_costs(terms: dict[str, np.ndarray | float], variant: SolverVariant) -> dict[str, float]:
+    return {
+        "v_dyn": float(np.mean((terms["v_res"] * variant.v0) ** 2)),
+        "x_dyn": float(np.mean((terms["x_res"] * variant.x0) ** 2)),
+        "mag_anchor": float(np.mean((terms["mag_res"] * variant.mag_x) ** 2)),
+        "zupt": float(np.mean((terms["zv_res"] * variant.zupt_v) ** 2)) if variant.zupt_v else 0.0,
+        "oob": float(np.mean((terms["oob_res"] * variant.oob) ** 2)) if variant.oob else 0.0,
+    }
+
+
+def masked_centered_err(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    pred = flatten_1d(pred)[mask]
+    gt = flatten_1d(gt)[mask]
+    pred = pred - np.mean(pred)
+    gt = gt - np.mean(gt)
+    return pred - gt
+
+
+def summarize_windows(
+    time_s: np.ndarray,
+    mask: np.ndarray,
+    travel: np.ndarray,
+    mag: np.ndarray,
+    solved: np.ndarray,
+    mag_preds: np.ndarray,
+    zv: np.ndarray,
+    mag_thresh: float,
+    window_s: float,
+    top_k: int,
+) -> list[dict[str, float]]:
+    idx = np.flatnonzero(mask)
+    if len(idx) == 0:
+        return []
+    dt = float(np.median(np.diff(time_s[idx]))) if len(idx) > 1 else 0.01
+    win = max(1, int(round(window_s / dt)))
+    out: list[dict[str, float]] = []
+    for start in range(0, len(idx) - win + 1, win):
+        w_idx = idx[start : start + win]
+        gt_w = travel[w_idx]
+        mag_w = mag_preds[w_idx]
+        solved_w = solved[w_idx]
+        gt_c = gt_w - np.mean(gt_w)
+        mag_c = mag_w - np.mean(mag_w)
+        solved_c = solved_w - np.mean(solved_w)
+        mag_rmse = float(np.sqrt(np.mean((mag_c - gt_c) ** 2)))
+        solved_rmse = float(np.sqrt(np.mean((solved_c - gt_c) ** 2)))
+        delta = solved_rmse - mag_rmse
+        correction = solved_w - mag_w
+        out.append(
+            {
+                "t0": float(time_s[w_idx[0]]),
+                "t1": float(time_s[w_idx[-1]]),
+                "delta_rmse": delta,
+                "solved_rmse": solved_rmse,
+                "mag_rmse": mag_rmse,
+                "anchor_on_pct": mean_pct(mag[w_idx] > mag_thresh),
+                "zv_pct": mean_pct(zv[w_idx]),
+                "travel_mean": float(np.mean(travel[w_idx])),
+                "travel_std": float(np.std(gt_c)),
+                "mag_mean": float(np.mean(mag[w_idx])),
+                "corr_mean": float(np.mean(correction)),
+                "corr_std": float(np.std(correction)),
+            }
+        )
+    out.sort(key=lambda row: row["delta_rmse"], reverse=True)
+    return out[:top_k]
+
+
+def print_cost_row(label: str, costs: dict[str, float]) -> None:
+    parts = [f"{k}={v:.1f}" for k, v in costs.items()]
+    print(f"{label}: " + ", ".join(parts))
+
+
+def run_log(log_name: str, cache_root: Path, window_s: float, top_k: int, run_ablation: bool) -> None:
+    cache = np.load(cache_root / log_name / "cache" / "all.npz")
+    replay = SolverReplay(cache)
+    current = SolverVariant(name="current")
+
+    x_opt, init_terms, opt_terms = replay.solve(current)
+    solved = np.asarray(opt_terms["x"], dtype=float)
+    mask = replay.mask
+    mag_rmse = centered_rmse(replay.mag_preds, replay.travel, mask)
+    solved_rmse = centered_rmse(solved, replay.travel, mask)
+    cache_rmse = centered_rmse(replay.solved_cache, replay.travel, mask)
+    correction = solved - replay.mag_preds
+
+    print(f"\n== {log_name} ==")
+    print(
+        "RMSE:",
+        f"mag_model_adj={mag_rmse:.3f}",
+        f"solver={solved_rmse:.3f}",
+        f"cache_solver={cache_rmse:.3f}",
+        f"delta={solved_rmse - mag_rmse:.3f}",
+    )
+    print(
+        "Amplitude:",
+        f"travel_std={centered_std(replay.travel, mask):.3f}",
+        f"mag_std={centered_std(replay.mag_preds, mask):.3f}",
+        f"solver_std={centered_std(solved, mask):.3f}",
+    )
+    print(
+        "Correction:",
+        f"mean={np.mean(correction[mask]):.3f}",
+        f"std={np.std(correction[mask]):.3f}",
+        f"mean_abs={np.mean(np.abs(correction[mask])):.3f}",
+        f"bias_b={float(opt_terms['b'][0]):.3f}",
+    )
+
+    print_cost_row("Init weighted costs", term_costs(init_terms, current))
+    print_cost_row("Opt weighted costs", term_costs(opt_terms, current))
+
+    masked_travel = replay.travel[mask]
+    masked_mag = replay.mag[mask]
+    masked_zv = replay.zv[mask]
+    masked_corr = correction[mask]
+    masked_solver_err = np.abs(masked_centered_err(solved, replay.travel, mask))
+    masked_mag_err = np.abs(masked_centered_err(replay.mag_preds, replay.travel, mask))
+    anchor_on = masked_mag > replay.mag_thresh
+    low_travel = masked_travel < 20.0
+    high_travel = masked_travel > np.percentile(masked_travel, 80.0)
+
+    for label, cond in (
+        ("anchor_on", anchor_on),
+        ("anchor_off", ~anchor_on),
+        ("zv", masked_zv),
+        ("non_zv", ~masked_zv),
+        ("travel<20", low_travel),
+        ("travel>p80", high_travel),
+    ):
+        if not np.any(cond):
+            continue
+        print(
+            f"{label}:",
+            f"n={int(np.sum(cond))}",
+            f"delta_rmse={np.sqrt(np.mean(masked_solver_err[cond] ** 2)) - np.sqrt(np.mean(masked_mag_err[cond] ** 2)):.3f}",
+            f"mean_abs_corr={np.mean(np.abs(masked_corr[cond])):.3f}",
+            f"anchor_pct={mean_pct(anchor_on[cond]):.1f}",
+            f"zv_pct={mean_pct(masked_zv[cond]):.1f}",
+        )
+
+    print("Worst windows by solver delta:")
+    for row in summarize_windows(
+        replay.time_s,
+        mask,
+        replay.travel,
+        replay.mag,
+        solved,
+        replay.mag_preds,
+        replay.zv,
+        replay.mag_thresh,
+        window_s,
+        top_k,
+    ):
+        print(
+            f"  {row['t0']:.1f}-{row['t1']:.1f}s",
+            f"delta={row['delta_rmse']:.3f}",
+            f"solver={row['solved_rmse']:.3f}",
+            f"mag={row['mag_rmse']:.3f}",
+            f"anchor_on={row['anchor_on_pct']:.1f}%",
+            f"zv={row['zv_pct']:.1f}%",
+            f"travel_mean={row['travel_mean']:.1f}",
+            f"corr_std={row['corr_std']:.3f}",
+        )
+
+    if not run_ablation:
+        return
+
+    ablations = [
+        SolverVariant(name="no_oob", oob=0.0),
+        SolverVariant(name="no_zupt", zupt_v=0.0),
+        SolverVariant(name="strong_mag", mag_x=400.0),
+        SolverVariant(name="weak_dyn", v0=1.25, x0=250.0),
+        SolverVariant(name="hard_off", off_floor=0.0),
+    ]
+    print("Ablations:")
+    for variant in ablations:
+        x_var, _, _ = replay.solve(variant)
+        rmse = centered_rmse(x_var[: len(replay.travel)], replay.travel, mask)
+        print(f"  {variant.name}: rmse={rmse:.3f}, delta_vs_mag={rmse - mag_rmse:.3f}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Analyze solver regressions versus mag-model predictions")
+    parser.add_argument("logs", nargs="+", help="Log names to analyze")
+    parser.add_argument("--cache-root", default="backend/run_artifacts", help="Cache root directory")
+    parser.add_argument("--window-s", type=float, default=5.0, help="Window size in seconds for local summaries")
+    parser.add_argument("--top-k", type=int, default=5, help="How many worst windows to print")
+    parser.add_argument("--with-ablation", action="store_true", help="Run a small set of solver ablations")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    cache_root = Path(args.cache_root)
+    for log_name in args.logs:
+        run_log(log_name, cache_root, window_s=args.window_s, top_k=args.top_k, run_ablation=args.with_ablation)
+
+
+if __name__ == "__main__":
+    main()

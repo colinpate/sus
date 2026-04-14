@@ -6,15 +6,20 @@ from classes.step import FilterStep
 
 from angle import AngleToTravel, FindBoringRegions
 from classes.sensor_loader import AngleLoader
+from classes.log_config import attach_log_config, get_log_config_path, load_log_config
 import numpy as np
 
 def main() -> None:
     log_filename = parse_args().log_filename
     out_dir = Path("run_artifacts") / log_filename
     log_path = Path(f"../logs/{log_filename}.csv")
+    log_config = load_log_config(log_path)
+    if log_config:
+        print(f"Loaded log config from {get_log_config_path(log_path)}")
 
     angle_loader = AngleLoader(path=log_path)
     ws = {}
+    attach_log_config(ws, log_config)
     ws.update(angle_loader.load())
 
     steps = [

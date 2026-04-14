@@ -10,25 +10,39 @@ from classes.step import Step
 class AngleToTravel(Step):
     """Get suspension travel from angle"""
     hypotenuse: float = 120
-    top_adjacent: float = 237.5 / 2
+    top_adjacent: float = 239 / 2#237.5 / 2
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]]
+        hypotenuse = self.param(ws, "hypotenuse", self.hypotenuse)
+        top_adjacent = self.param(ws, "top_adjacent", self.top_adjacent)
+        top_zeroangle = self.param(ws, "top_zeroangle")
+        top_zeroangle_percentile = self.param(ws, "top_zeroangle_percentile", 99.5)
         
         # Get corrected angle
-        top_angle = np.arccos(self.top_adjacent / self.hypotenuse)
-        top_zeroangle = np.percentile(a.x, 99.9)
+        top_angle = np.arccos(top_adjacent / hypotenuse)
+        if top_zeroangle is None:
+            top_zeroangle = np.percentile(a.x, top_zeroangle_percentile)
         net_angle = -1 * (a.x - top_zeroangle) + top_angle
 
-        travel = 2 * (self.top_adjacent - (self.hypotenuse * np.cos(net_angle)))
+        travel = 2 * (top_adjacent - (hypotenuse * np.cos(net_angle)))
         print("Travel min, max:", np.min(travel), np.max(travel))
+        print("Travel top zero angle:", top_zeroangle)
 
         ws[self.outputs[0]] = TimeSeries(
             t=a.t,
             x=travel,
             units="mm",
             frame=a.frame,
-            meta={**a.meta},
+            meta={
+                **a.meta,
+                "angle_to_travel": {
+                    "hypotenuse": hypotenuse,
+                    "top_adjacent": top_adjacent,
+                    "top_zeroangle": float(np.asarray(top_zeroangle).reshape(())),
+                    "top_zeroangle_percentile": top_zeroangle_percentile,
+                },
+            },
         )
 
 @dataclass
