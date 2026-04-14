@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.optimize import least_squares
+from scipy.stats import spearmanr
 
 
 DEFAULT_LOGS = ["log022", "log029", "log030", "log031", "log038", "log056_ccdh", "log078", "log079", "log080", "log085", "log086", "log088", "log091"]
@@ -11,8 +12,8 @@ DEFAULT_METHODS = [
     "oracle_travel_ridge",
     "himag_mean",
     "himag_mean_norm",
-    #"accel_chunk_peak_mean",
-    #"accel_chunk_peak_pca",
+    "accel_chunk_peak_mean",
+    "accel_chunk_peak_pca",
 ]
 
 
@@ -71,7 +72,7 @@ def flatten_1d(arr: np.ndarray) -> np.ndarray:
     return arr.reshape(-1)
 
 
-def safe_corr(a: np.ndarray, b: np.ndarray) -> float:
+def safe_corr(a: np.ndarray, b: np.ndarray, use_spearman=True) -> float:
     a = flatten_1d(a)
     b = flatten_1d(b)
     if a.shape != b.shape:
@@ -80,7 +81,11 @@ def safe_corr(a: np.ndarray, b: np.ndarray) -> float:
         return float("nan")
     if np.std(a) < 1e-12 or np.std(b) < 1e-12:
         return float("nan")
-    return float(np.corrcoef(a, b)[0, 1])
+    if use_spearman:
+        corr = spearmanr(a, b).correlation
+        return float(corr) if np.isfinite(corr) else float("nan")
+    else:
+        return np.corrcoef(a, b)[0, 1]
 
 
 def safe_abs_corr(a: np.ndarray, b: np.ndarray) -> float:

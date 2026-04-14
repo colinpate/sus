@@ -40,6 +40,7 @@ class GetMagToTravelModel(Step):
     pred_soft_mg: float = 50.0
     ref_zero_percentile: float = 8.0
     ref_neg_fallback_max_pct: float = 0.1
+    ref_fallback_accel_quantile: float = 70.0
 
     # For re-calculating mag baseline, if desired
     still_len_s: float = 0.1
@@ -113,7 +114,8 @@ class GetMagToTravelModel(Step):
         x_preds = self.pred_x(mag, result.x[0], result.x[1], result.x[2])
 
         if self.apply_ref_point:
-            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x, mag)#, boring_mask)
+            ref_fallback_mask = self.build_ref_fallback_mask(accel, mag_proj_bad_mask)
+            x_preds_adj = self.adjust_with_ref_point(x_preds, ref_point[0], ref_point[1], result.x, mag, ref_fallback_mask)
         else:
             x_preds_adj = x_preds
 
@@ -135,25 +137,46 @@ class GetMagToTravelModel(Step):
         ws[self.outputs[2]] = scatter_points
         ws[self.outputs[3]] = np.array([result.x[0], result.x[1], result.x[2]])
 
+    def build_ref_fallback_mask(self, accel: np.ndarray, mag_proj_bad_mask: np.ndarray) -> np.ndarray:
+        accel = np.asarray(accel, dtype=float).reshape(-1)
+        mag_proj_bad_mask = np.asarray(mag_proj_bad_mask, dtype=bool).reshape(-1)
+        accel_abs = np.abs(accel)
+        finite_mask = np.isfinite(accel_abs)
+        candidate_mask = finite_mask & ~mag_proj_bad_mask
+        if not np.any(candidate_mask):
+            return np.zeros_like(accel_abs, dtype=bool)
+
+        accel_thresh = float(np.percentile(accel_abs[candidate_mask], self.ref_fallback_accel_quantile))
+        motion_mask = candidate_mask & (accel_abs > accel_thresh)
+        if not np.any(motion_mask):
+            return np.zeros_like(accel_abs, dtype=bool)
+        return motion_mask
+
     def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, coeffs, mag=None, active_mask=None):
         x0, y_scale, power = coeffs
         ref_x_pred = self.pred_x(ref_mag, x0, y_scale, power)
         offset = - ref_x_pred + ref_x
         x_preds_ref = x_preds + offset
 
-        if mag is not None and (active_mask is None or np.any(active_mask)):
-            neg_pct = float(np.mean(x_preds_ref[active_mask] < 0))
-            print("Ref-point fallback check: {:.1f}% of active samples have negative predicted travel".format(neg_pct * 100))
-            if neg_pct > self.ref_neg_fallback_max_pct:
-                zero_mag = float(np.percentile(mag[active_mask], self.ref_zero_percentile))
-                zero_offset = -float(self.pred_x(zero_mag, x0, y_scale, power))
-                if zero_offset > offset:
-                    print(
-                        f"Ref-point fallback: neg_pct={neg_pct * 100:.1f}% exceeds {self.ref_neg_fallback_max_pct * 100:.1f}%, "
-                        f"switching offset from {offset:.1f} to {zero_offset:.1f} using mag p{self.ref_zero_percentile:.0f}={zero_mag:.1f}"
+        if mag is not None and active_mask is not None:
+            active_mask = np.asarray(active_mask, dtype=bool).reshape(-1)
+            if np.any(active_mask):
+                neg_pct = float(np.mean(x_preds_ref[active_mask] < 0))
+                print(
+                    "Ref-point fallback check: {:.1f}% of motion-mask samples have negative predicted travel".format(
+                        neg_pct * 100
                     )
-                    offset = zero_offset
-                    x_preds_ref = x_preds + offset
+                )
+                if neg_pct > self.ref_neg_fallback_max_pct:
+                    zero_mag = float(np.percentile(mag, self.ref_zero_percentile))
+                    zero_offset = -float(self.pred_x(zero_mag, x0, y_scale, power))
+                    if zero_offset > offset:
+                        print(
+                            f"Ref-point fallback: neg_pct={neg_pct * 100:.1f}% exceeds {self.ref_neg_fallback_max_pct * 100:.1f}%, "
+                            f"switching offset from {offset:.1f} to {zero_offset:.1f} using mag p{self.ref_zero_percentile:.0f}={zero_mag:.1f}"
+                        )
+                        offset = zero_offset
+                        x_preds_ref = x_preds + offset
 
         return x_preds_ref
 
