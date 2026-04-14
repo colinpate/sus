@@ -293,7 +293,7 @@ class GetMagToTravelModel(Step):
         return weights
     
     def least_squares_fit(self, input_arr, power_prior = 1/3, power_weight = 1000):
-        chunk_weights = self.get_fit_chunk_weights(input_arr)
+        #chunk_weights = self.get_fit_chunk_weights(input_arr)
 
         def calculate_res(vec):
             x0, y_scale, power = vec[0], vec[1], vec[2]
