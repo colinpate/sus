@@ -31,6 +31,7 @@ def print_err_stats(x, gt, center=False, prefix=""):
 class GetMagToTravelModel(Step):
     """ Train a model using least squares  """
     chunk_min_dx = 10
+    chunk_max_dx = 1500
     chunk_len = 20
     fit_balance_bins = 8
     fit_balance_mode = "center_mag"
@@ -180,27 +181,10 @@ class GetMagToTravelModel(Step):
 
         return x_preds_ref
 
-    def get_still_mag_stats(self, mag_ts: TimeSeries, accel_ts: TimeSeries):
-        mag = mag_ts.x[:, 0]
-        accel = accel_ts.x[:, 0]
-        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
-        a_mms = accel * 1000
-        still_mags = []
-        for i in range(0, mag.shape[0] - still_len, still_len):
-            mag_chunk = mag[i:i + still_len]
-            a_chunk = a_mms[i:i + still_len]
-            if max(abs(a_chunk)) < self.still_a_max:
-                still_mags.append(mag_chunk)
-
-        if len(still_mags) == 0:
-            return np.nan, np.nan
-
-        still_arr = np.concatenate(still_mags)
-        return float(np.median(still_arr)), float(np.std(still_arr))
-
     def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask, min_mag):
         chunk_len = self.chunk_len
         min_dx = self.chunk_min_dx
+        max_dx = self.chunk_max_dx
         print("Min mag:", min_mag)
 
         xs = []
@@ -218,7 +202,8 @@ class GetMagToTravelModel(Step):
             v_chunk -= v_chunk[chunk_len]
             x_chunk = scipy.integrate.cumulative_trapezoid(v_chunk, t_chunk, initial=0)
             x_chunk -= x_chunk[chunk_len]
-            if max(x_chunk) - min(x_chunk) < min_dx:
+            chunk_dx = max(x_chunk) - min(x_chunk)
+            if chunk_dx < min_dx or chunk_dx > max_dx:
                 continue
             mag_chunk = mag[idx - chunk_len:idx + chunk_len]
             dm_chunk = np.diff(mag_chunk, prepend=mag_chunk[0])

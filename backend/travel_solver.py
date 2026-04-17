@@ -77,7 +77,8 @@ class TravelSolver(Step):
             self.v_gt = np.diff(travel, prepend=travel[0]) / self.dt_s
 
         self.weights = SolverWeights(
-            mag_x_thresh = max(500, mag_baseline)
+            #mag_x_thresh = max(500, mag_baseline)
+            mag_x_thresh = mag_baseline#max(500, mag_baseline)
         )
 
     def calculate_res(self, vec):

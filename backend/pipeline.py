@@ -287,7 +287,7 @@ def main() -> None:
             name="x_preds_adj_stats",
             inputs=("travel/mag_model/adj", "travel", "boring_mask"),
             outputs=(),
-            gt_thresh=30
+            gt_thresh=0
         ),
         TravelSolver(
             name="travel_solver",
