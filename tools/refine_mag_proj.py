@@ -1,13 +1,17 @@
 import argparse
 from dataclasses import dataclass, field
 from pathlib import Path
+import sys
 
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.stats import spearmanr
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-DEFAULT_LOGS = ["log022", "log029", "log030", "log031", "log038", "log056_ccdh", "log078", "log079", "log080", "log085", "log086", "log088", "log091"]
+from tools.stats_aggregator import DEFAULT_LOGS
+#DEFAULT_LOGS = ["log022", "log029", "log030", "log031", "log038", "log056_ccdh", "log078", "log079", "log080", "log085", "log086", "log088", "log091", '']
 DEFAULT_METHODS = [
     "oracle_travel_ridge",
     "himag_mean",

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Iterable
 
 import numpy as np
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend.angle_corruption import project_mask_to_timeline
 
@@ -25,7 +29,6 @@ DEFAULT_LOGS = [
     "log096",
     "log098",
     "log099",
-    "log100"
 ]
 
 COMPARISONS = (
@@ -222,8 +225,8 @@ def diagnostic_rows(log_name: str, cache_root: Path, center_errors: bool) -> tup
     mag_adj_err = make_masked_error(cache["travel/mag_model/adj__x"], travel, mask, center_errors)
     solved_err = make_masked_error(cache["travel/solved__x"], travel, mask, center_errors)
 
-    low_travel = masked_travel < 20.0
-    high_travel = masked_travel > maybe_percentile(masked_travel, 80.0)
+    low_travel = masked_travel < 30
+    high_travel = masked_travel > 100 # maybe_percentile(masked_travel, 80.0)
     high_accel = masked_accel_hp_abs > maybe_percentile(masked_accel_hp_abs, 80.0)
     low_mag = masked_mag < maybe_percentile(masked_mag, 20.0)
     high_mag = masked_mag > maybe_percentile(masked_mag, 80.0)

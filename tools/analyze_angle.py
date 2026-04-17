@@ -1,8 +1,13 @@
 import argparse
+import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, sosfiltfilt
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend.angle_corruption import (
     ANGLE_ERROR_HALO_S,
@@ -10,7 +15,7 @@ from backend.angle_corruption import (
     interpolate_masked_signal,
     project_mask_to_timeline,
 )
-from stats_aggregator import DEFAULT_LOGS
+from tools.stats_aggregator import DEFAULT_LOGS
 
 HYPOTENUSE_MM = 125.0
 DEC_FREQ_HZ = 100.0

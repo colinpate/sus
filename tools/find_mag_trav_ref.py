@@ -1,7 +1,13 @@
-from stats_aggregator import DEFAULT_LOGS, load_cache
 import os
-import numpy as np
 from pathlib import Path
+import sys
+
+import numpy as np
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.stats_aggregator import DEFAULT_LOGS, load_cache
 
 run_pipeline = True
 cache_root = Path("backend/run_artifacts/")
@@ -29,7 +35,7 @@ def main():
     for log_filename in logs:
         try:
             mag_proj, coeffs, travel, err_mask = load_cache_keys(log_filename)
-        except KeyError:
+        except:
             if run_pipeline:
                 print(f"Running pipeline for {log_filename}...")
                 os.system("venv/bin/python3 backend/pipeline.py " + log_filename)
