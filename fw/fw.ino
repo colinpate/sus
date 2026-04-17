@@ -13,10 +13,13 @@
 
 #include "log_server.h"
 
-// Switch to IMU_SELECTION_LSM6DSOX to build against Adafruit_LSM6DS.
+// Select the IMU variant for each slot independently. This lets imu2/lis2 use
+// LSM6DSO32 while imu1/lis1 stays on LSM6DSOX.
 #define IMU_SELECTION_LIS3DH 0
 #define IMU_SELECTION_LSM6DSOX 1
-#define IMU_SELECTION IMU_SELECTION_LSM6DSOX
+#define IMU_SELECTION_LSM6DSO32 2
+#define IMU1_SELECTION IMU_SELECTION_LSM6DSOX
+#define IMU2_SELECTION IMU_SELECTION_LSM6DSO32
 
 #include "sensor_reader.h"
 

@@ -7,16 +7,39 @@
 #include <Adafruit_MMC56x3.h>
 #include <Adafruit_Sensor.h>
 
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
+#if (IMU1_SELECTION == IMU_SELECTION_LIS3DH) ||                              \
+    (IMU2_SELECTION == IMU_SELECTION_LIS3DH)
 #include <Adafruit_LIS3DH.h>
-static Adafruit_LIS3DH imu1(&Wire);
-static Adafruit_LIS3DH imu2(&Wire);
-#elif IMU_SELECTION == IMU_SELECTION_LSM6DSOX
+#endif
+
+#if (IMU1_SELECTION == IMU_SELECTION_LSM6DSOX) ||                            \
+    (IMU2_SELECTION == IMU_SELECTION_LSM6DSOX)
 #include <Adafruit_LSM6DSOX.h>
+#endif
+
+#if (IMU1_SELECTION == IMU_SELECTION_LSM6DSO32) ||                           \
+    (IMU2_SELECTION == IMU_SELECTION_LSM6DSO32)
+#include <Adafruit_LSM6DSO32.h>
+#endif
+
+#if IMU1_SELECTION == IMU_SELECTION_LIS3DH
+static Adafruit_LIS3DH imu1(&Wire);
+#elif IMU1_SELECTION == IMU_SELECTION_LSM6DSOX
 static Adafruit_LSM6DSOX imu1;
-static Adafruit_LSM6DSOX imu2;
+#elif IMU1_SELECTION == IMU_SELECTION_LSM6DSO32
+static Adafruit_LSM6DSO32 imu1;
 #else
-#error "Unsupported IMU_SELECTION"
+#error "Unsupported IMU1_SELECTION"
+#endif
+
+#if IMU2_SELECTION == IMU_SELECTION_LIS3DH
+static Adafruit_LIS3DH imu2(&Wire);
+#elif IMU2_SELECTION == IMU_SELECTION_LSM6DSOX
+static Adafruit_LSM6DSOX imu2;
+#elif IMU2_SELECTION == IMU_SELECTION_LSM6DSO32
+static Adafruit_LSM6DSO32 imu2;
+#else
+#error "Unsupported IMU2_SELECTION"
 #endif
 
 static Adafruit_MMC5603 mmc(12345);
@@ -28,6 +51,19 @@ namespace {
 uint32_t sample_index = 0;
 int16_t last_mmc_mG[3] = {};
 int16_t last_lis3mdl_mG[3] = {};
+
+const char *imuSelectionName(int selection) {
+  switch (selection) {
+    case IMU_SELECTION_LIS3DH:
+      return "LIS3DH";
+    case IMU_SELECTION_LSM6DSOX:
+      return "LSM6DSOX";
+    case IMU_SELECTION_LSM6DSO32:
+      return "LSM6DSO32";
+    default:
+      return "UNKNOWN";
+  }
+}
 
 bool initAS5600() {
   if (!as5600.begin()) {
@@ -63,7 +99,8 @@ int16_t magneticUtToMilliGauss(float value_ut) {
   return (int16_t)llround((double)value_ut * 10.0);
 }
 
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
+#if (IMU1_SELECTION == IMU_SELECTION_LIS3DH) ||                              \
+    (IMU2_SELECTION == IMU_SELECTION_LIS3DH)
 bool initImu(Adafruit_LIS3DH &imu, uint8_t address, const char *label) {
   if (!imu.begin(address)) {
     Serial.printf("%s not found at 0x%02X\n", label, address);
@@ -87,21 +124,45 @@ void readImu(Adafruit_LIS3DH &imu, int16_t accel_out[3], int16_t gyro_out[3]) {
   gyro_out[1] = 0;
   gyro_out[2] = 0;
 }
-#elif IMU_SELECTION == IMU_SELECTION_LSM6DSOX
+#endif
+
+#if (IMU1_SELECTION != IMU_SELECTION_LIS3DH) ||                              \
+    (IMU2_SELECTION != IMU_SELECTION_LIS3DH)
+void configureLsm6dsCommon(Adafruit_LSM6DS &imu) {
+  imu.setAccelDataRate(LSM6DS_RATE_208_HZ);
+  imu.setGyroDataRate(LSM6DS_RATE_208_HZ);
+  imu.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
+}
+
+#if (IMU1_SELECTION == IMU_SELECTION_LSM6DSOX) ||                            \
+    (IMU2_SELECTION == IMU_SELECTION_LSM6DSOX)
 bool initImu(Adafruit_LSM6DSOX &imu, uint8_t address, const char *label) {
   if (!imu.begin_I2C(address, &Wire)) {
     Serial.printf("%s not found at 0x%02X\n", label, address);
     return false;
   }
 
-  imu.setAccelDataRate(LSM6DS_RATE_208_HZ);
-  imu.setGyroDataRate(LSM6DS_RATE_208_HZ);
+  configureLsm6dsCommon(imu);
   imu.setAccelRange(LSM6DS_ACCEL_RANGE_16_G);
-  imu.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
   return true;
 }
+#endif
 
-void readImu(Adafruit_LSM6DSOX &imu, int16_t accel_out[3], int16_t gyro_out[3],
+#if (IMU1_SELECTION == IMU_SELECTION_LSM6DSO32) ||                           \
+    (IMU2_SELECTION == IMU_SELECTION_LSM6DSO32)
+bool initImu(Adafruit_LSM6DSO32 &imu, uint8_t address, const char *label) {
+  if (!imu.begin_I2C(address, &Wire)) {
+    Serial.printf("%s not found at 0x%02X\n", label, address);
+    return false;
+  }
+
+  configureLsm6dsCommon(imu);
+  imu.setAccelRange(LSM6DSO32_ACCEL_RANGE_32_G);
+  return true;
+}
+#endif
+
+void readImu(Adafruit_LSM6DS &imu, int16_t accel_out[3], int16_t gyro_out[3],
              int32_t *temp_out) {
   sensors_event_t accel;
   sensors_event_t gyro;
@@ -179,13 +240,14 @@ SensorConnections initSensors(TwoWire &wire) {
 
   connections.angle = initAS5600();
 
-  Serial.printf("Active IMU backend: %s\n", activeImuName());
+  Serial.printf("Active IMU backends: IMU1=%s IMU2=%s\n", imu1Name(),
+                imu2Name());
   return connections;
 }
 
 void readSensors(const SensorConnections &connections, LogRecord &record) {
   if (connections.imu1) {
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
+#if IMU1_SELECTION == IMU_SELECTION_LIS3DH
     readImu(imu1, record.lis1, record.gyro1_dps10);
 #else
     readImu(imu1, record.lis1, record.gyro1_dps10, &record.temp_C);
@@ -193,7 +255,7 @@ void readSensors(const SensorConnections &connections, LogRecord &record) {
   }
 
   if (connections.imu2) {
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
+#if IMU2_SELECTION == IMU_SELECTION_LIS3DH
     readImu(imu2, record.lis2, record.gyro2_dps10);
 #else
     readImu(imu2, record.lis2, record.gyro2_dps10, nullptr);
@@ -223,10 +285,6 @@ void readSensors(const SensorConnections &connections, LogRecord &record) {
   }
 }
 
-const char *activeImuName() {
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
-  return "LIS3DH";
-#else
-  return "LSM6DSOX";
-#endif
-}
+const char *imu1Name() { return imuSelectionName(IMU1_SELECTION); }
+
+const char *imu2Name() { return imuSelectionName(IMU2_SELECTION); }

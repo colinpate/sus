@@ -12,12 +12,28 @@
 #define IMU_SELECTION_LSM6DSOX 1
 #endif
 
-#ifndef IMU_SELECTION
-#define IMU_SELECTION IMU_SELECTION_LSM6DSOX
+#ifndef IMU_SELECTION_LSM6DSO32
+#define IMU_SELECTION_LSM6DSO32 2
+#endif
+
+#ifndef IMU1_SELECTION
+#ifdef IMU_SELECTION
+#define IMU1_SELECTION IMU_SELECTION
+#else
+#define IMU1_SELECTION IMU_SELECTION_LSM6DSOX
+#endif
+#endif
+
+#ifndef IMU2_SELECTION
+#ifdef IMU_SELECTION
+#define IMU2_SELECTION IMU_SELECTION
+#else
+#define IMU2_SELECTION IMU_SELECTION_LSM6DSO32
+#endif
 #endif
 
 #ifndef IMU1_ADDR
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
+#if IMU1_SELECTION == IMU_SELECTION_LIS3DH
 #define IMU1_ADDR 0x18
 #else
 #define IMU1_ADDR 0x6A
@@ -25,7 +41,7 @@
 #endif
 
 #ifndef IMU2_ADDR
-#if IMU_SELECTION == IMU_SELECTION_LIS3DH
+#if IMU2_SELECTION == IMU_SELECTION_LIS3DH
 #define IMU2_ADDR 0x19
 #else
 #define IMU2_ADDR 0x6B
@@ -65,6 +81,7 @@ struct SensorConnections {
 
 SensorConnections initSensors(TwoWire &wire);
 void readSensors(const SensorConnections &connections, LogRecord &record);
-const char *activeImuName();
+const char *imu1Name();
+const char *imu2Name();
 
 #endif // __SENSOR_READER_H__
