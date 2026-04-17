@@ -42,6 +42,7 @@ class GetMagToTravelModel(Step):
     ref_zero_percentile: float = 8.0
     ref_neg_fallback_max_pct: float = 0.1
     ref_fallback_accel_quantile: float = 70.0
+    power_weight: float = 1000.0
 
     # For re-calculating mag baseline, if desired
     still_len_s: float = 0.1
@@ -88,10 +89,6 @@ class GetMagToTravelModel(Step):
                 baseline_min_mag,
                 "to",
                 relaxed_min_mag,
-                # "still median",
-                # still_median,
-                # "still std",
-                # still_std,
                 "initial chunks",
                 len(xs),
             )
@@ -100,16 +97,12 @@ class GetMagToTravelModel(Step):
             print(
                 "Using raw min mag",
                 baseline_min_mag,
-                # "still median",
-                # still_median,
-                # "still std",
-                # still_std,
                 "chunks",
                 len(xs),
             )
 
         input_arr = self.format_chunks_for_fit(xs, mags)
-        result = self.least_squares_fit(input_arr)
+        result = self.least_squares_fit(input_arr, power_weight=self.power_weight)
         print("x0, y_scale, power:", result.x)
 
         x_preds = self.pred_x(mag, result.x[0], result.x[1], result.x[2])
@@ -120,6 +113,8 @@ class GetMagToTravelModel(Step):
         else:
             x_preds_adj = x_preds
 
+        x_preds_adj = np.clip(x_preds_adj, 0, None)
+        x_preds = np.clip(x_preds, 0, None)
         ws[self.outputs[0]] = TimeSeries(
             t=accel_ts.t,
             x=x_preds,
