@@ -1,6 +1,6 @@
 # Pipeline Error Investigation Notes
 
-Last updated: 2026-04-11
+Last updated: 2026-04-16
 
 This note summarizes the investigation into the worst logs from:
 
@@ -522,6 +522,173 @@ And there is still a separate solver issue on some logs, especially:
 3. Treat solver issues as a separate follow-up investigation.
 4. If revisiting solver gating, prefer a softer one-sided confidence approach instead of a symmetric hard threshold.
 5. If exploring more `min_mag` logic later, keep it adaptive and chunk-count-aware rather than globally looser.
+
+## 2026-04-16 update: `log096` deep dive vs `log098` and `log099`
+
+### Important note about current numbers
+
+The current worktree is ahead of the cached `backend/run_artifacts` outputs:
+
+- `/Users/colin/Documents/projects/sus/backend/fusion.py` now adds `power_weight`
+- it also clips negative `x_preds` and `x_preds_adj` to `0`
+
+So the numbers in this section were produced by rerunning the current `GetMagToTravelModel` and `TravelSolver` code on cached upstream inputs. That keeps the same upstream sensor processing while giving fresh downstream fusion numbers.
+
+### Current centered RMSE on `boring_mask`
+
+Using the current worktree:
+
+| log | `x0` | `power` | `travel/mag_model/adj` | `travel/solved` |
+| --- | ---: | ---: | ---: | ---: |
+| `log096` | `-343.96` | `0.311` | `6.46` | `6.05` |
+| `log098` | `97.08` | `0.334` | `4.52` | `4.29` |
+| `log099` | `-31.25` | `0.329` | `4.59` | `4.18` |
+
+Main read:
+
+- `log096` is still clearly the worst of the three
+- `log098` and `log099` behave much more like clean monotonic mag-to-travel sections
+- `log096` is the only one whose fitted zero-crossing lands directly inside the bad low-end mag pocket
+
+### Main new finding: `log096` has a real low-mag fold / overlap
+
+For the low-end projected-mag bins:
+
+- `log096` median travel is `[3.82, 8.24, 4.31, 13.34, 27.16] mm` over bins
+  - `[-800, -500)`
+  - `[-500, -350)`
+  - `[-350, -250)`
+  - `[-250, -150)`
+  - `[-150, 0)`
+- `log098` and `log099` stay monotonic through the same bins
+
+So `log096` has a real non-monotonic dip around `-350` to `-250 mG`. In practice that means the same projected-mag range is being reused by both near-zero and mid-travel samples.
+
+That is also the dominant error pocket:
+
+- current `log096` centered RMSE in the `-350` to `-150 mG` pocket is about `10.25` for `travel/mag_model/adj`
+- the solver only reduces that to about `9.74`
+- the cached deep-dive still shows the biggest solved errors at low travel, especially `travel < 20 mm`
+
+Interpretation:
+
+- this is not just generic noise
+- the 1D projected-mag signal is partially folding over on `log096` at the low end
+- a simple monotonic signed-power curve is forced to compromise in exactly the region where `log096` is worst
+
+### Lag is not the main explanation
+
+Lag sweeps on the three logs still preferred about `0 ms` for the best polynomial fit:
+
+- `log096`: best poly RMSE about `5.88`
+- `log098`: about `5.34`
+- `log099`: about `5.14`
+
+So `log096` is a bit worse, but not in a way that suggests a unique timing bug. The main problem looks like the shape of the mag-to-travel relation, not lag.
+
+### Solutions tested on the current worktree
+
+#### 1. Lower `power_weight` from `6000` to `1000`
+
+This helped `log096`:
+
+- `log096`: `travel/mag_model/adj` `6.46 -> 6.15`
+- `log096`: `travel/solved` `6.05 -> 5.89`
+
+Why it helped:
+
+- the fit moved `x0` left from about `-344 mG` to about `-621 mG`
+- it also relaxed the curve into a much flatter low-end response
+- that is exactly the direction `log096` wants
+
+But it is not a safe global change on the current worktree:
+
+- `log079`: solved `5.24 -> 6.71`
+- `log080`: solved `4.70 -> 5.31`
+- `log091`: solved `5.54 -> 5.86`
+
+It also only helped slightly or not at all on the comparison logs:
+
+- `log098`: solved stayed about flat
+- `log099`: solved stayed about flat
+
+Conclusion:
+
+- relaxing the power prior is a plausible fix for `log096`-type logs
+- but a global `power_weight = 1000` change is not safe
+
+#### 2. Raise solver mag-anchor threshold to `max(500, mag_baseline)`
+
+This made all three comparison logs a bit worse.
+
+Conclusion:
+
+- `log096` is not mainly caused by the solver trusting the low-end anchor too early
+
+#### 3. Increase `pred_soft_mg`
+
+This made `log096` worse.
+
+Conclusion:
+
+- broadening the soft knee is too blunt
+- it does not solve the low-end overlap
+
+#### 4. Multi-start the current least-squares objective
+
+We tested several alternative initial guesses for `x0`, `y_scale`, and `power`.
+
+Result:
+
+- the solver either converged back to the current `log096` basin
+- or found a slightly lower objective value with clearly worse centered RMSE
+
+Conclusion:
+
+- this is not mainly a bad local minimum
+- the bigger issue is objective mismatch: the current training objective does not line up perfectly with downstream centered RMSE on `log096`
+
+#### 5. Re-enable solver `bx`
+
+Testing the currently dormant `bx` offset variable made all three logs worse.
+
+Conclusion:
+
+- `bx` is not the missing fix here
+
+#### 6. Remove clipping of negative mag-model outputs
+
+This produced mixed stage changes and almost no useful solved improvement.
+
+Conclusion:
+
+- clipping is not the main current blocker either
+
+### Current best hypothesis
+
+`log096` appears to be a specific low-end shape problem:
+
+- the projected mag signal is partially non-monotonic at low travel
+- the current signed-power model, especially with the stronger power prior, becomes too steep right after `x0`
+- that overpredicts the `0-20 mm` region
+- the solver can only partly recover because the bad region is also where the kinematic side is weakest
+
+So the current best explanation is:
+
+- not a unique lag bug
+- not mainly a solver-threshold issue
+- not just a bad initializer
+- mostly a log-specific low-mag overlap that the current 1D curve family does not model well
+
+### Recommended next step for this branch of the investigation
+
+Do not merge a global `power_weight` reduction yet.
+
+If we want to improve `log096` without regressing `log079` / `log080` / `log091`, the next promising direction is adaptive:
+
+1. detect low-end monotonicity violations in the training chunks
+2. only for those logs, relax the power prior or use a more flexible low-end curve
+3. keep solver-only tweaks secondary, since the dominant `log096` failure is still the mag-model shape
 
 ## Quick recap for future conversations
 

@@ -230,6 +230,14 @@ SensorConnections initSensors(TwoWire &wire) {
     connections.mmc = true;
     mmc.setDataRate(100);
     mmc.setContinuousMode(true);
+    Wire.beginTransmission(MMC56X3_DEFAULT_ADDRESS);
+    Wire.write(0x1B);   // CTRL0
+    Wire.write(0x20);   // Auto_SR_en
+    Wire.endTransmission();
+    Wire.beginTransmission(MMC56X3_DEFAULT_ADDRESS);
+    Wire.write(0x1C);   // CTRL1
+    Wire.write(0x01);   // BW = 01
+    Wire.endTransmission();
     updateMmcCache();
   }
 
