@@ -29,6 +29,8 @@ DEFAULT_LOGS = [
     "log096",
     "log098",
     "log099",
+    "log103",
+    "log104",
 ]
 
 COMPARISONS = (
@@ -186,6 +188,13 @@ def masked_rmse(err: np.ndarray, cond: np.ndarray) -> float:
     return float(np.sqrt(np.mean(err[cond] ** 2)))
 
 
+def masked_ratio_pct(cond: np.ndarray) -> float:
+    cond = np.asarray(cond, dtype=bool).reshape(-1)
+    if len(cond) == 0:
+        return float("nan")
+    return 100.0 * float(np.mean(cond))
+
+
 def maybe_percentile(values: np.ndarray, q: float) -> float:
     values = flatten_1d(values)
     if len(values) == 0:
@@ -193,7 +202,9 @@ def maybe_percentile(values: np.ndarray, q: float) -> float:
     return float(np.percentile(values, q))
 
 
-def diagnostic_rows(log_name: str, cache_root: Path, center_errors: bool) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, float]]:
+def diagnostic_rows(
+    log_name: str, cache_root: Path, center_errors: bool
+) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object], dict[str, np.ndarray]]:
     cache = load_cache(log_name, cache_root)
 
     boring_mask = np.asarray(cache["boring_mask"]).astype(bool).reshape(-1)
@@ -258,6 +269,17 @@ def diagnostic_rows(log_name: str, cache_root: Path, center_errors: bool) -> tup
         "zv": masked_rmse(solved_err, masked_zv),
     }
 
+    condition_ratio_row = {
+        "log": log_name,
+        "low_trav": masked_ratio_pct(low_travel),
+        "high_trav": masked_ratio_pct(high_travel),
+        "high_acc": masked_ratio_pct(high_accel),
+        "low_mag": masked_ratio_pct(low_mag),
+        "high_mag": masked_ratio_pct(high_mag),
+        "bad_mag": masked_ratio_pct(masked_bad_mag),
+        "zv": masked_ratio_pct(masked_zv),
+    }
+
     solver_delta_row = {
         "log": log_name,
         "all_d": stage_row["solver_delta"],
@@ -277,7 +299,7 @@ def diagnostic_rows(log_name: str, cache_root: Path, center_errors: bool) -> tup
         "dtravel_abs": np.abs(np.gradient(travel))[mask],
         "solved_abs_err": np.abs(solved_err),
     }
-    return stage_row, condition_row, solver_delta_row, pooled
+    return stage_row, condition_row, condition_ratio_row, solver_delta_row, pooled
 
 
 def corrcoef_safe(x: np.ndarray, y: np.ndarray) -> float:
@@ -372,6 +394,7 @@ def main() -> None:
     error_rows: dict[str, list[dict[str, object]]] = {pred_key: [] for pred_key, _ in COMPARISONS}
     diagnostic_stage_rows: list[dict[str, object]] = []
     diagnostic_condition_rows: list[dict[str, object]] = []
+    diagnostic_condition_ratio_rows: list[dict[str, object]] = []
     diagnostic_delta_rows: list[dict[str, object]] = []
     pooled_features: dict[str, list[np.ndarray]] = {
         "travel": [],
@@ -395,12 +418,15 @@ def main() -> None:
             error_rows[pred_key].append(per_comparison_rows[pred_key])
         if args.deep_dive:
             try:
-                stage_row, condition_row, delta_row, pooled = diagnostic_rows(log_name, args.cache_root, args.center_errors)
+                stage_row, condition_row, condition_ratio_row, delta_row, pooled = diagnostic_rows(
+                    log_name, args.cache_root, args.center_errors
+                )
             except Exception as exc:  # Keep the main stats usable even if diagnostics fail.
                 failures.append((f"{log_name} (diagnostics)", exc))
             else:
                 diagnostic_stage_rows.append(stage_row)
                 diagnostic_condition_rows.append(condition_row)
+                diagnostic_condition_ratio_rows.append(condition_ratio_row)
                 diagnostic_delta_rows.append(delta_row)
                 for key, values in pooled.items():
                     pooled_features[key].append(values)
@@ -473,6 +499,22 @@ def main() -> None:
                 ("zv", "zv"),
             ],
             rows=diagnostic_condition_rows,
+            sort_key=args.sort_key,
+        )
+
+        print_table(
+            title=f"Condition occurrence on boring_mask ({center_label}, % of diagnostic samples)",
+            columns=[
+                ("log", "log"),
+                ("low_trav", "trav<20"),
+                ("high_trav", "trav>p80"),
+                ("high_acc", "acc>p80"),
+                ("low_mag", "mag<p20"),
+                ("high_mag", "mag>p80"),
+                ("bad_mag", "bad_mag"),
+                ("zv", "zv"),
+            ],
+            rows=diagnostic_condition_ratio_rows,
             sort_key=args.sort_key,
         )
 
