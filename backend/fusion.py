@@ -113,8 +113,6 @@ class GetMagToTravelModel(Step):
         else:
             x_preds_adj = x_preds
 
-        x_preds_adj = np.clip(x_preds_adj, 0, None)
-        x_preds = np.clip(x_preds, 0, None)
         ws[self.outputs[0]] = TimeSeries(
             t=accel_ts.t,
             x=x_preds,

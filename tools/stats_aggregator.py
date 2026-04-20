@@ -39,6 +39,11 @@ COMPARISONS = (
     ("travel/solved", "travel"),
 )
 
+TRAVEL_BIN_MIN_MM = 0.0
+TRAVEL_BIN_MAX_MM = 150.0
+TRAVEL_BIN_COUNT = 5
+TRAVEL_BIN_MIN_POINTS = 100
+
 
 def flatten_1d(arr: np.ndarray) -> np.ndarray:
     arr = np.asarray(arr, dtype=float)
@@ -149,17 +154,19 @@ def summarize_log(log_name: str, cache_root: Path, center_errors: bool, error_th
     for pred_key, gt_key in COMPARISONS:
         pred = flatten_1d(cache[f"{pred_key}__x"])
         gt = flatten_1d(cache[f"{gt_key}__x"])
-        mask = build_mask(cache, pred_key, gt_key)
+        mask = build_mask(cache, pred_key, gt_key, error_threshold=error_threshold)
         masked_pred = pred[mask]
         masked_gt = gt[mask]
         if len(masked_pred) == 0:
             raise ValueError(f"{log_name}: no finite boring-mask samples for {pred_key} vs {gt_key}")
 
         rmse, mae, me = get_error_stats(masked_pred, masked_gt, center=center_errors, thresh=error_threshold)
+        binned = summarize_binned_rmse(get_error_vector(masked_pred, masked_gt, center=center_errors), masked_gt)
         error_rows[pred_key] = {
             "log": log_name,
             "n": int(len(masked_pred)),
             "rmse": rmse,
+            "bin_rmse": binned["bin_rmse"],
             "mae": mae,
             "me": me,
         }
@@ -202,9 +209,80 @@ def maybe_percentile(values: np.ndarray, q: float) -> float:
     return float(np.percentile(values, q))
 
 
+def format_bin_edge(value: float) -> str:
+    value = float(value)
+    return str(int(value)) if value.is_integer() else f"{value:g}"
+
+
+def get_travel_bin_specs() -> list[tuple[str, str, float, float, bool]]:
+    edges = np.linspace(TRAVEL_BIN_MIN_MM, TRAVEL_BIN_MAX_MM, TRAVEL_BIN_COUNT + 1, dtype=float)
+    specs: list[tuple[str, str, float, float, bool]] = []
+    for idx, (start, stop) in enumerate(zip(edges[:-1], edges[1:])):
+        specs.append(
+            (
+                f"bin{idx}",
+                f"{format_bin_edge(start)}-{format_bin_edge(stop)}",
+                float(start),
+                float(stop),
+                idx == (len(edges) - 2),
+            )
+        )
+    return specs
+
+
+def travel_bin_columns(metric_suffix: str) -> list[tuple[str, str]]:
+    return [(f"{key}_{metric_suffix}", label) for key, label, _, _, _ in get_travel_bin_specs()]
+
+
+def build_travel_bin_masks(travel: np.ndarray) -> list[np.ndarray]:
+    travel = flatten_1d(travel)
+    masks: list[np.ndarray] = []
+    for _, _, start, stop, include_stop in get_travel_bin_specs():
+        upper_mask = travel <= stop if include_stop else travel < stop
+        masks.append((travel >= start) & upper_mask)
+    return masks
+
+
+def summarize_binned_rmse(err: np.ndarray, gt: np.ndarray) -> dict[str, float]:
+    err = flatten_1d(err)
+    gt = flatten_1d(gt)
+    if err.shape != gt.shape:
+        raise ValueError(f"Binned RMSE inputs must match in shape, got {err.shape} vs {gt.shape}")
+
+    bin_masks = build_travel_bin_masks(gt)
+    in_range_mask = np.zeros_like(gt, dtype=bool)
+    eligible_mask = np.zeros_like(gt, dtype=bool)
+    row: dict[str, float] = {}
+    eligible_bins = 0
+    eligible_bin_mses: list[float] = []
+
+    for idx, mask in enumerate(bin_masks):
+        key = f"bin{idx}"
+        count = int(np.sum(mask))
+        in_range_mask |= mask
+        row[f"{key}_rmse"] = masked_rmse(err, mask)
+        row[f"{key}_n"] = float(count)
+        if count >= TRAVEL_BIN_MIN_POINTS:
+            eligible_mask |= mask
+            eligible_bins += 1
+            eligible_bin_mses.append(float(np.mean(err[mask] ** 2)))
+
+    in_range_n = int(np.sum(in_range_mask))
+    for idx in range(TRAVEL_BIN_COUNT):
+        count = int(row[f"bin{idx}_n"])
+        row[f"bin{idx}_pct"] = (100.0 * count / in_range_n) if in_range_n > 0 else float("nan")
+
+    row["bin_rmse"] = float(np.sqrt(np.mean(eligible_bin_mses))) if eligible_bin_mses else float("nan")
+    row["eligible_bins"] = float(eligible_bins)
+    row["eligible_n"] = float(np.sum(eligible_mask))
+    row["in_range_n"] = float(in_range_n)
+    row["in_range_pct"] = (100.0 * in_range_n / len(gt)) if len(gt) > 0 else float("nan")
+    return row
+
+
 def diagnostic_rows(
     log_name: str, cache_root: Path, center_errors: bool
-) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object], dict[str, np.ndarray]]:
+) -> tuple[dict[str, object], ...]:
     cache = load_cache(log_name, cache_root)
 
     boring_mask = np.asarray(cache["boring_mask"]).astype(bool).reshape(-1)
@@ -235,6 +313,8 @@ def diagnostic_rows(
     mag_model_err = make_masked_error(cache["travel/mag_model__x"], travel, mask, center_errors)
     mag_adj_err = make_masked_error(cache["travel/mag_model/adj__x"], travel, mask, center_errors)
     solved_err = make_masked_error(cache["travel/solved__x"], travel, mask, center_errors)
+    mag_adj_binned = summarize_binned_rmse(mag_adj_err, masked_travel)
+    solved_binned = summarize_binned_rmse(solved_err, masked_travel)
 
     low_travel = masked_travel < 30
     high_travel = masked_travel > 100 # maybe_percentile(masked_travel, 80.0)
@@ -299,7 +379,32 @@ def diagnostic_rows(
         "dtravel_abs": np.abs(np.gradient(travel))[mask],
         "solved_abs_err": np.abs(solved_err),
     }
-    return stage_row, condition_row, condition_ratio_row, solver_delta_row, pooled
+    binned_summary_row = {
+        "log": log_name,
+        "range_pct": solved_binned["in_range_pct"],
+        "eligible_bins": int(solved_binned["eligible_bins"]),
+        "mag_adj_bin_rmse": mag_adj_binned["bin_rmse"],
+        "solved_bin_rmse": solved_binned["bin_rmse"],
+    }
+    binned_occurrence_row: dict[str, object] = {"log": log_name}
+    mag_adj_bin_row: dict[str, object] = {"log": log_name}
+    solved_bin_row: dict[str, object] = {"log": log_name}
+    for key, _, _, _, _ in get_travel_bin_specs():
+        binned_occurrence_row[f"{key}_pct"] = solved_binned[f"{key}_pct"]
+        mag_adj_bin_row[f"{key}_rmse"] = mag_adj_binned[f"{key}_rmse"]
+        solved_bin_row[f"{key}_rmse"] = solved_binned[f"{key}_rmse"]
+
+    return (
+        stage_row,
+        condition_row,
+        condition_ratio_row,
+        solver_delta_row,
+        pooled,
+        binned_summary_row,
+        binned_occurrence_row,
+        mag_adj_bin_row,
+        solved_bin_row,
+    )
 
 
 def corrcoef_safe(x: np.ndarray, y: np.ndarray) -> float:
@@ -325,11 +430,32 @@ def format_value(value: object) -> str:
     return str(value)
 
 
+def resolve_sort_key(columns: list[tuple[str, str]], rows: list[dict[str, object]], sort_key: str) -> str:
+    if not rows:
+        return sort_key
+    if sort_key in rows[0]:
+        return sort_key
+
+    label_to_key = {label: key for key, label in columns}
+    resolved = label_to_key.get(sort_key)
+    if resolved is not None and resolved in rows[0]:
+        return resolved
+
+    return "log" if "log" in rows[0] else columns[0][0]
+
+
+def sort_value(row: dict[str, object], sort_key: str) -> tuple[int, object]:
+    value = row.get(sort_key, row.get("log", ""))
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        value = float(value)
+        return (1, 0.0) if not np.isfinite(value) else (0, value)
+    return (0, str(value))
+
+
 def print_table(title: str, columns: list[tuple[str, str]], rows: Iterable[dict[str, object]], sort_key: str = "n") -> None:
     rows = list(rows)
-    if rows and sort_key not in rows[0]:
-        sort_key = "log" if "log" in rows[0] else columns[0][0]
-    rows.sort(key=lambda row: row[sort_key] if sort_key in row else row.get("log", ""))
+    sort_key = resolve_sort_key(columns, rows, sort_key)
+    rows.sort(key=lambda row: sort_value(row, sort_key))
     formatted_rows = [{key: format_value(row.get(key, "")) for key, _ in columns} for row in rows]
     widths = []
     for key, label in columns:
@@ -396,6 +522,10 @@ def main() -> None:
     diagnostic_condition_rows: list[dict[str, object]] = []
     diagnostic_condition_ratio_rows: list[dict[str, object]] = []
     diagnostic_delta_rows: list[dict[str, object]] = []
+    diagnostic_binned_summary_rows: list[dict[str, object]] = []
+    diagnostic_binned_occurrence_rows: list[dict[str, object]] = []
+    diagnostic_mag_adj_bin_rows: list[dict[str, object]] = []
+    diagnostic_solved_bin_rows: list[dict[str, object]] = []
     pooled_features: dict[str, list[np.ndarray]] = {
         "travel": [],
         "mag": [],
@@ -418,9 +548,17 @@ def main() -> None:
             error_rows[pred_key].append(per_comparison_rows[pred_key])
         if args.deep_dive:
             try:
-                stage_row, condition_row, condition_ratio_row, delta_row, pooled = diagnostic_rows(
-                    log_name, args.cache_root, args.center_errors
-                )
+                (
+                    stage_row,
+                    condition_row,
+                    condition_ratio_row,
+                    delta_row,
+                    pooled,
+                    binned_summary_row,
+                    binned_occurrence_row,
+                    mag_adj_bin_row,
+                    solved_bin_row,
+                ) = diagnostic_rows(log_name, args.cache_root, args.center_errors)
             except Exception as exc:  # Keep the main stats usable even if diagnostics fail.
                 failures.append((f"{log_name} (diagnostics)", exc))
             else:
@@ -428,6 +566,10 @@ def main() -> None:
                 diagnostic_condition_rows.append(condition_row)
                 diagnostic_condition_ratio_rows.append(condition_ratio_row)
                 diagnostic_delta_rows.append(delta_row)
+                diagnostic_binned_summary_rows.append(binned_summary_row)
+                diagnostic_binned_occurrence_rows.append(binned_occurrence_row)
+                diagnostic_mag_adj_bin_rows.append(mag_adj_bin_row)
+                diagnostic_solved_bin_rows.append(solved_bin_row)
                 for key, values in pooled.items():
                     pooled_features[key].append(values)
 
@@ -455,6 +597,7 @@ def main() -> None:
                 ("log", "log"),
                 ("n", "n"),
                 ("rmse", "rmse"),
+                ("bin_rmse", "bin_rmse"),
                 ("mae", "mae"),
                 ("me", "me"),
             ],
@@ -468,6 +611,22 @@ def main() -> None:
             print(f"{log_name:>12}  {exc}")
 
     if args.deep_dive and diagnostic_stage_rows:
+        print_table(
+            title=(
+                f"Binned RMSE summary on boring_mask ({center_label}, GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-"
+                f"{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm, bins>={TRAVEL_BIN_MIN_POINTS})"
+            ),
+            columns=[
+                ("log", "log"),
+                ("range_pct", "range_%"),
+                ("eligible_bins", "n_bins"),
+                ("mag_adj_bin_rmse", "mag_adj"),
+                ("solved_bin_rmse", "solved"),
+            ],
+            rows=diagnostic_binned_summary_rows,
+            sort_key=args.sort_key,
+        )
+
         print_table(
             title=f"Stage RMSE summary on boring_mask ({center_label})",
             columns=[
@@ -531,6 +690,36 @@ def main() -> None:
                 ("zv_d", "zv"),
             ],
             rows=diagnostic_delta_rows,
+            sort_key=args.sort_key,
+        )
+
+        print_table(
+            title=(
+                f"Travel-bin occurrence on boring_mask (% of in-range samples, GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-"
+                f"{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm)"
+            ),
+            columns=[("log", "log"), *travel_bin_columns("pct")],
+            rows=diagnostic_binned_occurrence_rows,
+            sort_key=args.sort_key,
+        )
+
+        print_table(
+            title=(
+                f"Per-bin RMSE on boring_mask ({center_label}): travel/mag_model/adj vs travel "
+                f"[GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm]"
+            ),
+            columns=[("log", "log"), *travel_bin_columns("rmse")],
+            rows=diagnostic_mag_adj_bin_rows,
+            sort_key=args.sort_key,
+        )
+
+        print_table(
+            title=(
+                f"Per-bin RMSE on boring_mask ({center_label}): travel/solved vs travel "
+                f"[GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm]"
+            ),
+            columns=[("log", "log"), *travel_bin_columns("rmse")],
+            rows=diagnostic_solved_bin_rows,
             sort_key=args.sort_key,
         )
 

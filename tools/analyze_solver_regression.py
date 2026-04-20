@@ -85,7 +85,7 @@ class SolverReplay:
         self.mask = np.asarray(cache["boring_mask"]).astype(bool).reshape(-1)
         self.accel = flatten_1d(cache["accel/lpfhp/proj__x"]) * 1000.0
         self.mag = flatten_1d(cache["mag/proj/corr/lpf__x"])
-        self.mag_preds = flatten_1d(cache["travel/mag_model/adj__x"])
+        self.mag_preds = np.clip(flatten_1d(cache["travel/mag_model/adj__x"]), 0, None)
         self.solved_cache = flatten_1d(cache["travel/solved__x"])
         self.dt_s = np.diff(self.time_s, prepend=self.time_s[0] - 0.01)
         self.zv = dense_index_mask(len(self.travel), cache["mag_zv_points"])
@@ -324,6 +324,7 @@ def run_log(log_name: str, cache_root: Path, window_s: float, top_k: int, run_ab
         SolverVariant(name="no_zupt", zupt_v=0.0),
         SolverVariant(name="strong_mag", mag_x=400.0),
         SolverVariant(name="weak_dyn", v0=1.25, x0=250.0),
+        SolverVariant(name="strong_dyn", v0=5.0, x0=1000.0),
         SolverVariant(name="hard_off", off_floor=0.0),
     ]
     print("Ablations:")

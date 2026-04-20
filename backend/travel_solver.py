@@ -68,7 +68,7 @@ class TravelSolver(Step):
         t = accel_ts.t
         self.dt_s = np.diff(t, prepend=t[0]-0.01)
         self.mag = mag
-        self.mag_preds = mag_preds
+        self.mag_preds = np.clip(mag_preds, 0, None)
         dense_mag_zv = np.zeros_like(t)
         dense_mag_zv[mag_zv_points] = 1
         self.dense_mag_zv = dense_mag_zv
