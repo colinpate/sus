@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
 from angle_corruption import find_corrupt_angle_samples, interpolate_masked_signal

@@ -297,7 +297,6 @@ def main() -> None:
                 "travel/mag_model/adj", 
                 "mag_zv_points", 
                 "mag_baseline",
-                "travel",
             ),
             outputs=("travel/solved",),
             plot_keys=("travel/solved",)
