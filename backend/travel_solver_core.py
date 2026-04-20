@@ -26,8 +26,8 @@ def dense_index_mask(length: int, indices: np.ndarray) -> np.ndarray:
 class SolverWeights:
     """Residual weights and gates for the travel optimizer."""
 
-    v0: float = 2.5
-    x0: float = 500.0
+    v0: float = 5
+    x0: float = 1000.0
     mag_x: float = 200.0
     mag_x_thresh: float = 500.0
     mag_off_floor: float = 0.1
