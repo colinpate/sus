@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import csv
 from dataclasses import dataclass, field
+from datetime import datetime
+import io
+import json
 from pathlib import Path
+import subprocess
+import sys
 from typing import Iterable
 
 import numpy as np
@@ -10,6 +17,7 @@ import numpy as np
 Row = dict[str, object]
 Columns = list[tuple[str, str]]
 NpzFile = np.lib.npyio.NpzFile
+MetricKey = tuple[str, str, str, str]
 
 DEFAULT_LOGS = [
     "log022",
@@ -39,6 +47,10 @@ COMPARISONS = (
 )
 
 DEFAULT_CACHE_ROOT = Path("backend/run_artifacts")
+METRICS_FILENAME = "metrics.csv"
+MANIFEST_FILENAME = "manifest.json"
+REPORT_TEXT_FILENAME = "report.txt"
+COMPARE_EPSILON = 1e-12
 ANGLE_ERROR_HALO_S = 0.08
 MIN_MAG_ANCHOR_MG = 500.0
 
@@ -52,6 +64,7 @@ HIGH_TRAVEL_MIN_MM = 100.0
 HIGH_ACCEL_PERCENTILE = 80.0
 LOW_MAG_PERCENTILE = 20.0
 HIGH_MAG_PERCENTILE = 80.0
+HIGH_MAG_THRESH = 20000
 
 POOLED_FEATURES = (
     ("travel", "travel"),
@@ -624,7 +637,8 @@ def build_diagnostic_conditions(
         "high_trav": travel > HIGH_TRAVEL_MIN_MM,
         "high_acc": accel_hp_abs > maybe_percentile(accel_hp_abs, HIGH_ACCEL_PERCENTILE),
         "low_mag": mag < maybe_percentile(mag, LOW_MAG_PERCENTILE),
-        "high_mag": mag > maybe_percentile(mag, HIGH_MAG_PERCENTILE),
+        #"high_mag": mag > maybe_percentile(mag, HIGH_MAG_PERCENTILE),
+        "high_mag": mag > HIGH_MAG_THRESH,
         "bad_mag": bad_mag,
         "zv": zv,
         "anchor_on": mag > mag_anchor_thresh,
@@ -730,10 +744,17 @@ def sort_value(row: Row, sort_key: str) -> tuple[int, object]:
     return (0, str(value))
 
 
-def print_table(title: str, columns: Columns, rows: Iterable[Row], sort_key: str = "n") -> None:
+def print_table(
+    title: str,
+    columns: Columns,
+    rows: Iterable[Row],
+    sort_key: str = "n",
+    *,
+    reverse: bool = False,
+) -> None:
     rows = list(rows)
     sort_key = resolve_sort_key(columns, rows, sort_key)
-    rows.sort(key=lambda row: sort_value(row, sort_key))
+    rows.sort(key=lambda row: sort_value(row, sort_key), reverse=reverse)
 
     formatted_rows = [{key: format_value(row.get(key, "")) for key, _ in columns} for row in rows]
     widths = [
@@ -764,7 +785,8 @@ def format_table_line(
             if row is None:
                 raise ValueError("row is required when formatting table values")
             value = row[key]
-        cells.append(value.ljust(width) if key in {"log", "feature"} else value.rjust(width))
+        left_aligned = {"section", "log", "feature", "item", "metric"}
+        cells.append(value.ljust(width) if key in left_aligned else value.rjust(width))
     return "  ".join(cells)
 
 
@@ -848,7 +870,8 @@ def diagnostic_condition_columns() -> Columns:
         ("high_trav", format_threshold_label("trav>", HIGH_TRAVEL_MIN_MM)),
         ("high_acc", f"acc>p{format_bin_edge(HIGH_ACCEL_PERCENTILE)}"),
         ("low_mag", f"mag<p{format_bin_edge(LOW_MAG_PERCENTILE)}"),
-        ("high_mag", f"mag>p{format_bin_edge(HIGH_MAG_PERCENTILE)}"),
+        #("high_mag", f"mag>p{format_bin_edge(HIGH_MAG_PERCENTILE)}"),
+        ("high_mag", format_threshold_label("mag>", HIGH_MAG_THRESH)),
         ("bad_mag", "bad_mag"),
         ("zv", "zv"),
     ]
@@ -976,6 +999,355 @@ def print_pooled_correlations(report: AggregatedReport, center_label: str) -> No
     )
 
 
+def render_report(report: AggregatedReport, *, center_errors: bool, sort_key: str) -> str:
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        print_cache_summary(report)
+        print_error_summaries(report, center_errors=center_errors, sort_key=sort_key)
+        print_failures(report.failures)
+        print_diagnostics(report, center_errors=center_errors, sort_key=sort_key)
+    return buffer.getvalue()
+
+
+def write_csv(path: Path, rows: Iterable[Row], fieldnames: list[str] | None = None) -> None:
+    rows = list(rows)
+    if fieldnames is None:
+        fieldnames = collect_fieldnames(rows)
+
+    with path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({key: csv_value(row.get(key, "")) for key in fieldnames})
+
+
+def collect_fieldnames(rows: list[Row]) -> list[str]:
+    fieldnames: list[str] = []
+    for row in rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
+    return fieldnames
+
+
+def csv_value(value: object) -> object:
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating,)):
+        return float(value)
+    if isinstance(value, Path):
+        return str(value)
+    return value
+
+
+def json_default(value: object) -> object:
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating,)):
+        return float(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+def error_export_rows(report: AggregatedReport) -> list[Row]:
+    rows: list[Row] = []
+    for pred_key, _ in COMPARISONS:
+        for row in report.error_rows[pred_key]:
+            rows.append({"comparison": pred_key, **row})
+    return rows
+
+
+def pooled_correlation_rows(report: AggregatedReport) -> list[Row]:
+    if not report.has_diagnostics:
+        return []
+
+    solved_abs_err = np.concatenate(report.pooled_features["solved_abs_err"])
+    return [
+        {
+            "feature": label,
+            "corr": corrcoef_safe(np.concatenate(report.pooled_features[key]), solved_abs_err),
+        }
+        for key, label in POOLED_FEATURES
+    ]
+
+
+def wide_report_tables(report: AggregatedReport) -> list[tuple[str, list[Row], list[str] | None]]:
+    tables: list[tuple[str, list[Row], list[str] | None]] = [
+        ("summary.csv", report.summary_rows, None),
+        ("errors.csv", error_export_rows(report), None),
+    ]
+
+    if report.failures:
+        failures = [{"log": log_name, "error": str(exc)} for log_name, exc in report.failures]
+        tables.append(("failures.csv", failures, ["log", "error"]))
+
+    if report.has_diagnostics:
+        tables.extend(
+            [
+                ("diagnostics_stage.csv", report.diagnostic_stage_rows, None),
+                ("diagnostics_condition_rmse.csv", report.diagnostic_condition_rows, None),
+                ("diagnostics_condition_occurrence.csv", report.diagnostic_condition_ratio_rows, None),
+                ("diagnostics_solver_delta.csv", report.diagnostic_delta_rows, None),
+                ("diagnostics_binned_summary.csv", report.diagnostic_binned_summary_rows, None),
+                ("diagnostics_binned_occurrence.csv", report.diagnostic_binned_occurrence_rows, None),
+                ("diagnostics_mag_adj_bins.csv", report.diagnostic_mag_adj_bin_rows, None),
+                ("diagnostics_solved_bins.csv", report.diagnostic_solved_bin_rows, None),
+                ("pooled_correlations.csv", pooled_correlation_rows(report), None),
+            ]
+        )
+
+    return tables
+
+
+def tidy_metric_rows(report: AggregatedReport) -> list[Row]:
+    rows: list[Row] = []
+    add_tidy_metrics(rows, "summary", report.summary_rows)
+
+    for pred_key, _ in COMPARISONS:
+        add_tidy_metrics(rows, "error", report.error_rows[pred_key], comparison=pred_key)
+
+    if report.has_diagnostics:
+        add_tidy_metrics(rows, "diagnostic_stage", report.diagnostic_stage_rows)
+        add_tidy_metrics(rows, "diagnostic_condition_rmse", report.diagnostic_condition_rows)
+        add_tidy_metrics(rows, "diagnostic_condition_occurrence", report.diagnostic_condition_ratio_rows)
+        add_tidy_metrics(rows, "diagnostic_solver_delta", report.diagnostic_delta_rows)
+        add_tidy_metrics(rows, "diagnostic_binned_summary", report.diagnostic_binned_summary_rows)
+        add_tidy_metrics(rows, "diagnostic_binned_occurrence", report.diagnostic_binned_occurrence_rows)
+        add_tidy_metrics(rows, "diagnostic_mag_adj_bins", report.diagnostic_mag_adj_bin_rows)
+        add_tidy_metrics(rows, "diagnostic_solved_bins", report.diagnostic_solved_bin_rows)
+        add_tidy_metrics(rows, "pooled_correlation", pooled_correlation_rows(report), comparison_key="feature")
+
+    return rows
+
+
+def add_tidy_metrics(
+    output: list[Row],
+    section: str,
+    rows: Iterable[Row],
+    *,
+    comparison: str = "",
+    comparison_key: str | None = None,
+) -> None:
+    for row in rows:
+        log_name = str(row.get("log", ""))
+        item = comparison
+        if comparison_key is not None:
+            item = str(row.get(comparison_key, ""))
+
+        for metric, value in row.items():
+            if metric in {"log", "comparison", comparison_key}:
+                continue
+            if not is_numeric_metric(value):
+                continue
+            output.append(
+                {
+                    "section": section,
+                    "log": log_name,
+                    "comparison": item,
+                    "metric": metric,
+                    "value": float(value),
+                }
+            )
+
+
+def is_numeric_metric(value: object) -> bool:
+    return isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, bool)
+
+
+def save_report(
+    report: AggregatedReport,
+    output_dir: Path,
+    *,
+    report_text: str,
+    args: argparse.Namespace,
+) -> list[Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+
+    report_text_path = output_dir / REPORT_TEXT_FILENAME
+    report_text_path.write_text(report_text, encoding="utf-8")
+    written.append(report_text_path)
+
+    for filename, rows, fieldnames in wide_report_tables(report):
+        path = output_dir / filename
+        write_csv(path, rows, fieldnames)
+        written.append(path)
+
+    metrics_path = output_dir / METRICS_FILENAME
+    write_csv(
+        metrics_path,
+        tidy_metric_rows(report),
+        ["section", "log", "comparison", "metric", "value"],
+    )
+    written.append(metrics_path)
+
+    manifest_path = output_dir / MANIFEST_FILENAME
+    manifest = build_manifest(report, args, written)
+    manifest_path.write_text(json.dumps(manifest, indent=2, default=json_default) + "\n", encoding="utf-8")
+    written.append(manifest_path)
+    return written
+
+
+def build_manifest(report: AggregatedReport, args: argparse.Namespace, written_files: list[Path]) -> Row:
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "command": {
+            "logs": list(args.logs),
+            "cache_root": str(args.cache_root),
+            "center_errors": bool(args.center_errors),
+            "error_threshold": args.error_threshold,
+            "sort_key": args.sort_key,
+            "deep_dive": bool(args.deep_dive),
+        },
+        "report": {
+            "logs_summarized": len(report.summary_rows),
+            "failures": len(report.failures),
+            "diagnostics_included": report.has_diagnostics,
+        },
+        "python": sys.version.split()[0],
+        "git": git_info(Path(__file__).resolve().parents[1]),
+        "files": [path.name for path in written_files],
+    }
+
+
+def git_info(repo_root: Path) -> Row:
+    commit = run_git(repo_root, "rev-parse", "HEAD")
+    branch = run_git(repo_root, "branch", "--show-current")
+    status = run_git(repo_root, "status", "--short")
+    return {
+        "commit": commit,
+        "branch": branch,
+        "dirty": bool(status),
+        "status_short": status.splitlines() if status else [],
+    }
+
+
+def run_git(repo_root: Path, *args: str) -> str | None:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def load_saved_metrics(run_dir: Path) -> dict[MetricKey, float]:
+    metrics_path = run_dir / METRICS_FILENAME
+    if not metrics_path.exists():
+        raise FileNotFoundError(f"Expected saved metrics at {metrics_path}")
+
+    metrics: dict[MetricKey, float] = {}
+    with metrics_path.open("r", newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            key = (
+                row.get("section", ""),
+                row.get("log", ""),
+                row.get("comparison", ""),
+                row.get("metric", ""),
+            )
+            metrics[key] = float(row.get("value", "nan"))
+    return metrics
+
+
+def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int) -> str:
+    top_n = max(1, top_n)
+    base = load_saved_metrics(base_dir)
+    current = load_saved_metrics(current_dir)
+    common_keys = sorted(set(base) & set(current))
+    added = sorted(set(current) - set(base))
+    removed = sorted(set(base) - set(current))
+
+    rows: list[Row] = []
+    for section, log_name, comparison, metric in common_keys:
+        before = base[(section, log_name, comparison, metric)]
+        after = current[(section, log_name, comparison, metric)]
+        delta = after - before
+        rows.append(
+            {
+                "section": section,
+                "log": log_name,
+                "item": comparison,
+                "metric": metric,
+                "before": before,
+                "after": after,
+                "delta": delta,
+                "pct_delta": percent_delta(before, delta),
+                "abs_delta": abs(delta),
+            }
+        )
+
+    rows = [
+        row
+        for row in rows
+        if np.isfinite(float(row["abs_delta"])) and float(row["abs_delta"]) > COMPARE_EPSILON
+    ]
+    rows.sort(key=lambda row: float(row["abs_delta"]), reverse=True)
+
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        print("Saved stats comparison")
+        print(f"baseline: {base_dir}")
+        print(f"current:  {current_dir}")
+        print(
+            f"common_metrics={len(common_keys)}  changed={len(rows)}  "
+            f"added={len(added)}  removed={len(removed)}"
+        )
+        print("delta=current-baseline; lower is not always better for every metric")
+        print()
+
+        if rows:
+            print_table(
+                title=f"Top {min(top_n, len(rows))} metric deltas by absolute change",
+                columns=[
+                    ("section", "section"),
+                    ("log", "log"),
+                    ("item", "item"),
+                    ("metric", "metric"),
+                    ("before", "before"),
+                    ("after", "after"),
+                    ("delta", "delta"),
+                    ("pct_delta", "delta_%"),
+                ],
+                rows=rows[:top_n],
+                sort_key="abs_delta",
+                reverse=True,
+            )
+        else:
+            print("No metric deltas found.")
+
+        if added:
+            print_key_summary("Added metrics", added)
+        if removed:
+            print_key_summary("Removed metrics", removed)
+
+    return buffer.getvalue()
+
+
+def percent_delta(before: float, delta: float) -> float:
+    if not np.isfinite(before) or abs(before) <= COMPARE_EPSILON:
+        return float("nan")
+    return 100.0 * delta / abs(before)
+
+
+def print_key_summary(title: str, keys: list[MetricKey], limit: int = 12) -> None:
+    print(title)
+    for section, log_name, comparison, metric in keys[:limit]:
+        item = f" {comparison}" if comparison else ""
+        log = f" {log_name}" if log_name else ""
+        print(f"  {section}{log}{item} {metric}")
+    if len(keys) > limit:
+        print(f"  ... {len(keys) - limit} more")
+    print()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize pipeline cache durations and error statistics.")
     parser.add_argument(
@@ -1011,11 +1383,34 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print stage and feature-conditioned diagnostics for the selected logs.",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Directory where report.txt, CSV tables, metrics.csv, and manifest.json will be written.",
+    )
+    parser.add_argument(
+        "--compare",
+        nargs=2,
+        type=Path,
+        metavar=("BASELINE_DIR", "CURRENT_DIR"),
+        help="Compare two saved stats output directories produced with --output-dir.",
+    )
+    parser.add_argument(
+        "--compare-top",
+        type=int,
+        default=40,
+        help="Number of metric deltas to show in --compare mode.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.compare is not None:
+        comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top)
+        print(comparison_text, end="")
+        return
+
     report = collect_report(
         args.logs,
         args.cache_root,
@@ -1027,10 +1422,12 @@ def main() -> None:
     if not report.summary_rows:
         raise SystemExit("No logs could be summarized.")
 
-    print_cache_summary(report)
-    print_error_summaries(report, center_errors=args.center_errors, sort_key=args.sort_key)
-    print_failures(report.failures)
-    print_diagnostics(report, center_errors=args.center_errors, sort_key=args.sort_key)
+    report_text = render_report(report, center_errors=args.center_errors, sort_key=args.sort_key)
+    print(report_text, end="")
+
+    if args.output_dir is not None:
+        written = save_report(report, args.output_dir, report_text=report_text, args=args)
+        print(f"Saved report artifacts to {args.output_dir} ({len(written)} files)")
 
 
 if __name__ == "__main__":
