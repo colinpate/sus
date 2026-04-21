@@ -97,6 +97,15 @@ class SolverTerms:
 
 
 @dataclass(frozen=True)
+class PreparedSolver:
+    inputs: SolverInputs
+    weights: SolverWeights
+    mag_anchor_mask: np.ndarray
+    mag_gate: np.ndarray
+    jac_sparsity: csr_matrix
+
+
+@dataclass(frozen=True)
 class SolverRun:
     state0: np.ndarray
     state: np.ndarray
@@ -115,6 +124,18 @@ def make_initial_state(inputs: SolverInputs) -> np.ndarray:
     state[:n] = inputs.mag_preds_mm
     state[n : 2 * n] = np.cumsum(inputs.accel_mm_s2) * np.mean(inputs.dt_s)
     return state
+
+
+def prepare_solver(inputs: SolverInputs, weights: SolverWeights) -> PreparedSolver:
+    mag_anchor_mask = inputs.mag > weights.mag_x_thresh
+    mag_gate = (mag_anchor_mask[1:].astype(float) + weights.mag_off_floor) / (1.0 + weights.mag_off_floor)
+    return PreparedSolver(
+        inputs=inputs,
+        weights=weights,
+        mag_anchor_mask=mag_anchor_mask,
+        mag_gate=mag_gate,
+        jac_sparsity=make_jac_sparsity(len(inputs.time_s)),
+    )
 
 
 def make_jac_sparsity(n: int, n_res_per_step: int = 5) -> csr_matrix:
@@ -145,9 +166,10 @@ def make_jac_sparsity(n: int, n_res_per_step: int = 5) -> csr_matrix:
 
 def calculate_solver_terms(
     state: np.ndarray,
-    inputs: SolverInputs,
-    weights: SolverWeights,
+    prepared: PreparedSolver,
 ) -> SolverTerms:
+    inputs = prepared.inputs
+    weights = prepared.weights
     n = len(inputs.time_s)
     x = state[:n]
     v = state[n : 2 * n]
@@ -157,10 +179,7 @@ def calculate_solver_terms(
     a = inputs.accel_mm_s2[: n - 1] - b
     v_res = v[:-1] + a * dt - v[1:]
     x_res = x[:-1] + v[:-1] * dt + 0.5 * a * dt**2 - x[1:]
-    gate = ((inputs.mag[1:] > weights.mag_x_thresh).astype(float) + weights.mag_off_floor) / (
-        1.0 + weights.mag_off_floor
-    )
-    mag_res = (inputs.mag_preds_mm[1:] - x[1:]) * gate
+    mag_res = (inputs.mag_preds_mm[1:] - x[1:]) * prepared.mag_gate
     zv_res = inputs.mag_zv_mask[1:] * v[1:]
     oob_res = x[1:] * (x[1:] < 0)
     oob_res += (x[1:] - weights.travel_max) * (x[1:] > weights.travel_max)
@@ -176,13 +195,44 @@ def calculate_solver_terms(
         x=x,
         v=v,
         b=b,
-        gate=gate,
+        gate=prepared.mag_gate,
         v_res=v_res,
         x_res=x_res,
         mag_res=mag_res,
         zv_res=zv_res,
         oob_res=oob_res,
         stacked=np.concatenate((res[:, 1:].ravel(order="F"), [b * weights.b])),
+    )
+
+
+def solve_prepared_travel(
+    prepared: PreparedSolver,
+    *,
+    max_nfev: int = 100,
+    verbose: int = 0,
+) -> SolverRun:
+    inputs = prepared.inputs
+    state0 = make_initial_state(inputs)
+
+    def residuals(state: np.ndarray) -> np.ndarray:
+        return calculate_solver_terms(state, prepared).stacked
+
+    result = least_squares(
+        fun=residuals,
+        x0=state0,
+        jac_sparsity=prepared.jac_sparsity,
+        jac="2-point",
+        method="trf",
+        x_scale="jac",
+        verbose=verbose,
+        max_nfev=max_nfev,
+    )
+    return SolverRun(
+        state0=state0,
+        state=result.x,
+        init_terms=calculate_solver_terms(state0, prepared),
+        opt_terms=calculate_solver_terms(result.x, prepared),
+        scipy_result=result,
     )
 
 
@@ -193,27 +243,10 @@ def solve_travel(
     max_nfev: int = 100,
     verbose: int = 0,
 ) -> SolverRun:
-    state0 = make_initial_state(inputs)
-
-    def residuals(state: np.ndarray) -> np.ndarray:
-        return calculate_solver_terms(state, inputs, weights).stacked
-
-    result = least_squares(
-        fun=residuals,
-        x0=state0,
-        jac_sparsity=make_jac_sparsity(len(inputs.time_s)),
-        jac="2-point",
-        method="trf",
-        x_scale="jac",
-        verbose=verbose,
+    return solve_prepared_travel(
+        prepare_solver(inputs, weights),
         max_nfev=max_nfev,
-    )
-    return SolverRun(
-        state0=state0,
-        state=result.x,
-        init_terms=calculate_solver_terms(state0, inputs, weights),
-        opt_terms=calculate_solver_terms(result.x, inputs, weights),
-        scipy_result=result,
+        verbose=verbose,
     )
 
 
