@@ -15,7 +15,8 @@ if str(BACKEND_DIR) not in sys.path:
 from travel_solver_core import (  # noqa: E402
     SolverInputs,
     flatten_1d,
-    solve_travel,
+    prepare_solver,
+    solve_prepared_travel,
     solver_weights_for_mag_baseline,
     term_costs,
 )
@@ -93,7 +94,7 @@ def summarize_windows(
     solved: np.ndarray,
     mag_preds: np.ndarray,
     zv: np.ndarray,
-    mag_thresh: float,
+    anchor_mask: np.ndarray,
     window_s: float,
     top_k: int,
 ) -> list[dict[str, float]]:
@@ -122,7 +123,7 @@ def summarize_windows(
                 "delta_rmse": delta,
                 "solved_rmse": solved_rmse,
                 "mag_rmse": mag_rmse,
-                "anchor_on_pct": mean_pct(mag[w_idx] > mag_thresh),
+                "anchor_on_pct": mean_pct(anchor_mask[w_idx]),
                 "zv_pct": mean_pct(zv[w_idx]),
                 "travel_mean": float(np.mean(travel[w_idx])),
                 "travel_std": float(np.std(gt_c)),
@@ -144,8 +145,9 @@ def run_log(log_name: str, cache_root: Path, window_s: float, top_k: int, run_ab
     cache = np.load(cache_root / log_name / "cache" / "all.npz")
     replay = SolverReplay.from_cache(cache)
     current = solver_weights_for_mag_baseline(replay.mag_baseline)
+    prepared = prepare_solver(replay.inputs, current)
 
-    result = solve_travel(replay.inputs, current)
+    result = solve_prepared_travel(prepared)
     solved = result.x
     init_terms = result.init_terms
     opt_terms = result.opt_terms
@@ -198,7 +200,7 @@ def run_log(log_name: str, cache_root: Path, window_s: float, top_k: int, run_ab
     masked_corr = correction[mask]
     masked_solver_err = np.abs(masked_centered_err(solved, replay.travel, mask))
     masked_mag_err = np.abs(masked_centered_err(replay.mag_preds, replay.travel, mask))
-    anchor_on = masked_mag > current.mag_x_thresh
+    anchor_on = prepared.mag_anchor_mask[mask]
     low_travel = masked_travel < 20.0
     high_travel = masked_travel > np.percentile(masked_travel, 80.0)
 
@@ -230,7 +232,7 @@ def run_log(log_name: str, cache_root: Path, window_s: float, top_k: int, run_ab
         solved,
         replay.mag_preds,
         replay.zv,
-        current.mag_x_thresh,
+        prepared.mag_anchor_mask,
         window_s,
         top_k,
     ):
@@ -258,7 +260,7 @@ def run_log(log_name: str, cache_root: Path, window_s: float, top_k: int, run_ab
     ]
     print("Ablations:")
     for name, weights in ablations:
-        ablation_result = solve_travel(replay.inputs, weights)
+        ablation_result = solve_prepared_travel(prepare_solver(replay.inputs, weights))
         rmse = centered_rmse(ablation_result.x, replay.travel, mask)
         print(f"  {name}: rmse={rmse:.3f}, delta_vs_mag={rmse - mag_rmse:.3f}")
 
