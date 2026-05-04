@@ -40,7 +40,7 @@ class GetMagToTravelModel(Step):
     bad_thresh: float = 0.5
     pred_soft_mg: float = 50.0
     ref_zero_percentile: float = 8.0
-    ref_neg_fallback_max_pct: float = 0.1
+    ref_neg_fallback_max_pct: float = 0.08
     ref_fallback_accel_quantile: float = 70.0
     power_weight: float = 1000.0
 

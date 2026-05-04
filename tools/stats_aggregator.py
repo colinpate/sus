@@ -38,6 +38,20 @@ DEFAULT_LOGS = [
     "log099",
     "log103",
     "log104",
+    "log106",
+    "log107",
+    "log109",
+    "log110",
+    "log112",
+]
+NEW_LOGS = [
+    "log103",
+    "log104",
+    "log106",
+    "log107",
+    "log109",
+    "log110",
+    "log112",
 ]
 
 COMPARISONS = (
@@ -375,11 +389,12 @@ def summarize_log_cache(
         )
         comparison_rows[pred_key] = {
             "log": log_name,
-            "n": int(len(masked_pred)),
+            "t": int(len(masked_pred) / 100),
             "rmse": stats.rmse,
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
             "me": stats.mean_error,
+            "rms_travel": float(np.std(masked_gt)),
         }
 
     return LogSummary(summary=summary_row, comparison_rows=comparison_rows)
@@ -844,11 +859,12 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
             title=f"Error stats on boring_mask ({center_label}): {pred_key} vs {gt_key}",
             columns=[
                 ("log", "log"),
-                ("n", "n"),
+                ("t", "t"),
                 ("rmse", "rmse"),
                 ("bin_rmse", "bin_rmse"),
                 ("mae", "mae"),
                 ("me", "me"),
+                ("rms_travel", "rms_trav"),
             ],
             rows=report.error_rows[pred_key],
             sort_key=sort_key,
@@ -1257,7 +1273,7 @@ def load_saved_metrics(run_dir: Path) -> dict[MetricKey, float]:
     return metrics
 
 
-def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int) -> str:
+def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int, item: str | None = None) -> str:
     top_n = max(1, top_n)
     base = load_saved_metrics(base_dir)
     current = load_saved_metrics(current_dir)
@@ -1270,6 +1286,8 @@ def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int) -> str:
         before = base[(section, log_name, comparison, metric)]
         after = current[(section, log_name, comparison, metric)]
         delta = after - before
+        if item is not None and comparison != item:
+            continue
         rows.append(
             {
                 "section": section,
@@ -1289,7 +1307,7 @@ def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int) -> str:
         for row in rows
         if np.isfinite(float(row["abs_delta"])) and float(row["abs_delta"]) > COMPARE_EPSILON
     ]
-    rows.sort(key=lambda row: float(row["abs_delta"]), reverse=True)
+    rows.sort(key=lambda row: row["log"], reverse=True)
 
     buffer = io.StringIO()
     with contextlib.redirect_stdout(buffer):
@@ -1317,7 +1335,7 @@ def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int) -> str:
                     ("pct_delta", "delta_%"),
                 ],
                 rows=rows[:top_n],
-                sort_key="abs_delta",
+                sort_key="log",
                 reverse=True,
             )
         else:
@@ -1401,13 +1419,18 @@ def parse_args() -> argparse.Namespace:
         default=40,
         help="Number of metric deltas to show in --compare mode.",
     )
+    parser.add_argument(
+        "--compare-item",
+        type=str,
+        help="Filter --compare results to a specific item.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     if args.compare is not None:
-        comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top)
+        comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top, item=args.compare_item)
         print(comparison_text, end="")
         return
 

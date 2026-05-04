@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--baseline-zero-percentile",
         type=float,
-        default=99.9,
+        default=99.5,
         help="Current zero-angle percentile used by the pipeline.",
     )
     parser.add_argument(
