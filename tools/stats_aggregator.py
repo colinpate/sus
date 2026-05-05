@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -1273,7 +1274,7 @@ def load_saved_metrics(run_dir: Path) -> dict[MetricKey, float]:
     return metrics
 
 
-def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int, item: str | None = None) -> str:
+def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int, item: str | None = None, compare_metric: str | None = None) -> str:
     top_n = max(1, top_n)
     base = load_saved_metrics(base_dir)
     current = load_saved_metrics(current_dir)
@@ -1287,6 +1288,8 @@ def compare_saved_runs(base_dir: Path, current_dir: Path, *, top_n: int, item: s
         after = current[(section, log_name, comparison, metric)]
         delta = after - before
         if item is not None and comparison != item:
+            continue
+        if compare_metric is not None and metric != compare_metric:
             continue
         rows.append(
             {
@@ -1424,15 +1427,30 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="Filter --compare results to a specific item.",
     )
+    parser.add_argument(
+        "--compare-metric",
+        type=str,
+        help="Filter --compare results to a specific metric.",
+    )
+    parser.add_argument(
+        "--run-pipeline",
+        action="store_true",
+        help="Run the pipeline for the specified logs"
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     if args.compare is not None:
-        comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top, item=args.compare_item)
+        comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top, item=args.compare_item, compare_metric=args.compare_metric)
         print(comparison_text, end="")
         return
+    
+    if args.run_pipeline:
+        for log_filename in args.logs:
+            print(f"Running pipeline for {log_filename}...")
+            os.system("venv/bin/python3 backend/pipeline.py " + log_filename)
 
     report = collect_report(
         args.logs,
