@@ -4,33 +4,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#ifndef IMU_SELECTION_LIS3DH
-#define IMU_SELECTION_LIS3DH 0
-#endif
-
-#ifndef IMU_SELECTION_LSM6DSOX
-#define IMU_SELECTION_LSM6DSOX 1
-#endif
-
-#ifndef IMU_SELECTION_LSM6DSO32
-#define IMU_SELECTION_LSM6DSO32 2
-#endif
-
-#ifndef IMU1_SELECTION
-#ifdef IMU_SELECTION
-#define IMU1_SELECTION IMU_SELECTION
-#else
-#define IMU1_SELECTION IMU_SELECTION_LSM6DSOX
-#endif
-#endif
-
-#ifndef IMU2_SELECTION
-#ifdef IMU_SELECTION
-#define IMU2_SELECTION IMU_SELECTION
-#else
-#define IMU2_SELECTION IMU_SELECTION_LSM6DSO32
-#endif
-#endif
+#include "imu_config.h"
 
 #ifndef IMU1_ADDR
 #if IMU1_SELECTION == IMU_SELECTION_LIS3DH
