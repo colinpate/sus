@@ -133,6 +133,8 @@ class AngleLoader:
     """Loads angle data from a DataFrame with columns"""
     path: str
     lag: int = 0
+    interpolate_bad: bool = True
+    offset: int = 0
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
@@ -141,13 +143,16 @@ class AngleLoader:
         fs_hz = 1 / np.median(np.diff(t))
         bad_mask = find_corrupt_angle_samples(angle_raw)
 
-        x_raw = angle_raw * np.pi * 2 / 4096
-        x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
-        if np.any(bad_mask):
-            print(
-                f"Interpolated {np.sum(bad_mask)} corrupted angle samples "
-                f"({np.mean(bad_mask) * 100:.2f}%) from {self.path}"
-            )
+        x_raw = ((angle_raw + self.offset) % 4096) * np.pi * 2 / 4096
+        if self.interpolate_bad:
+            x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
+            if np.any(bad_mask):
+                print(
+                    f"Interpolated {np.sum(bad_mask)} corrupted angle samples "
+                    f"({np.mean(bad_mask) * 100:.2f}%) from {self.path}"
+                )
+        else:
+            x = x_raw
 
         if self.lag != 0:
             x = np.roll(x, shift=-self.lag, axis=0)
