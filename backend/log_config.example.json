@@ -5,12 +5,22 @@
     },
     "mag_lis": {
       "offset": [0.0, 0.0, 0.0]
+    },
+    "angle": {
+      "offset": 2048,
+      "lag": -1,
+      "interpolate_bad": false
     }
   },
   "steps": {
     "angle_to_travel": {
       "top_adjacent": 119.5,
       "top_zeroangle": 2.418
+    },
+    "linkage_angle_to_travel": {
+      "linkage_path": "linkage/horst_curve.csv",
+      "angle_sign": -1.0,
+      "angle_reference_percentile": 1.0
     }
   }
 }

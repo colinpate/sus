@@ -2,7 +2,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
-from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader, LISMagLoader, GyroLoader
+from classes.sensor_loader import (
+    Workspace,
+    SensorLoader,
+    AccelLoader,
+    MagLoader,
+    AngleLoader,
+    LISMagLoader,
+    GyroLoader,
+)
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import (
     FilterChunkPairs, 
@@ -41,7 +49,7 @@ def main() -> None:
         GyroLoader(sensor_id="gyro2", path=log_path),
         MagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag")),
         LISMagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag_lis")),
-        AngleLoader(path=log_path, lag=-1)
+        AngleLoader(path=log_path, lag=-1),
     ]
 
     ws: Workspace = {}

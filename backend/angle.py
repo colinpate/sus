@@ -5,19 +5,21 @@ import numpy as np
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
+from linkage_curve import RockerTravelCurve
 
 @dataclass
 class AngleToTravel(Step):
     """Get suspension travel from angle"""
     hypotenuse: float = 120
     top_adjacent: float = 239 / 2#237.5 / 2
+    top_zeroangle_percentile: float = 99.5
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]]
         hypotenuse = self.param(ws, "hypotenuse", self.hypotenuse)
         top_adjacent = self.param(ws, "top_adjacent", self.top_adjacent)
         top_zeroangle = self.param(ws, "top_zeroangle")
-        top_zeroangle_percentile = self.param(ws, "top_zeroangle_percentile", 99.5)
+        top_zeroangle_percentile = self.param(ws, "top_zeroangle_percentile", self.top_zeroangle_percentile)
         
         # Get corrected angle
         top_angle = np.arccos(top_adjacent / hypotenuse)
@@ -44,6 +46,46 @@ class AngleToTravel(Step):
                 },
             },
         )
+
+
+@dataclass
+class LinkageAngleToTravel(Step):
+    """Map rocker angle to wheel travel using a sampled linkage curve."""
+    linkage_path: str = ""
+    top_zeroangle_percentile: float = 0.5
+    angle_sign: float = 1.0
+
+    def run(self, ws: Workspace) -> None:
+        if self.angle_sign == 0:
+            raise ValueError("angle_sign must be non-zero")
+
+        a: TimeSeries = ws[self.inputs[0]]
+        linkage_path = self.param(ws, "linkage_path", self.linkage_path)
+
+        angle_reference_percentile = float(
+            self.param(ws, "angle_reference_percentile", self.top_zeroangle_percentile)
+        )
+        angle_sign = float(self.param(ws, "angle_sign", self.angle_sign))
+
+        angle_deg_raw = np.degrees(a.x[:, 0]) * angle_sign
+        sensor_reference_deg = float(np.percentile(angle_deg_raw, angle_reference_percentile))
+        angle_deg = angle_deg_raw - sensor_reference_deg
+
+        curve = RockerTravelCurve(linkage_path)
+        travel_mm = curve.angle_to_travel(angle_deg)
+
+        print("Raw angle min, max:", np.min(angle_deg_raw), np.max(angle_deg_raw))
+        print("Travel angle 0 reference:", sensor_reference_deg)
+        print("Travel min, max:", np.min(travel_mm), np.max(travel_mm))
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=a.t,
+            x=travel_mm,
+            units="mm",
+            frame=a.frame,
+            meta={},
+        )
+
 
 @dataclass
 class FindBoringRegions(Step):

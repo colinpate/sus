@@ -2,7 +2,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
-from classes.sensor_loader import Workspace, SensorLoader, AccelLoader, MagLoader, AngleLoader, LISMagLoader, GyroLoader
+from classes.sensor_loader import (
+    Workspace,
+    SensorLoader,
+    AccelLoader,
+    MagLoader,
+    AngleLoader,
+    LISMagLoader,
+    GyroLoader,
+)
 from classes.step import Step, FilterStep, ChunkStep
 from accel_rotation import (
     FilterChunkPairs, 
@@ -14,7 +22,7 @@ from accel_rotation import (
     GetAccelError,
     CorrectStaticOffset
 )
-from angle import AngleToTravel, FindBoringRegions
+from angle import FindBoringRegions, LinkageAngleToTravel
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
@@ -24,6 +32,7 @@ from classes.log_config import attach_log_config, get_log_config_path, get_signa
 
 DEC_FREQ = 200 # Hz, for decimating data to speed up optimization
 LP_FREQ = 40 # Hz, for lowpass filtering accel and gyro data
+MAG_LP_FREQ = 20 # Hz, for lowpass filtering magnetometer data
 
 def main() -> None:
     log_filename = parse_args().log_filename
@@ -32,6 +41,7 @@ def main() -> None:
     log_config = load_log_config(log_path)
     if log_config:
         print(f"Loaded log config from {get_log_config_path(log_path)}")
+    angle_signal_config = get_signal_config(log_config, "angle")
 
 
     # Load sensors (OOP edge)
@@ -42,7 +52,12 @@ def main() -> None:
         GyroLoader(sensor_id="gyro2", path=log_path),
         MagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag")),
         LISMagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag_lis")),
-        AngleLoader(path=log_path, lag=-1, interpolate_bad=False, offset=2048)
+        AngleLoader(
+            path=log_path,
+            lag=int(angle_signal_config.get("lag", -1)),
+            interpolate_bad=bool(angle_signal_config.get("interpolate_bad", False)),
+            offset=int(angle_signal_config.get("offset", 2048)),
+        ),
     ]
 
     ws: Workspace = {}
@@ -66,7 +81,7 @@ def main() -> None:
             inputs=("gyro/gyro2",),
             outputs=("gyro/lpf/gyro2",),
             plot_keys=("gyro/gyro2", "gyro/lpf/gyro2"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -84,7 +99,7 @@ def main() -> None:
             inputs=("accel/lis2",),
             outputs=("accel/lpf/lis2",),
             plot_keys=("accel/lis2", "accel/lpf/lis2"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -129,11 +144,11 @@ def main() -> None:
             btype="low",
             dec_freq=DEC_FREQ,
         ),
-        # AngleToTravel(
-        #     name="angle_to_travel",
-        #     inputs=("angle/lpf",),
-        #     outputs=("travel",),
-        # ),
+        LinkageAngleToTravel(
+            name="linkage_angle_to_travel",
+            inputs=("angle/lpf",),
+            outputs=("travel",),
+        ),
         # GetAccelError(
         #     name="accel_proj_error",
         #     inputs=("accel/lpf/proj", "travel"),
@@ -159,7 +174,7 @@ def main() -> None:
             inputs=("mag",),
             outputs=("mag/lpf",),
             plot_keys=("mag/lpf",),
-            fc_hz=LP_FREQ,
+            fc_hz=MAG_LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -168,7 +183,7 @@ def main() -> None:
             inputs=("mag_lis",),
             outputs=("mag_lis/lpf",),
             plot_keys=("mag_lis/lpf",),
-            fc_hz=LP_FREQ,
+            fc_hz=MAG_LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),

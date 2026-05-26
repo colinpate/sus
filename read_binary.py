@@ -83,8 +83,9 @@ def write_metadata(
     log_path: str,
     hypotenuse: float | None = None,
     top_adjacent: float | None = None,
+    linkage_file: str | None = None,
 ) -> Path | None:
-    if hypotenuse is None and top_adjacent is None:
+    if hypotenuse is None and top_adjacent is None and linkage_file is None:
         return None
 
     metadata_path = get_metadata_path(log_path)
@@ -104,6 +105,13 @@ def write_metadata(
         angle_to_travel["hypotenuse"] = hypotenuse
     if top_adjacent is not None:
         angle_to_travel["top_adjacent"] = top_adjacent
+    
+    # Rear suspension stuff
+    linkage_angle_to_travel = steps.get("linkage_angle_to_travel")
+    if not isinstance(linkage_angle_to_travel, dict):
+        linkage_angle_to_travel = {}
+        steps["linkage_angle_to_travel"] = linkage_angle_to_travel
+    linkage_angle_to_travel["linkage_path"] = linkage_file
 
     with metadata_path.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
@@ -247,6 +255,11 @@ def main() -> None:
         choices=sorted(FORMATS.keys()),
         help="Override record format detection",
     )
+    p.add_argument(
+        "--linkage-file",
+        type=str,
+        help="Linkage angle-to-travel file for rear suspension logs"
+    )
     args = p.parse_args()
 
     bin_path = args.input
@@ -263,6 +276,7 @@ def main() -> None:
         bin_path,
         hypotenuse=args.hypotenuse,
         top_adjacent=args.top_adjacent,
+        linkage_file=args.linkage_file
     )
     if metadata_path is not None:
         print(f"Wrote: {metadata_path}")

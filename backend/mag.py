@@ -59,6 +59,20 @@ class ProjectMag(Step):
         return mag_baseline
 
 
+class DiffMag(Step):
+    rot = [[0, 1, 0],
+           [-1, 0, 0],
+           [0, 0, 1]]
+    
+    def run(self, ws: Workspace) -> None:
+        b_mmc_ts: TimeSeries = ws[self.inputs[0]]
+        b_lis_ts: TimeSeries = ws[self.inputs[1]]
+        b_mmc = b_mmc_ts.x
+        b_lis = b_lis_ts.x
+        rot_mat = np.asarray(self.rot)
+        b_lis_rot = (rot_mat @ b_lis.T).T
+
+
 class FindBadMagProj(Step): 
     raw_norm_maxdiff: int = 2000  # mG
 
