@@ -11,19 +11,9 @@ from classes.sensor_loader import (
     LISMagLoader,
     GyroLoader,
 )
-from classes.step import Step, FilterStep, ChunkStep
-from accel_rotation import (
-    FilterChunkPairs, 
-    FilterColinearPairs, 
-    RotationFromPairs, 
-    GetRelativeAccel, 
-    GetAccelTravelVector, 
-    ProjectAccel,
-    GetAccelError,
-    CorrectStaticOffset
-)
+from classes.step import Step, FilterStep
 from angle import FindBoringRegions, LinkageAngleToTravel
-from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
+from mag import ProjectMag, FindMagZVPoints, DiffMag
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
@@ -162,13 +152,6 @@ def main() -> None:
         # ),
 
         # Magnetometer processing
-        # ProjectMag(
-        #     name="project_mag",
-        #     inputs=("mag", "accel/proj"),
-        #     outputs=("mag/proj",),
-        #     plot_keys=("mag/proj",),
-        #     normalize=True,
-        # ),
         FilterStep(
             name="lowpass_mag",
             inputs=("mag",),
@@ -187,25 +170,49 @@ def main() -> None:
             btype="low",
             dec_freq=DEC_FREQ,
         ),
-        # FilterStep(
-        #     name="lowpass_mag/proj",
-        #     inputs=("mag/proj",),
-        #     outputs=("mag/proj/lpf",),
-        #     plot_keys=("mag/proj/lpf",),
-        #     fc_hz=LP_FREQ,
-        #     btype="low",
-        #     dec_freq=DEC_FREQ,
-        # ),
+        DiffMag(
+            name="diff_mag",
+            inputs=("mag", "mag_lis"),
+            outputs=("mag_diff",),
+        ),
+        FilterStep(
+            name="lowpass_mag_diff",
+            inputs=("mag_diff",),
+            outputs=("mag_diff/lpf",),
+            plot_keys=("mag_diff/lpf",),
+            fc_hz=MAG_LP_FREQ,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        ProjectMag(
+            name="project_mag",
+            inputs=("mag_diff",),
+            outputs=("mag/proj",),
+            plot_keys=("mag/proj",),
+            normalize=True,
+        ),
+
+        FilterStep(
+            name="lowpass_mag/proj",
+            inputs=("mag/proj",),
+            outputs=("mag/proj/lpf",),
+            plot_keys=("mag/proj/lpf",),
+            fc_hz=MAG_LP_FREQ,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
     #     CorrectBadMagProj(
     #         name="find_bad_mag_proj",
     #         inputs=("mag/lpf", "mag/proj/lpf"),
     #         outputs=("mag/proj/corr/lpf", "mag/proj/bad_mask",)
     #     ),
-    #     FindMagZVPoints(
-    #         name="find_mag_zv_points",
-    #         inputs=("mag/proj/corr/lpf",),
-    #         outputs=("mag_zv_points",)
-    #     ),
+        FindMagZVPoints(
+            name="find_mag_zv_points",
+            inputs=("mag/proj/lpf",),
+            outputs=("mag_zv_points",),
+            min_dt=0,
+            min_dm=0
+        ),
 
     #     # Fusion steps
     #     GetMagBaseline(
