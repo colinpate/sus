@@ -12,13 +12,12 @@ class MagToTravelChunk:
     mag: np.ndarray
     idx: int
     chunk_len: int
-    center_idx: int | None = None
-    slice_i: slice | None = None
+    zv_idx: int | None = None
 
     def __post_init__(self):
         self.slice = slice(self.idx-self.chunk_len, self.idx+self.chunk_len)
-        if self.center_idx is None:
-            self.center_idx = self.chunk_len
+        if self.zv_idx is None:
+            self.zv_idx = self.chunk_len
 
 
 @dataclass
