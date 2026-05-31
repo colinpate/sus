@@ -6,14 +6,19 @@ from scipy.optimize import least_squares
 
 @dataclass
 class MagToTravelChunk:
+    a: np.ndarray | None = None
     v: np.ndarray
     x: np.ndarray
     mag: np.ndarray
     idx: int
     chunk_len: int
+    center_idx: int | None = None
+    slice_i: slice | None = None
 
     def __post_init__(self):
         self.slice = slice(self.idx-self.chunk_len, self.idx+self.chunk_len)
+        if self.center_idx is None:
+            self.center_idx = self.chunk_len
 
 
 @dataclass
@@ -43,6 +48,7 @@ class MagToTravelModelCore:
     chunk_len: int = 20
     train_with_mask: bool = False
     bad_thresh: float = 0.5
+    dm_dx_thresh: float | None = 0.05
     pred_soft_mg: float = 50.0
     power_weight: float = 1000.0
     min_mag_relax_min_chunks: int = 50
@@ -109,6 +115,7 @@ class MagToTravelModelCore:
         chunk_len = self.chunk_len
         min_dx = self.chunk_min_dx
         max_dx = self.chunk_max_dx
+        dm_dx_thresh = self.dm_dx_thresh
         filt_stats = {"mask": 0, "dx": 0, "dm/dx": 0, "mag": 0}
 
         chunks = []
@@ -133,7 +140,7 @@ class MagToTravelModelCore:
             mag_chunk = mag[idx - chunk_len:idx + chunk_len]
             dm_chunk = np.diff(mag_chunk, prepend=mag_chunk[0])
             dm_dx = dm_chunk / (v_chunk + 1e-6)
-            if np.median(dm_dx) < 0.05:
+            if dm_dx_thresh is not None and np.median(dm_dx) < dm_dx_thresh:
                 filt_stats["dm/dx"] += 1
                 continue
             all_mags.append(mag_chunk)
