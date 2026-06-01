@@ -94,7 +94,7 @@ def load_ws(log_filename):
     travel = ws["travel__x"][:, 0]
 
     v_gt = np.gradient(travel, t, edge_order = 2)
-    a_gt = np.gradient(v_gt, t, edge_order = 2) / 1000.0
+    a_gt = np.gradient(v_gt, t, edge_order = 2)
     return a, b_proj, t, travel, v_gt, a_gt, zv_points
 
 def main():
@@ -102,7 +102,7 @@ def main():
     a_raw, b_proj, t, travel, v_gt, a_gt, zv_points = load_ws(log_filename)
     a_hp_proj, a_proj = project_accel(a_raw)
     model = RearMagModel()
-    chunks = model.create_chunks(zv_points, b_proj, a_proj, t)
+    chunks = model.create_chunks(zv_points, b_proj, -a_hp_proj, t)
     model.prepare_chunks(chunks)
     model.calc_chunks_errors(chunks, travel, v_gt, a_gt)
     filters = model.get_filter_fns()
