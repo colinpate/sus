@@ -210,8 +210,8 @@ def main() -> None:
             name="find_mag_zv_points",
             inputs=("mag/proj/lpf",),
             outputs=("mag_zv_points",),
-            min_dt=0,
-            min_dm=0
+            #min_dt=0,
+            #min_dm=0
         ),
 
     #     # Fusion steps
