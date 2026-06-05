@@ -2,6 +2,7 @@ import numpy as np
 import scipy
 from scipy.signal import butter, sosfiltfilt
 from argparse import ArgumentParser
+import random
 
 from mag_to_travel_model_core import MagToTravelChunk, MagToTravelModelCore
 
@@ -172,6 +173,7 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
     pred_aligned = pred_travel + best_offset
     aligned_rmse = np.mean((travel - pred_aligned) ** 2) ** 0.5
     masked_aligned_rmse = np.mean(((travel - pred_aligned)[roi_mask]) ** 2) ** 0.5
+    masked_rms_travel = np.mean((travel[roi_mask]) ** 2) ** 0.5
 
     pred_centered = pred_travel - np.mean(pred_travel)
     travel_centered = travel - np.mean(travel)
@@ -186,6 +188,9 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
         f"{label} best-offset RMSE: {aligned_rmse:.3f} mm, "
         f"centered RMSE: {centered_rmse:.3f} mm, corr: {corr:.4f}, "
         f"masked aligned RMSE: {masked_aligned_rmse:.3f} mm"
+    )
+    print(
+        f"RMS travel: {masked_rms_travel}"
     )
     return {
         "raw_rmse": raw_rmse,
@@ -202,13 +207,14 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
     model.prepare_chunks(chunks)
 
     model.calc_chunks_errors(chunks, travel, v_gt, a_gt)
-    chunk_corrs = [chunk.metrics["b_x_corr"] for chunk in chunks]
-    chunk_abs_errs = [np.median(np.abs(chunk.errors["v"])) for chunk in chunks]
-    corr_err_corr = scipy.stats.spearmanr(chunk_corrs, chunk_abs_errs).correlation
-    print("b-x corr to err correlation", corr_err_corr)
+
     chunks_filt = model.filter_chunks(chunks, model.get_filter_fns())
     print(f"{case_name} training chunks: {len(chunks_filt)}")
 
+    chunk_corrs = [chunk.metrics["b_x_corr"] for chunk in chunks]
+    chunk_abs_errs = [np.median(np.abs(chunk.errors["x"])) for chunk in chunks]
+    corr_err_corr = scipy.stats.spearmanr(chunk_corrs, chunk_abs_errs).correlation
+    print("b-x corr to err correlation", corr_err_corr)
     x_mag_corrs, x_gt_corrs = get_chunk_corrs(chunks_filt, travel)
     if x_mag_corrs:
         print(
@@ -230,7 +236,7 @@ def main():
     results = []
     for case_name, accel_proj in (
         ("positive_accel_sign", a_hp_proj),
-        ("negative_accel_sign", -a_hp_proj),
+#       ("negative_accel_sign", -a_hp_proj),
     ):
         _, metrics = run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask)
         results.append((case_name, metrics))
