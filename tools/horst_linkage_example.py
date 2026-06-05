@@ -117,6 +117,14 @@ def rocker_angle_deg_from_mechanism(mechanism: Mechanism) -> float:
     return math.degrees(math.atan2(dy, dx))
 
 
+def seatstay_angle_deg_from_mechanism(mechanism: Mechanism) -> float:
+    """Return the seatstay angle at C, measured from the global +x axis."""
+    points = named_points(mechanism)
+    dx = points["C"][0] - points["B"][0]
+    dy = points["C"][1] - points["B"][1]
+    return math.degrees(math.atan2(dy, dx))
+
+
 def find_joint_index(mechanism: Mechanism, joint_id: str) -> int:
     """Return the index of a joint by exact ID."""
     for index, joint in enumerate(mechanism.joints):
@@ -162,15 +170,18 @@ def axle_path(
 
     angle = 0
     angles = [0]
+    ss_angles = [seatstay_angle_deg_from_mechanism(mechanism)]
     for _ in range(steps):
         frame = next(mechanism.step(dt=1.0))
         x, y = frame[axle_idx]
+        seatstay_angle = seatstay_angle_deg_from_mechanism(mechanism)
         if x is not None and y is not None:
             path.append((x, y))
             angle += omega_deg_per_step
             angles.append(angle)
+            ss_angles.append(seatstay_angle)
 
-    return path, angles
+    return path, angles, ss_angles
 
 
 def draw_horst_linkage(
@@ -295,13 +306,13 @@ def main() -> None:
     parser.add_argument(
         "--axle-offset-x",
         type=float,
-        default=-20,
+        default=-35,
         help="Axle x offset from B in the local frame of link 3. +x points from B to C.",
     )
     parser.add_argument(
         "--axle-offset-y",
         type=float,
-        default=-10,
+        default=-20,
         help="Axle y offset from B in the local frame of link 3. +y is 90 deg CCW from B->C.",
     )
     parser.add_argument(
@@ -312,7 +323,7 @@ def main() -> None:
     parser.add_argument(
         "--path-steps",
         type=int,
-        default=120,
+        default=110,
         help="Number of driver steps to use for the optional axle path plot.",
     )
     parser.add_argument(
@@ -355,7 +366,7 @@ def main() -> None:
     if args.plot_axle_path or args.export:
         if args.axle_offset_x is None or args.axle_offset_y is None:
             parser.error("--plot-axle-path requires --axle-offset-x and --axle-offset-y.")
-        axle_path_points, angles = axle_path(
+        axle_path_points, angles, ss_angles = axle_path(
             branch=args.branch,
             omega_deg_per_step=args.omega_deg_per_step,
             rocker_angle_deg=args.rocker_angle_deg,
@@ -363,6 +374,11 @@ def main() -> None:
             axle_offset_y_mm=args.axle_offset_y,
             steps=args.path_steps,
         )
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(6, 6))
+        plt.plot(angles, ss_angles)
+        plt.grid()
+        plt.show()
     
     draw_horst_linkage(
         mechanism,
@@ -372,7 +388,7 @@ def main() -> None:
     )
     if args.export:
         with open(args.export, "w") as fo:
-            json.dump([angles, axle_path_points], fo, indent=4)
+            json.dump([angles, axle_path_points, ss_angles], fo, indent=4)
 
 
 if __name__ == "__main__":

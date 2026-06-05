@@ -70,11 +70,19 @@ class MagToTravelModelCore:
         chunk.x = x_chunk
 
     def calc_chunk_metrics(self, chunk: MagToTravelChunk):
-        chunk.metrics["dx"] = max(chunk.x) - min(chunk.x)
+        dx = max(chunk.x) - min(chunk.x)
+        db = chunk.mag[-1] - chunk.mag[0]
+        b_x_corr = scipy.stats.spearmanr(chunk.mag, chunk.x).correlation
+
+        chunk.metrics["dx"] = dx
+        chunk.metrics["dt"] = chunk.t[-1] - chunk.t[0]
         chunk.metrics["mag_min"] = min(chunk.mag)
+        chunk.metrics["abs_db"] = abs(db)
+        chunk.metrics["db_per_dx"] = abs(db) / max(dx, 1e-6)
         chunk.metrics["dm/dx"] = np.diff(chunk.mag, prepend=chunk.mag[0]) / (chunk.v + 1e-6)
         chunk.metrics["dm/dx_median"] = np.median(chunk.metrics["dm/dx"])
-        chunk.metrics["b_x_corr"] = scipy.stats.spearmanr(chunk.mag, chunk.x).correlation
+        chunk.metrics["b_x_corr"] = b_x_corr
+        chunk.metrics["abs_b_x_corr"] = abs(b_x_corr) if np.isfinite(b_x_corr) else 0.0
         if chunk.badmask is not None:
             chunk.metrics["badmask_mean"] = np.mean(chunk.badmask)
 
@@ -85,7 +93,7 @@ class MagToTravelModelCore:
         v_gt: np.ndarray | None,
         a_gt: np.ndarray | None
     ):
-        trav_rel = travel_gt[chunk.slice_i]
+        trav_rel = travel_gt[chunk.slice_i].copy()
         trav_rel -= trav_rel[chunk.zv_idx]
         chunk.errors["x"] = chunk.x - trav_rel
         if v_gt is not None:

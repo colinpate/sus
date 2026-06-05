@@ -144,12 +144,12 @@ def main() -> None:
         #     inputs=("accel/lpf/proj", "travel"),
         #     outputs=(),
         # ),
-        # FindBoringRegions(
-        #     name="find_boring_regions",
-        #     inputs=("travel",),
-        #     outputs=("boring_regions", "boring_mask"),
-        #     read_cache=True
-        # ),
+        FindBoringRegions(
+            name="find_boring_regions",
+            inputs=("travel",),
+            outputs=("boring_regions", "boring_mask"),
+            read_cache=True
+        ),
 
         # Magnetometer processing
         FilterStep(
