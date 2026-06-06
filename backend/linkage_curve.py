@@ -11,7 +11,7 @@ class RockerTravelCurve:
 
     def __post_init__(self) -> None:
         with open(self.source_path, "r") as fi:
-            angles_i, locs_i = json.load(fi)
+            angles_i, locs_i, ss_angles = json.load(fi)
         self.angle = np.asarray(angles_i)
         axle_locs = np.asarray(locs_i)
         self.travel = np.zeros_like(self.angle)
