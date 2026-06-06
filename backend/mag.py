@@ -40,17 +40,28 @@ class ProjectMag(Step):
         )
 
 
+@dataclass
 class DiffMag(Step):
-    rot = [[0, 1, 0],
-           [-1, 0, 0],
-           [0, 0, 1]]
-    
+    z_rotation_deg: float = -90.0
+
+    @staticmethod
+    def rotation_matrix_from_z_deg(z_rotation_deg: float) -> np.ndarray:
+        theta = np.deg2rad(z_rotation_deg)
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
+        return np.array([
+            [cos_theta, -sin_theta, 0.0],
+            [sin_theta, cos_theta, 0.0],
+            [0.0, 0.0, 1.0],
+        ])
+
     def run(self, ws: Workspace) -> None:
         b_mmc_ts: TimeSeries = ws[self.inputs[0]]
         b_lis_ts: TimeSeries = ws[self.inputs[1]]
         b_mmc = b_mmc_ts.x
         b_lis = b_lis_ts.x
-        rot_mat = np.asarray(self.rot)
+        z_rotation_deg = float(self.param(ws, "z_rotation_deg"))
+        rot_mat = self.rotation_matrix_from_z_deg(z_rotation_deg)
         b_lis_rot = (rot_mat @ b_lis.T).T
         b_net = b_mmc - b_lis_rot
 
@@ -59,7 +70,11 @@ class DiffMag(Step):
             x=b_net,
             units=b_mmc_ts.units,
             frame=b_mmc_ts.frame,
-            meta={**b_mmc_ts.meta},
+            meta={
+                **b_mmc_ts.meta,
+                "diff_mag_z_rotation_deg": z_rotation_deg,
+                "diff_mag_rotation_matrix": rot_mat.tolist(),
+            },
         )
 
 
