@@ -4,7 +4,7 @@ from scipy.signal import butter, sosfiltfilt
 from argparse import ArgumentParser
 import random
 
-from mag_to_travel_model_core import MagToTravelChunk, MagToTravelModelCore
+from mag_to_travel_model_core import MagToTravelChunk, MagToTravelModel, MagToTravelModelCore
 
 def parse_args():
     parser = ArgumentParser(description="Run rear suspension mag model constructor")
@@ -201,6 +201,25 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
         "masked_aligned_rmse": masked_aligned_rmse,
     }
 
+def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_prior=1 / 3):
+    oracle_model = MagToTravelModel(pred_soft_mg=pred_soft_mg)
+
+    def calculate_res(vec):
+        pred_travel = oracle_model.pred_x(mag, vec[:3]) + vec[3]
+        power_res = (vec[2] - power_prior) * power_weight
+        return np.concatenate([pred_travel - travel, np.array([power_res])])
+
+    offset_guess = np.median(travel - oracle_model.pred_x(mag, guess_vec))
+    result = scipy.optimize.least_squares(
+        fun=calculate_res,
+        x0=np.concatenate([guess_vec, np.array([offset_guess])]),
+        method="trf",
+        verbose=0,
+        max_nfev=1000,
+    )
+    oracle_model.set_coeffs(result.x[:3])
+    return oracle_model, float(result.x[3]), result
+
 def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask):
     model = RearMagModel(power_weight=1000)
     chunks = model.create_chunks(zv_points, b_proj, accel_proj, t)
@@ -226,7 +245,23 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
     result = model.fit_model(input_arr, guess_vec=[0, -1, 1 / 3])
     pred_travel = model.model.pred_x(b_proj)
     metrics = evaluate_predictions(pred_travel, travel, case_name, roi_mask)
+    oracle_model, oracle_offset, oracle_result = fit_oracle_model(
+        mag=b_proj[roi_mask],
+        travel=travel[roi_mask],
+        guess_vec=result.x.copy(),
+        pred_soft_mg=model.pred_soft_mg,
+        power_weight=model.power_weight,
+    )
+    oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
+    oracle_metrics = evaluate_predictions(
+        oracle_pred_travel,
+        travel,
+        f"{case_name} oracle_gt_fit",
+        roi_mask,
+    )
+    metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
     print(f"{case_name} coeffs: {result.x}")
+    print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
     return result, metrics
 
 def main():

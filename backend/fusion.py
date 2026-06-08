@@ -130,40 +130,6 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
 
         return x_preds_ref
 
-    def get_fit_chunk_weights(self, input_arr):
-        if input_arr.shape[0] == 0:
-            return np.array([])
-
-        if self.fit_balance_mode == "max_mag":
-            rep_mag = np.max(input_arr[:, 0, :], axis=1)
-        elif self.fit_balance_mode == "mean_mag":
-            rep_mag = np.mean(input_arr[:, 0, :], axis=1)
-        else:
-            rep_mag = input_arr[:, 0, 0]
-
-        rep_mag = np.asarray(rep_mag, dtype=float)
-        n_bins = int(np.clip(self.fit_balance_bins, 1, len(rep_mag)))
-        if n_bins <= 1 or np.allclose(rep_mag, rep_mag[0]):
-            return np.ones_like(rep_mag)
-
-        edges = np.linspace(np.min(rep_mag), np.max(rep_mag), n_bins + 1)
-        bin_idx = np.digitize(rep_mag, edges[1:-1], right=False)
-        counts = np.bincount(bin_idx, minlength=n_bins).astype(float)
-        weights = 1.0 / np.maximum(counts[bin_idx], 100)
-
-        # Normalize so the average chunk keeps about unit weight.
-        weights *= len(weights) / np.sum(weights)
-
-        print(
-            "Balanced fit chunk counts by mag bin:",
-            counts.astype(int),
-            "rep mag percentiles:",
-            np.percentile(rep_mag, [0, 25, 50, 75, 100]),
-            "edges:",
-            edges,
-        )
-        return weights
-
 
 @dataclass
 class GetErrorStats(Step):
