@@ -186,8 +186,8 @@ def main() -> None:
         FilterStep(
             name="lowpass_mag/proj",
             inputs=("mag/proj",),
-            outputs=("mag/proj/corr/lpf",),
-            plot_keys=("mag/proj/corr/lpf",),
+            outputs=("mag/proj/lpf",),
+            plot_keys=("mag/proj/lpf",),
             fc_hz=MAG_LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
@@ -195,11 +195,11 @@ def main() -> None:
     #     CorrectBadMagProj(
     #         name="find_bad_mag_proj",
     #         inputs=("mag/lpf", "mag/proj/lpf"),
-    #         outputs=("mag/proj/corr/lpf", "mag/proj/bad_mask",)
+    #         outputs=("mag/proj/lpf", "mag/proj/bad_mask",)
     #     ),
         FindMagZVPoints(
             name="find_mag_zv_points",
-            inputs=("mag/proj/corr/lpf",),
+            inputs=("mag/proj/lpf",),
             outputs=("mag_zv_points",),
             min_dt=0,
             min_dm=0
@@ -208,18 +208,18 @@ def main() -> None:
     #     # Fusion steps
     #     GetMagBaseline(
     #         name="get_mag_baseline",
-    #         inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj"),
+    #         inputs=("mag/proj/lpf", "accel/lpfhp/proj"),
     #         outputs=("mag_baseline",)
     #     ),
     #     GetMagTravelRefPoint(
     #         name="get_mag_travel_ref_point",
-    #         inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
+    #         inputs=("mag/proj/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
     #         outputs=("mag_travel_ref_point",)
     #     ),
         GetRearMagToTravelModel(
             name="mag_to_travel_model",
             inputs=(
-                "mag/proj/corr/lpf", 
+                "mag/proj/lpf", 
                 "accel/lphp/proj",
                 "mag_zv_points",
                 ),
