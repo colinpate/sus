@@ -5,7 +5,11 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 import numpy as np
 import pandas as pd
 
-from angle_corruption import find_corrupt_angle_samples, interpolate_masked_signal
+from angle_corruption import (
+    ANGLE_RAW_PAD_SAMPLES,
+    find_corrupt_angle_samples,
+    interpolate_masked_signal,
+)
 from classes.time_series import TimeSeries
 
 Workspace = Dict[str, Any]
@@ -135,13 +139,18 @@ class AngleLoader:
     lag: int = 0
     interpolate_bad: bool = True
     offset: int = 0
+    mark_bad_samples: bool = True
+    bad_mask_pad_samples: int = ANGLE_RAW_PAD_SAMPLES
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
         angle_raw = df["angle_raw"].to_numpy()
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
-        bad_mask = find_corrupt_angle_samples(angle_raw)
+        if self.mark_bad_samples:
+            bad_mask = find_corrupt_angle_samples(angle_raw, pad_samples=self.bad_mask_pad_samples)
+        else:
+            bad_mask = np.zeros_like(angle_raw, dtype=bool)
 
         x_raw = ((angle_raw + self.offset) % 4096) * np.pi * 2 / 4096
         if self.interpolate_bad:
