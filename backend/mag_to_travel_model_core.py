@@ -345,11 +345,11 @@ class MagToTravelModelCore:
         filtered_chunks = [chunk for i, chunk in enumerate(self.chunks) if keep_mask[i]]
         return input_arr[keep_mask], filtered_chunks, True
 
-    def train(self, input_arr, power_prior = 1/3):
+    def train(self, input_arr, power_prior = 1/3, guess_vec=None):
         if input_arr.shape[0] == 0:
             raise ValueError("No training chunks available for mag-to-travel fit")
 
-        result = self.fit_model(input_arr, power_prior=power_prior)
+        result = self.fit_model(input_arr, power_prior=power_prior, guess_vec=guess_vec)
 
         filtered_input_arr, filtered_chunks, filtered = self.maybe_filter_worst_chunks(input_arr, result)
         if filtered:

@@ -29,7 +29,7 @@ class SolverWeights:
     v0: float = 5
     x0: float = 1000.0
     mag_x: float = 200.0
-    mag_x_thresh: float = 500.0
+    mag_x_thresh: float | None = 500.0
     mag_off_floor: float = 0.1
     zupt_v: float = 320.0
     b: float = 1.0
@@ -38,7 +38,7 @@ class SolverWeights:
 
 
 def solver_weights_for_mag_baseline(mag_baseline: float, **overrides: float) -> SolverWeights:
-    return SolverWeights(mag_x_thresh=float(mag_baseline), **overrides)
+    return SolverWeights(mag_x_thresh=mag_baseline, **overrides)
 
 
 @dataclass(frozen=True)
@@ -47,10 +47,10 @@ class SolverInputs:
 
     time_s: np.ndarray
     accel_mm_s2: np.ndarray
-    mag: np.ndarray
+    mag: np.ndarray | None
     mag_preds_mm: np.ndarray
     mag_zv_points: np.ndarray
-    mag_baseline: float
+    mag_baseline: float | None
     initial_dt_s: float = 0.01
     dt_s: np.ndarray = field(init=False)
     mag_zv_mask: np.ndarray = field(init=False)
@@ -58,7 +58,7 @@ class SolverInputs:
     def __post_init__(self) -> None:
         time_s = flatten_1d(self.time_s)
         accel = flatten_1d(self.accel_mm_s2)
-        mag = flatten_1d(self.mag)
+        mag = flatten_1d(self.mag) if self.mag is not None else None
         mag_preds = np.clip(flatten_1d(self.mag_preds_mm), 0, None)
 
         n = len(time_s)
@@ -69,15 +69,15 @@ class SolverInputs:
             ("mag", mag),
             ("mag_preds_mm", mag_preds),
         ):
-            if len(arr) != n:
-                raise ValueError(f"{name} length {len(arr)} does not match time_s length {n}")
+            if arr is not None:
+                if len(arr) != n:
+                    raise ValueError(f"{name} length {len(arr)} does not match time_s length {n}")
 
         object.__setattr__(self, "time_s", time_s)
         object.__setattr__(self, "accel_mm_s2", accel)
         object.__setattr__(self, "mag", mag)
         object.__setattr__(self, "mag_preds_mm", mag_preds)
         object.__setattr__(self, "mag_zv_points", np.asarray(self.mag_zv_points, dtype=int).reshape(-1))
-        object.__setattr__(self, "mag_baseline", float(self.mag_baseline))
         object.__setattr__(self, "dt_s", np.diff(time_s, prepend=time_s[0] - self.initial_dt_s))
         object.__setattr__(self, "mag_zv_mask", dense_index_mask(n, self.mag_zv_points))
 
@@ -127,8 +127,12 @@ def make_initial_state(inputs: SolverInputs) -> np.ndarray:
 
 
 def prepare_solver(inputs: SolverInputs, weights: SolverWeights) -> PreparedSolver:
-    mag_anchor_mask = inputs.mag > weights.mag_x_thresh
-    mag_gate = (mag_anchor_mask[1:].astype(float) + weights.mag_off_floor) / (1.0 + weights.mag_off_floor)
+    if inputs.mag is not None and weights.mag_x_thresh is not None:
+        mag_anchor_mask = inputs.mag > weights.mag_x_thresh
+        mag_gate = (mag_anchor_mask[1:].astype(float) + weights.mag_off_floor) / (1.0 + weights.mag_off_floor)
+    else:
+        mag_anchor_mask = np.zeros_like(inputs.time_s, dtype=bool)
+        mag_gate = np.ones(len(inputs.time_s) - 1, dtype=float)
     return PreparedSolver(
         inputs=inputs,
         weights=weights,

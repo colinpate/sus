@@ -315,6 +315,30 @@ class GetAccelTravelVector(Step):
         scatter_points = np.concat((np.reshape(chunk_mags, (-1, 1)), chunk_means), axis=1)
         ws[self.outputs[1]] = scatter_points
 
+
+@dataclass
+class GetAccelTravelVectorRear(Step):
+    accel_threshold = 10 # m/s^2
+    """Get the primary travel vector"""
+
+    def run(self, ws: Workspace) -> None:
+        a: TimeSeries = ws[self.inputs[0]].x
+
+        a_norm = np.linalg.norm(a, axis=1)
+
+        mask = (a_norm > self.accel_threshold)
+        # dilate mask
+        mask = np.convolve(mask, np.ones(200), mode="same") > 0
+
+        # Find main axis of acceleration
+        a_m = a[mask]
+        accel_axis = np.mean(a_m[a_m[:, 1] < 0], axis=0)
+        accel_axis /= np.linalg.norm(accel_axis)
+        print("Accel travel vector:", accel_axis)
+
+        ws[self.outputs[0]] = accel_axis
+
+
 @dataclass
 class ProjectAccel(Step):
     """Project accel onto the travel vector"""

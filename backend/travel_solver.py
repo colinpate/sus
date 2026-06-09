@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
@@ -11,10 +11,11 @@ class TravelSolver(Step):
     """ Solve for travel using multiple inputs and a simple physical model """
     max_nfev: int = 100
     verbose: int = 1
+    weight_overrides: dict[str, float] = None
 
     def run(self, ws: Workspace) -> None:
         inputs = self.solver_inputs(ws)
-        weights = solver_weights_for_mag_baseline(inputs.mag_baseline)
+        weights = solver_weights_for_mag_baseline(inputs.mag_baseline, **(self.weight_overrides or {}))
         result = solve_travel(inputs, weights, max_nfev=self.max_nfev, verbose=self.verbose)
 
         ws[self.outputs[0]] = TimeSeries(
@@ -35,4 +36,23 @@ class TravelSolver(Step):
             mag_preds_mm=ws[self.inputs[2]].x[:, 0],
             mag_zv_points=ws[self.inputs[3]],
             mag_baseline=mag_baseline,
+        )
+
+@dataclass
+class RearTravelSolver(TravelSolver):
+    weight_overrides: dict[str, float] = field(default_factory=lambda: {
+        #"zupt_v": 0,
+        #"oob": 0,
+        "mag_x": 400,
+    })
+
+    def solver_inputs(self, ws: Workspace) -> SolverInputs:
+        accel_ts: TimeSeries = ws[self.inputs[0]]
+        return SolverInputs(
+            time_s=accel_ts.t,
+            accel_mm_s2=accel_ts.x[:, 0] * 1000.0,
+            mag=None,
+            mag_preds_mm=ws[self.inputs[1]].x[:, 0],
+            mag_zv_points=ws[self.inputs[2]],
+            mag_baseline=None,
         )

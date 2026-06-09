@@ -6,6 +6,7 @@ from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
 from mag_to_travel_model_core import MagToTravelModelCore
+from rear_mag_model import RearMagModel
 
 import matplotlib.pyplot as plt
 
@@ -132,9 +133,85 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
 
 
 @dataclass
+class GetRearMagToTravelModel(Step, RearMagModel):
+    min_chunk_dt: float = RearMagModel.min_chunk_dt
+    max_chunk_dt: float = RearMagModel.max_chunk_dt
+    min_chunk_db: float = RearMagModel.min_chunk_db
+    pair_mode: str = RearMagModel.pair_mode
+    default_chunk_max_dx: float = RearMagModel.default_chunk_max_dx
+    max_b_x_corr: float | None = RearMagModel.max_b_x_corr
+    min_abs_b_x_corr: float | None = RearMagModel.min_abs_b_x_corr
+    min_db_per_dx: float | None = RearMagModel.min_db_per_dx
+    zero_travel_percentile: float = 8
+
+    def run(self, ws: Workspace) -> None:
+        mag_ts: TimeSeries = ws[self.inputs[0]]
+        accel_ts: TimeSeries = ws[self.inputs[1]]
+        idxs: np.ndarray = ws[self.inputs[2]]
+
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+        t = mag_ts.t
+
+        training_data = self.create_training_data(
+            mag=mag,
+            accel=accel,
+            t=t,
+            idxs=idxs
+        )
+
+        result = self.train(training_data, guess_vec=[0, -1, 1 / 3])
+        x0, y_scale, power = result.x[0], result.x[1], result.x[2]
+        print(f"Mag to travel model coefficients: {x0:.2f}, {y_scale:.2f}, {power:.3f}")
+
+        x_preds = self.model.pred_x(mag)
+
+        for p in [0.5, 1, 2, 4, 8]:
+            min_trav = np.percentile(x_preds, p)
+            print(p, min_trav)
+
+        x_preds_adj = x_preds - np.percentile(x_preds, self.zero_travel_percentile)
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=accel_ts.t,
+            x=x_preds,
+            units="mm",
+            frame=accel_ts.frame,
+            meta={**accel_ts.meta},
+        )
+        ws[self.outputs[1]] = TimeSeries(
+            t=accel_ts.t,
+            x=x_preds_adj,
+            units="mm",
+            frame=accel_ts.frame,
+            meta={**accel_ts.meta},
+        )
+        scatter_points = np.array([mag, x_preds_adj]).T
+        ws[self.outputs[2]] = scatter_points
+        ws[self.outputs[3]] = np.array([x0, y_scale, power])
+
+    def create_training_data(
+        self,
+        mag,
+        accel,
+        t,
+        idxs,
+    ):
+        if self.train_with_mask:
+            print("Rear mag model ignores train_mask during chunk selection")
+
+        chunks = self.create_chunks(idxs, mag, accel, t)
+        self.prepare_chunks(chunks)
+        self.chunks = self.filter_chunks(chunks, self.get_filter_fns())
+        print("Training chunks:", len(chunks))
+        print("Filtered training chunks:", len(self.chunks))
+        return self.format_chunks_for_fit(self.chunks)
+
+
+@dataclass
 class GetErrorStats(Step):
     """ Get error stats for mag to travel model """
-    gt_thresh: float = 0
+    gt_thresh: float | None = None
 
     def run(self, ws: Workspace) -> None:
         preds_ts: TimeSeries = ws[self.inputs[0]]
@@ -146,15 +223,20 @@ class GetErrorStats(Step):
         preds = preds_ts.x[:, 0]
         gt = gt_ts.x[:, 0]
 
-        mask = gt > self.gt_thresh
+        if self.gt_thresh is not None:
+            mask = gt > self.gt_thresh
+            mask_text = "Thresh (> {self.gt_thresh:.1f} mm)"
+        else:
+            mask = np.ones_like(gt).astype(np.bool)
+            mask_text = ""
         if mask_in is not None:
             mask *= mask_in.flatten()
             print(f"Calculating error stats with mask, using {np.sum(mask_in)/len(mask)*100:.1f}% samples")
         preds_masked = preds[mask]
         gt_masked = gt[mask]
 
-        print_err_stats(preds_masked, gt_masked, prefix=f"Thresh (> {self.gt_thresh:.1f} mm) (centered)", center=True)
-        print_err_stats(preds_masked, gt_masked, prefix=f"Thresh (> {self.gt_thresh:.1f} mm)")
+        print_err_stats(preds_masked, gt_masked, prefix=f"{mask_text} (centered)", center=True)
+        print_err_stats(preds_masked, gt_masked, prefix=mask_text)
     
 
 @dataclass
