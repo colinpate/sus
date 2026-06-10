@@ -3,12 +3,14 @@ import scipy
 from scipy.signal import butter, sosfiltfilt
 from argparse import ArgumentParser
 import random
+import matplotlib.pyplot as plt
 
 from mag_to_travel_model_core import MagToTravelChunk, MagToTravelModel, MagToTravelModelCore
 
 def parse_args():
     parser = ArgumentParser(description="Run rear suspension mag model constructor")
     parser.add_argument("log_filename", type=str, default="log136_rear", help="Name of log file (without .csv extension) to process")
+    parser.add_argument("--plot", action="store_true", help="Whether to plot the results")
     return parser.parse_args()
 
 class RearMagModel(MagToTravelModelCore):
@@ -96,6 +98,9 @@ class RearMagModel(MagToTravelModelCore):
         ]
         return filter_fns
 
+    def filter_chunk_max_dm_dx(self, chunk: MagToTravelChunk):
+        return chunk.metrics["dm/dx_median"] <= self.dm_dx_thresh
+    
     def filter_chunk_max_b_x_corr(self, chunk: MagToTravelChunk):
         if self.max_b_x_corr is None:
             return True
@@ -136,7 +141,7 @@ def load_ws(log_filename):
     ws_file = out_dir + "/all.npz"
     ws = np.load(ws_file)
     accel_idx = "2"
-    a = ws[f"accel/lpf/lis{accel_idx}__x"]
+    a = ws[f"accel/lphp/proj__x"][:, 0]
     b_proj = ws["mag/proj/lpf__x"][:, 0]
     t = ws[f"accel/lpf/lis{accel_idx}__t"]
     zv_points = ws["mag_zv_points"]
@@ -199,6 +204,8 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
         "corr": corr,
         "offset": best_offset,
         "masked_aligned_rmse": masked_aligned_rmse,
+        "preds": pred_travel,
+        "gt": travel,
     }
 
 def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_prior=1 / 3):
@@ -220,8 +227,8 @@ def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_p
     oracle_model.set_coeffs(result.x[:3])
     return oracle_model, float(result.x[3]), result
 
-def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask):
-    model = RearMagModel(power_weight=1000)
+def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight):
+    model = RearMagModel(x0_weight=x0_weight, dm_dx_thresh=None)
     chunks = model.create_chunks(zv_points, b_proj, accel_proj, t)
     model.prepare_chunks(chunks)
 
@@ -245,36 +252,82 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
     result = model.fit_model(input_arr, guess_vec=[0, -1, 1 / 3])
     pred_travel = model.model.pred_x(b_proj)
     metrics = evaluate_predictions(pred_travel, travel, case_name, roi_mask)
-    oracle_model, oracle_offset, oracle_result = fit_oracle_model(
-        mag=b_proj[roi_mask],
-        travel=travel[roi_mask],
-        guess_vec=result.x.copy(),
-        pred_soft_mg=model.pred_soft_mg,
-        power_weight=model.power_weight,
-    )
-    oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
-    oracle_metrics = evaluate_predictions(
-        oracle_pred_travel,
-        travel,
-        f"{case_name} oracle_gt_fit",
-        roi_mask,
-    )
-    metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
+    # oracle_model, oracle_offset, oracle_result = fit_oracle_model(
+    #     mag=b_proj[roi_mask],
+    #     travel=travel[roi_mask],
+    #     guess_vec=result.x.copy(),
+    #     pred_soft_mg=model.pred_soft_mg,
+    #     power_weight=model.power_weight,
+    # )
+    # oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
+    # oracle_metrics = evaluate_predictions(
+    #     oracle_pred_travel,
+    #     travel,
+    #     f"{case_name} oracle_gt_fit",
+    #     roi_mask,
+    # )
+    # metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
     print(f"{case_name} coeffs: {result.x}")
-    print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
-    return result, metrics
+    # print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
+    return result, metrics, chunks_filt
+
+
+def get_chunk_slopes(chunks: list[MagToTravelChunk], plot):
+    chunk_med_mags = np.asarray([np.median(chunk.mag) for chunk in chunks])
+    chunk_med_slopes = np.asarray([chunk.metrics["dm/dx_median"] for chunk in chunks])
+    n_bins = 5
+    hist_min = np.percentile(chunk_med_mags, 1)
+    hist_max = np.percentile(chunk_med_mags, 99)
+    bin_size = (hist_max - hist_min) / n_bins
+
+    bin_slopes = []
+    bin_pts = []
+    for i in range(n_bins):
+        bin_min = hist_min + (i * bin_size)
+        bin_max = bin_min + bin_size
+        bin_mask = (bin_min <= chunk_med_mags) & (chunk_med_mags < bin_max)
+        med_slopes = chunk_med_slopes[bin_mask]
+        bin_slope = np.median(med_slopes)
+        bin_slopes.append(bin_slope)
+        bin_pts.append(int(np.sum(bin_mask)))
+
+    print("Bin points:", bin_pts)
+    print("Bin centers:", hist_min + (np.arange(n_bins) + 0.5) * bin_size)
+    print("Bin slopes", bin_slopes)
+    if plot:
+        plt.figure(figsize=(6, 6))
+        plt.plot(range(n_bins), bin_slopes)
+        plt.grid()
+        plt.show()
+
 
 def main():
-    log_filename = parse_args().log_filename
-    a_raw, b_proj, t, travel, v_gt, a_gt, zv_points, roi_mask = load_ws(log_filename)
-    a_hp_proj, _ = project_accel(a_raw)
+    args = parse_args()
+    log_filename = args.log_filename
+    a_hp_proj, b_proj, t, travel, v_gt, a_gt, zv_points, roi_mask = load_ws(log_filename)
     results = []
-    for case_name, accel_proj in (
-        ("positive_accel_sign", a_hp_proj),
+    for case_name, x0_weight in (
+        ("x0 0", 0),
+        ("x0 1", 1),
 #       ("negative_accel_sign", -a_hp_proj),
     ):
-        _, metrics = run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask)
+        _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight)
         results.append((case_name, metrics))
+
+    get_chunk_slopes(chunks_filt, args.plot)
+
+    if args.plot:
+        plt.figure(figsize=(12, 6))
+        plt.scatter(b_proj, travel - np.mean(travel), label="travel", alpha=0.1)
+        for case_name, metrics in results:
+            preds = metrics["preds"]
+            preds_centered = preds - np.mean(preds)
+            plt.scatter(b_proj, preds_centered, label=case_name)
+        plt.legend()
+        plt.title("Predicted travel vs mag_proj")
+        plt.xlabel("mag_proj")
+        plt.ylabel("Travel (mm)")
+        plt.show()
 
     best_case = min(results, key=lambda x: x[1]["masked_aligned_rmse"])
     print()

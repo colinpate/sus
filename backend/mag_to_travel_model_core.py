@@ -51,6 +51,7 @@ class MagToTravelModelCore:
     dm_dx_thresh: float | None = 0.05
     pred_soft_mg: float = 50.0
     power_weight: float = 1000.0
+    x0_weight: float = 0
     min_mag_relax_min_chunks: int = 50
     retrain_drop_worst_chunk_frac: float = 0.0
     retrain_drop_worst_chunk_min_count: int = 1
@@ -263,7 +264,7 @@ class MagToTravelModelCore:
 
             power_res = power - power_prior
 
-            return np.concatenate([res.flatten(), np.array([power_res]) * self.power_weight])
+            return np.concatenate([res.flatten(), np.array([power_res]) * self.power_weight, np.array([x0]) * self.x0_weight])
 
         return calculate_res
 
