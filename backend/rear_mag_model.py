@@ -17,7 +17,7 @@ class RearMagModel(MagToTravelModelCore):
     min_chunk_dt: float = 0.1
     max_chunk_dt: float = 0.2
     min_chunk_db: float = 500
-    pair_mode: str = "first_valid"
+    pair_mode: str = "first_valid" # "max_db_per_dt" # 
     default_chunk_max_dx: float = 150.0
     max_b_x_corr: float | None = None
     min_abs_b_x_corr: float | None = None
@@ -169,6 +169,16 @@ def get_chunk_corrs(chunks, travel):
             x_gt_corrs.append(x_gt_corr)
     return x_mag_corrs, x_gt_corrs
 
+def fit_regression_slope(x, y):
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    mask = np.isfinite(x) & np.isfinite(y)
+    x = x[mask]
+    y = y[mask]
+    if len(x) < 3 or np.ptp(x) <= 1e-9 or len(np.unique(x)) < 3:
+        return np.nan
+    return float(scipy.stats.linregress(x, y).slope)
+
 def evaluate_predictions(pred_travel, travel, label, roi_mask):
     raw_rmse = np.mean((travel - pred_travel) ** 2) ** 0.5
 
@@ -272,32 +282,104 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
     return result, metrics, chunks_filt
 
 
-def get_chunk_slopes(chunks: list[MagToTravelChunk], plot):
+def get_chunk_slopes(chunks: list[MagToTravelChunk], mag_all, travel, roi_mask, plot):
+    if not chunks:
+        print("No chunks available for slope summary")
+        return
+
     chunk_med_mags = np.asarray([np.median(chunk.mag) for chunk in chunks])
-    chunk_med_slopes = np.asarray([chunk.metrics["dm/dx_median"] for chunk in chunks])
+    chunk_proxy_raw = np.asarray([chunk.metrics["dm/dx_median"] for chunk in chunks])
+    chunk_proxy_scaled = []
+    chunk_reg_slopes = []
+    for chunk in chunks:
+        dt_sample = np.median(np.diff(chunk.t)) if len(chunk.t) > 1 else np.nan
+        chunk_proxy_scaled.append(chunk.metrics["dm/dx_median"] / max(dt_sample, 1e-9))
+        chunk_reg_slopes.append(fit_regression_slope(chunk.x, chunk.mag))
+    chunk_proxy_scaled = np.asarray(chunk_proxy_scaled)
+    chunk_reg_slopes = np.asarray(chunk_reg_slopes)
+
+    roi_mask = np.asarray(roi_mask, dtype=bool)
+    mag_roi = np.asarray(mag_all, dtype=float)[roi_mask]
+    travel_roi = np.asarray(travel, dtype=float)[roi_mask]
+
     n_bins = 5
     hist_min = np.percentile(chunk_med_mags, 1)
     hist_max = np.percentile(chunk_med_mags, 99)
     bin_size = (hist_max - hist_min) / n_bins
 
-    bin_slopes = []
-    bin_pts = []
+    bin_centers = []
+    proxy_raw_bins = []
+    proxy_scaled_bins = []
+    chunk_reg_bins = []
+    gt_reg_bins = []
+    chunk_counts = []
+    gt_counts = []
     for i in range(n_bins):
         bin_min = hist_min + (i * bin_size)
         bin_max = bin_min + bin_size
         bin_mask = (bin_min <= chunk_med_mags) & (chunk_med_mags < bin_max)
-        med_slopes = chunk_med_slopes[bin_mask]
-        bin_slope = np.median(med_slopes)
-        bin_slopes.append(bin_slope)
-        bin_pts.append(int(np.sum(bin_mask)))
+        gt_bin_mask = (bin_min <= mag_roi) & (mag_roi < bin_max)
 
-    print("Bin points:", bin_pts)
-    print("Bin centers:", hist_min + (np.arange(n_bins) + 0.5) * bin_size)
-    print("Bin slopes", bin_slopes)
+        center = bin_min + 0.5 * bin_size
+        bin_centers.append(center)
+        chunk_counts.append(int(np.sum(bin_mask)))
+        gt_counts.append(int(np.sum(gt_bin_mask)))
+        proxy_raw_bins.append(float(np.nanmedian(chunk_proxy_raw[bin_mask])) if np.any(bin_mask) else np.nan)
+        proxy_scaled_bins.append(float(np.nanmedian(chunk_proxy_scaled[bin_mask])) if np.any(bin_mask) else np.nan)
+        chunk_reg_bins.append(float(np.nanmedian(chunk_reg_slopes[bin_mask])) if np.any(bin_mask) else np.nan)
+        gt_reg_bins.append(fit_regression_slope(travel_roi[gt_bin_mask], mag_roi[gt_bin_mask]))
+
+    print()
+    print("Mag-binned slope summary")
+    print("proxy_raw is the current metric dm/v; proxy_scaled and slopes are approx dmag/dx (mG/mm)")
+    print(
+        f"{'bin':>3} {'center':>9} {'n_chunk':>8} {'n_gt':>6} "
+        f"{'proxy_raw':>11} {'proxy_scaled':>13} {'chunk_reg':>11} {'gt_reg':>11}"
+    )
+    for i, (center, n_chunk, n_gt, proxy_raw, proxy_scaled, chunk_reg, gt_reg) in enumerate(
+        zip(
+            bin_centers,
+            chunk_counts,
+            gt_counts,
+            proxy_raw_bins,
+            proxy_scaled_bins,
+            chunk_reg_bins,
+            gt_reg_bins,
+        )
+    ):
+        print(
+            f"{i:>3} {center:>9.1f} {n_chunk:>8} {n_gt:>6} "
+            f"{proxy_raw:>11.4f} {proxy_scaled:>13.3f} {chunk_reg:>11.3f} {gt_reg:>11.3f}"
+        )
+
+    chunk_reg_bins = np.asarray(chunk_reg_bins)
+    gt_reg_bins = np.asarray(gt_reg_bins)
+    proxy_scaled_bins = np.asarray(proxy_scaled_bins)
+    valid = np.isfinite(chunk_reg_bins) & np.isfinite(gt_reg_bins)
+    proxy_valid = np.isfinite(proxy_scaled_bins) & np.isfinite(gt_reg_bins)
+    if np.sum(valid) >= 2:
+        chunk_gt_corr = scipy.stats.spearmanr(chunk_reg_bins[valid], gt_reg_bins[valid]).correlation
+        print(f"Bin Spearman chunk_reg vs gt_reg: {chunk_gt_corr:.3f}")
+    if np.sum(proxy_valid) >= 2:
+        proxy_gt_corr = scipy.stats.spearmanr(proxy_scaled_bins[proxy_valid], gt_reg_bins[proxy_valid]).correlation
+        print(f"Bin Spearman proxy_scaled vs gt_reg: {proxy_gt_corr:.3f}")
+
+    first_last_valid = np.isfinite(chunk_reg_bins[[0, -1]]) & np.isfinite(gt_reg_bins[[0, -1]])
+    if np.all(first_last_valid):
+        chunk_ratio = abs(chunk_reg_bins[-1]) / max(abs(chunk_reg_bins[0]), 1e-9)
+        gt_ratio = abs(gt_reg_bins[-1]) / max(abs(gt_reg_bins[0]), 1e-9)
+        print(f"First->last |slope| ratio, chunk_reg: {chunk_ratio:.3f}, gt_reg: {gt_ratio:.3f}")
+
     if plot:
         plt.figure(figsize=(6, 6))
-        plt.plot(range(n_bins), bin_slopes)
+        plt.plot(range(n_bins), proxy_scaled_bins, marker="o", label="proxy_scaled")
+        plt.plot(range(n_bins), chunk_reg_bins, marker="o", label="chunk_reg")
+        plt.plot(range(n_bins), gt_reg_bins, marker="o", label="gt_reg")
         plt.grid()
+        plt.legend()
+        plt.xlabel("Mag bin")
+        plt.ylabel("Slope (mG/mm)")
+        plt.title("Mag-binned chunk and GT slopes")
         plt.show()
 
 
@@ -314,7 +396,7 @@ def main():
         _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight)
         results.append((case_name, metrics))
 
-    get_chunk_slopes(chunks_filt, args.plot)
+    get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
 
     if args.plot:
         plt.figure(figsize=(12, 6))

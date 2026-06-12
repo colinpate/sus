@@ -133,18 +133,22 @@ class MagToTravelModelCore:
         ]
         return filter_fns
 
-    def create_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask):
+    def create_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask: np.ndarray | None = None):
         chunks = []
         chunk_rad = self.chunk_rad
         for idx in idxs_filt:
             if idx < chunk_rad or idx + chunk_rad >= len(mag):
                 continue
             slice_i = slice(idx - chunk_rad, idx + chunk_rad)
+            if mag_proj_bad_mask is not None:
+                mask_i = mag_proj_bad_mask[slice_i]
+            else:
+                mask_i = None
             chunk = MagToTravelChunk(
                 a=acc[slice_i] * 1000,
                 t=t_s[slice_i],
                 mag=mag[slice_i],
-                badmask=mag_proj_bad_mask[slice_i],
+                badmask=mask_i,
                 slice_i=slice_i,
                 zv_idx=chunk_rad
             )

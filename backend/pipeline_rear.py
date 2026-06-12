@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
-from accel_rotation import ProjectAccel, GetAccelTravelVectorRear
+from accel_rotation import GetAccelError, ProjectAccel, GetAccelTravelVectorRear
 from classes.sensor_loader import (
     Workspace,
     SensorLoader,
@@ -131,11 +131,11 @@ def main() -> None:
             inputs=("angle/lpf",),
             outputs=("travel",),
         ),
-        # GetAccelError(
-        #     name="accel_proj_error",
-        #     inputs=("accel/lpf/proj", "travel"),
-        #     outputs=(),
-        # ),
+        GetAccelError(
+            name="accel_proj_error",
+            inputs=("accel/lphp/proj", "travel"),
+            outputs=(),
+        ),
         FindBoringRegions(
             name="find_boring_regions",
             inputs=("travel",),
@@ -234,6 +234,7 @@ def main() -> None:
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),
             train_with_mask=False,
+            x0_weight=1.0,
         ),
         GetErrorStats(
             name="x_preds_stats",

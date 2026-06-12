@@ -42,7 +42,7 @@ class ProjectMag(Step):
 
 @dataclass
 class DiffMag(Step):
-    z_rotation_deg: float = -90.0
+    z_rotation_deg: float = 0
 
     @staticmethod
     def rotation_matrix_from_z_deg(z_rotation_deg: float) -> np.ndarray:
