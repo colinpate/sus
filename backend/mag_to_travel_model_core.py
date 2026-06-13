@@ -1,7 +1,12 @@
 from dataclasses import dataclass, field
+from typing import ClassVar, Literal
+
 import numpy as np
 import scipy
 from scipy.optimize import least_squares
+
+
+CoreChunkingMethod = Literal["centered_zv", "debiased_centered_zv"]
 
 
 @dataclass
@@ -57,11 +62,25 @@ class MagToTravelModelCore:
     retrain_drop_worst_chunk_min_count: int = 1
     retrain_drop_worst_chunk_min_remaining: int = 25
     model: MagToTravelModel | None = None
-    chunking_method: str = "centered_zv" # "centered_zv" or "debiased_centered_zv"
+    chunking_method: CoreChunkingMethod = "centered_zv"
+
+    allowed_chunking_methods: ClassVar[tuple[str, ...]] = (
+        "centered_zv",
+        "debiased_centered_zv",
+    )
 
     def __post_init__(self):
+        self.validate_chunking_method()
         self.chunks: list[MagToTravelChunk] = []
         self.stats: dict = {}
+
+    def validate_chunking_method(self):
+        if self.chunking_method not in self.allowed_chunking_methods:
+            allowed = ", ".join(self.allowed_chunking_methods)
+            raise ValueError(
+                f"Invalid chunking method: {self.chunking_method}. "
+                f"Expected one of: {allowed}"
+            )
 
     def integrate_chunk(self, chunk: MagToTravelChunk):
         v_chunk = scipy.integrate.cumulative_trapezoid(chunk.a, chunk.t, initial=0)
@@ -135,6 +154,7 @@ class MagToTravelModelCore:
         return filter_fns
 
     def create_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask: np.ndarray | None = None):
+        self.validate_chunking_method()
         chunks = []
         chunk_rad = self.chunk_rad
         for i, idx in enumerate(idxs_filt):
@@ -145,7 +165,9 @@ class MagToTravelModelCore:
                 mask_i = mag_proj_bad_mask[slice_i]
             else:
                 mask_i = None
-            if self.chunking_method == "debiased_centered_zv":
+            if self.chunking_method == "centered_zv":
+                acc_i = acc[slice_i]
+            elif self.chunking_method == "debiased_centered_zv":
                 if i > 0:
                     start_bias = np.mean(acc[idxs_filt[i-1]:idx])
                 else:
@@ -158,7 +180,7 @@ class MagToTravelModelCore:
                 end_acc = acc[idx:idx+chunk_rad].copy()
                 acc_i = np.concatenate([start_acc-start_bias, end_acc-end_bias], axis=0)
             else:
-                acc_i = acc[slice_i]
+                raise ValueError(f"Invalid chunking method: {self.chunking_method}")
             chunk = MagToTravelChunk(
                 a=acc_i * 1000,
                 t=t_s[slice_i],

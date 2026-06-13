@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import ClassVar, Literal
+
 import numpy as np
 import scipy
 from scipy.signal import butter, sosfiltfilt
@@ -7,12 +10,17 @@ import matplotlib.pyplot as plt
 
 from mag_to_travel_model_core import MagToTravelChunk, MagToTravelModel, MagToTravelModelCore
 
+
+RearChunkingMethod = Literal["centered_zv", "debiased_centered_zv", "paired_zv"]
+
+
 def parse_args():
     parser = ArgumentParser(description="Run rear suspension mag model constructor")
     parser.add_argument("log_filename", type=str, default="log136_rear", help="Name of log file (without .csv extension) to process")
     parser.add_argument("--plot", action="store_true", help="Whether to plot the results")
     return parser.parse_args()
 
+@dataclass
 class RearMagModel(MagToTravelModelCore):
     min_chunk_dt: float = 0.1
     max_chunk_dt: float = 0.2
@@ -22,7 +30,13 @@ class RearMagModel(MagToTravelModelCore):
     max_b_x_corr: float | None = None
     min_abs_b_x_corr: float | None = None
     min_db_per_dx: float | None = None
-    chunking_method: str = "paired_zv" # "centered_zv", "debiased_centered_zv", or "paired_zv"
+    chunking_method: RearChunkingMethod = "centered_zv"
+
+    allowed_chunking_methods: ClassVar[tuple[str, ...]] = (
+        "centered_zv",
+        "debiased_centered_zv",
+        "paired_zv",
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -66,7 +80,8 @@ class RearMagModel(MagToTravelModelCore):
         return candidates[0]
 
     def create_chunks(self, idxs, mag, acc, t_s, mag_proj_bad_mask=None):
-        if self.chunking_method in ["centered_zv", "debiased_centered_zv"]:
+        self.validate_chunking_method()
+        if self.chunking_method in ("centered_zv", "debiased_centered_zv"):
             return super().create_chunks(idxs, mag, acc, t_s, mag_proj_bad_mask)
         elif self.chunking_method == "paired_zv":
             chunks = []
