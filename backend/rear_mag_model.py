@@ -64,30 +64,35 @@ class RearMagModel(MagToTravelModelCore):
             return max(candidates, key=lambda x: abs(x[4]) / max(x[3], 1e-6))
         return candidates[0]
 
-    def create_chunks(self, idxs, mag, acc, t_s):
-        chunks = []
-        pairs = self.find_zv_pairs(idxs, mag, t_s)
-        for zv_start, zv_stop in pairs:
-            # Include both ZV endpoints so the bias correction can force the
-            # integrated velocity back to zero across the whole chunk.
-            slice_i = slice(zv_start, zv_stop + 1)
-            raw_acc = acc[slice_i]
-            t_chunk = t_s[slice_i]
-            duration = t_chunk[-1] - t_chunk[0]
-            if duration <= 0:
-                continue
-            # Bias is the constant acceleration term that makes the net delta-v
-            # between the two zero-velocity endpoints equal to zero.
-            acc_bias = scipy.integrate.trapezoid(raw_acc, t_chunk) / duration
-            chunk = MagToTravelChunk(
-                a=(raw_acc - acc_bias) * 1000,
-                t=t_chunk,
-                mag=mag[slice_i],
-                slice_i=slice_i,
-                zv_idx=0
-            )
-            chunks.append(chunk)
-        return chunks
+    def create_chunks(self, idxs, mag, acc, t_s, mag_proj_bad_mask=None):
+        if self.chunking_method == "centered_zv":
+            return super().create_chunks(idxs, mag, acc, t_s, mag_proj_bad_mask)
+        elif self.chunking_method == "paired_zv":
+            chunks = []
+            pairs = self.find_zv_pairs(idxs, mag, t_s)
+            for zv_start, zv_stop in pairs:
+                # Include both ZV endpoints so the bias correction can force the
+                # integrated velocity back to zero across the whole chunk.
+                slice_i = slice(zv_start, zv_stop + 1)
+                raw_acc = acc[slice_i]
+                t_chunk = t_s[slice_i]
+                duration = t_chunk[-1] - t_chunk[0]
+                if duration <= 0:
+                    continue
+                # Bias is the constant acceleration term that makes the net delta-v
+                # between the two zero-velocity endpoints equal to zero.
+                acc_bias = scipy.integrate.trapezoid(raw_acc, t_chunk) / duration
+                chunk = MagToTravelChunk(
+                    a=(raw_acc - acc_bias) * 1000,
+                    t=t_chunk,
+                    mag=mag[slice_i],
+                    slice_i=slice_i,
+                    zv_idx=0
+                )
+                chunks.append(chunk)
+            return chunks
+        else:
+            raise ValueError(f"Invalid chunking method: {self.chunking_method}")
 
     def get_filter_fns(self):
         filter_fns = [

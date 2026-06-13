@@ -57,6 +57,7 @@ class MagToTravelModelCore:
     retrain_drop_worst_chunk_min_count: int = 1
     retrain_drop_worst_chunk_min_remaining: int = 25
     model: MagToTravelModel | None = None
+    chunking_method: str = "paired_zv" # "centered_zv" or "paired_zv"
 
     def __post_init__(self):
         self.chunks: list[MagToTravelChunk] = []
