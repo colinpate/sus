@@ -57,7 +57,7 @@ class MagToTravelModelCore:
     retrain_drop_worst_chunk_min_count: int = 1
     retrain_drop_worst_chunk_min_remaining: int = 25
     model: MagToTravelModel | None = None
-    chunking_method: str = "paired_zv" # "centered_zv" or "paired_zv"
+    chunking_method: str = "centered_zv" # "centered_zv" or "debiased_centered_zv"
 
     def __post_init__(self):
         self.chunks: list[MagToTravelChunk] = []
@@ -137,7 +137,7 @@ class MagToTravelModelCore:
     def create_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask: np.ndarray | None = None):
         chunks = []
         chunk_rad = self.chunk_rad
-        for idx in idxs_filt:
+        for i, idx in enumerate(idxs_filt):
             if idx < chunk_rad or idx + chunk_rad >= len(mag):
                 continue
             slice_i = slice(idx - chunk_rad, idx + chunk_rad)
@@ -145,8 +145,22 @@ class MagToTravelModelCore:
                 mask_i = mag_proj_bad_mask[slice_i]
             else:
                 mask_i = None
+            if self.chunking_method == "debiased_centered_zv":
+                if i > 0:
+                    start_bias = np.mean(acc[idxs_filt[i-1]:idx])
+                else:
+                    start_bias = 0
+                if i < len(idxs_filt) - 1:
+                    end_bias = np.mean(acc[idx:idxs_filt[i+1]])
+                else:
+                    end_bias = 0
+                start_acc = acc[idx-chunk_rad:idx].copy()
+                end_acc = acc[idx:idx+chunk_rad].copy()
+                acc_i = np.concatenate([start_acc-start_bias, end_acc-end_bias], axis=0)
+            else:
+                acc_i = acc[slice_i]
             chunk = MagToTravelChunk(
-                a=acc[slice_i] * 1000,
+                a=acc_i * 1000,
                 t=t_s[slice_i],
                 mag=mag[slice_i],
                 badmask=mask_i,

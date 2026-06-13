@@ -100,7 +100,7 @@ def main() -> None:
             name="highpass_accel",
             inputs=("accel/lpf/lis2",),
             outputs=("accel/lphp/lis2",),
-            fc_hz=2,
+            fc_hz=4,
             btype="high",
             N=2,
         ),

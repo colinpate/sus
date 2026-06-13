@@ -22,6 +22,7 @@ class RearMagModel(MagToTravelModelCore):
     max_b_x_corr: float | None = None
     min_abs_b_x_corr: float | None = None
     min_db_per_dx: float | None = None
+    chunking_method: str = "paired_zv" # "centered_zv", "debiased_centered_zv", or "paired_zv"
 
     def __post_init__(self):
         super().__post_init__()
@@ -65,7 +66,7 @@ class RearMagModel(MagToTravelModelCore):
         return candidates[0]
 
     def create_chunks(self, idxs, mag, acc, t_s, mag_proj_bad_mask=None):
-        if self.chunking_method == "centered_zv":
+        if self.chunking_method in ["centered_zv", "debiased_centered_zv"]:
             return super().create_chunks(idxs, mag, acc, t_s, mag_proj_bad_mask)
         elif self.chunking_method == "paired_zv":
             chunks = []
@@ -184,6 +185,28 @@ def fit_regression_slope(x, y):
         return np.nan
     return float(scipy.stats.linregress(x, y).slope)
 
+def calc_binned_rmse(err: np.ndarray, gt: np.ndarray, min_bin_count: int = 100):
+    edges = np.linspace(0.0, 150.0, 6)
+    bin_rmses = []
+    eligible_mses = []
+    for i, (bin_min, bin_max) in enumerate(zip(edges[:-1], edges[1:])):
+        if i == len(edges) - 2:
+            bin_mask = (bin_min <= gt) & (gt <= bin_max)
+        else:
+            bin_mask = (bin_min <= gt) & (gt < bin_max)
+
+        count = int(np.sum(bin_mask))
+        if count:
+            bin_mse = float(np.mean(err[bin_mask] ** 2))
+            bin_rmses.append(bin_mse ** 0.5)
+            if count >= min_bin_count:
+                eligible_mses.append(bin_mse)
+        else:
+            bin_rmses.append(np.nan)
+
+    bin_rmse = float(np.sqrt(np.mean(eligible_mses))) if eligible_mses else np.nan
+    return bin_rmse, bin_rmses
+
 def evaluate_predictions(pred_travel, travel, label, roi_mask):
     raw_rmse = np.mean((travel - pred_travel) ** 2) ** 0.5
 
@@ -198,6 +221,14 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
     pred_centered = pred_travel - np.mean(pred_travel)
     travel_centered = travel - np.mean(travel)
     centered_rmse = np.mean((travel_centered - pred_centered) ** 2) ** 0.5
+    masked_pred = pred_travel[roi_mask]
+    masked_travel = travel[roi_mask]
+    masked_centered_err = (
+        masked_pred - np.mean(masked_pred)
+    ) - (
+        masked_travel - np.mean(masked_travel)
+    )
+    bin_rmse, bin_rmses = calc_binned_rmse(masked_centered_err, masked_travel)
     corr = np.corrcoef(pred_travel, travel)[0, 1]
 
     print(
@@ -210,6 +241,10 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
         f"masked aligned RMSE: {masked_aligned_rmse:.3f} mm"
     )
     print(
+        f"{label} masked centered bin RMSE: {bin_rmse:.3f} mm "
+        f"bins: {[round(x, 3) if np.isfinite(x) else np.nan for x in bin_rmses]}"
+    )
+    print(
         f"RMS travel: {masked_rms_travel}"
     )
     return {
@@ -219,6 +254,8 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
         "corr": corr,
         "offset": best_offset,
         "masked_aligned_rmse": masked_aligned_rmse,
+        "bin_rmse": bin_rmse,
+        "bin_rmses": bin_rmses,
         "preds": pred_travel,
         "gt": travel,
     }
@@ -243,7 +280,10 @@ def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_p
     return oracle_model, float(result.x[3]), result
 
 def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight):
-    model = RearMagModel(x0_weight=x0_weight, dm_dx_thresh=None)
+    model = RearMagModel(
+        x0_weight=x0_weight, 
+        chunking_method="centered_zv",
+        )
     chunks = model.create_chunks(zv_points, b_proj, accel_proj, t)
     model.prepare_chunks(chunks)
 
