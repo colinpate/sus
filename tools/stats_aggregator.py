@@ -44,6 +44,21 @@ DEFAULT_LOGS = [
     "log110",
     "log112",
 ]
+DEFAULT_LOGS_REAR = [
+    "log140_rear",
+    "log141_rear",
+    "log142_rear",
+    "log143_rear",
+    "log144_rear",
+    "log145_rear",
+    "log148_rear",
+    "log149_rear",
+    "log150_rear",
+    "log151_rear",
+    "log152_rear",
+    "log153_rear",
+    "log154_rear",
+]
 NEW_LOGS = [
     "log103",
     "log104",
@@ -1519,6 +1534,8 @@ def run_pipeline_for_log(log_name: str) -> None:
 
 def main() -> None:
     args = parse_args()
+    if args.logs == ["rear"]:
+        args.logs = DEFAULT_LOGS_REAR
     if args.compare is not None:
         comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top, item=args.compare_item, compare_metric=args.compare_metric)
         print(comparison_text, end="")
