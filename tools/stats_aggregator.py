@@ -571,7 +571,7 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
     boring_mask = bool_1d(cache["boring_mask"])
     travel = flatten_1d(cache["travel__x"])
     mag_key = resolve_cache_series_key(cache, "mag/proj/corr/lpf", "mag/proj/lpf")
-    accel_hp_key = resolve_cache_series_key(cache, "accel/lpfhp/proj", "accel/lphp/proj")
+    accel_hp_key = resolve_cache_series_key(cache, "accel/lphp/proj/zv", "accel/lpfhp/proj", "accel/lphp/proj")
     bad_mag_key = resolve_optional_cache_series_key(cache, "mag/proj/bad_mask")
     mag = flatten_1d(cache[f"{mag_key}__x"])
     accel_hp_abs = np.abs(flatten_1d(cache[f"{accel_hp_key}__x"]))
@@ -580,7 +580,8 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
         if bad_mag_key is not None
         else np.zeros(len(travel), dtype=bool)
     )
-    zv_mask = dense_index_mask(len(travel), cache["mag_zv_points"])
+    zv_key = resolve_optional_cache_scalar_key(cache, "mag_zv_points/accel_corr", "mag_zv_points")
+    zv_mask = dense_index_mask(len(travel), cache[zv_key])
     mag_anchor_thresh = infer_mag_anchor_threshold(cache)
 
     require_same_shape(

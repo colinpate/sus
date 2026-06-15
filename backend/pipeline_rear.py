@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
 from accel_rotation import GetAccelError, ProjectAccel, GetAccelTravelVectorRear
+from accel_zv import CorrectAccelWithMagZV
 from classes.sensor_loader import (
     Workspace,
     SensorLoader,
@@ -205,24 +206,22 @@ def main() -> None:
             min_dt=0,
             min_dm=0
         ),
-
-    #     # Fusion steps
-    #     GetMagBaseline(
-    #         name="get_mag_baseline",
-    #         inputs=("mag/proj/lpf", "accel/lpfhp/proj"),
-    #         outputs=("mag_baseline",)
-    #     ),
-    #     GetMagTravelRefPoint(
-    #         name="get_mag_travel_ref_point",
-    #         inputs=("mag/proj/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
-    #         outputs=("mag_travel_ref_point",)
-    #     ),
+        CorrectAccelWithMagZV(
+            name="correct_accel_with_mag_zv",
+            inputs=("accel/lphp/proj", "mag/proj/lpf", "mag_zv_points"),
+            outputs=("accel/lphp/proj/zv", "mag_zv_points/accel_corr"),
+            plot_keys=("accel/lphp/proj/zv",),
+            mode="smoothed_bias",
+            min_prominence_mg=0.0,
+            min_separation_s=0.0,
+            smooth_bias_s=0.05,
+        ),
         GetRearMagToTravelModel(
             name="mag_to_travel_model",
             inputs=(
                 "mag/proj/lpf", 
-                "accel/lphp/proj",
-                "mag_zv_points",
+                "accel/lphp/proj/zv",
+                "mag_zv_points/accel_corr",
                 ),
             outputs=(
                 "travel/mag_model",
@@ -251,9 +250,9 @@ def main() -> None:
         RearTravelSolver(
             name="travel_solver",
             inputs=(
-                "accel/lphp/proj",
+                "accel/lphp/proj/zv",
                 "travel/mag_model/adj", 
-                "mag_zv_points",
+                "mag_zv_points/accel_corr",
             ),
             outputs=("travel/solved",),
             plot_keys=("travel/solved",)
