@@ -233,7 +233,7 @@ def main() -> None:
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),
             train_with_mask=False,
-            x0_weight=1.0,
+            x0_weight=0.0,
         ),
         GetErrorStats(
             name="x_preds_stats",
