@@ -26,11 +26,14 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 from pathlib import Path
 from typing import Iterable
 import json
 
 from pylinkage.mechanism import Mechanism, MechanismBuilder
+
+os.environ.setdefault("MPLCONFIGDIR", "/private/tmp")
 
 LINK_1_FRAME_MM = 148.0
 LINK_2_ROCKER_MM = 98.0
@@ -379,7 +382,7 @@ def main() -> None:
         plt.plot(angles, ss_angles)
         plt.grid()
         plt.show()
-    
+
     draw_horst_linkage(
         mechanism,
         output_path=args.output,

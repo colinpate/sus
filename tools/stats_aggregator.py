@@ -1540,7 +1540,7 @@ def main() -> None:
         comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top, item=args.compare_item, compare_metric=args.compare_metric)
         print(comparison_text, end="")
         return
-    
+
     if args.run_pipeline:
         for log_filename in args.logs:
             script = pipeline_script_for_log(log_filename)

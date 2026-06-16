@@ -11,9 +11,9 @@ import sys
 import numpy as np
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.horst_linkage_example import (  # noqa: E402
+from tools.linkage.horst_linkage_example import (  # noqa: E402
     DEFAULT_ROCKER_ANGLE_DEG,
     axle_position,
     build_horst_linkage,

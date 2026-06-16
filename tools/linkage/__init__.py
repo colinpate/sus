@@ -1,0 +1,1 @@
+"""Linkage geometry utilities."""

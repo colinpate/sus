@@ -5,11 +5,13 @@ import argparse
 import contextlib
 import io
 import json
+import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+os.environ.setdefault("MPLCONFIGDIR", "/private/tmp")
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -19,7 +21,7 @@ from scipy.signal import butter, savgol_filter, sosfilt, sosfiltfilt
 from sklearn.isotonic import IsotonicRegression
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 BACKEND_DIR = REPO_ROOT / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
