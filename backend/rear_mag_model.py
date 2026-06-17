@@ -139,7 +139,7 @@ class RearMagModel(MagToTravelModelCore):
     
 def project_accel(a):
     # Highpass accel and project
-    hp_fc_hz=2
+    hp_fc_hz=4
     sos_hp = butter(N=2, Wn=hp_fc_hz, btype="high", fs=200, output="sos")
     a_hp = sosfiltfilt(sos_hp, a, axis=0)
     a_hp_norm = np.linalg.norm(a_hp, axis=1)

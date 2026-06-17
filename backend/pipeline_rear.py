@@ -24,6 +24,7 @@ from classes.log_config import attach_log_config, get_log_config_path, get_signa
 
 DEC_FREQ = 200 # Hz, for decimating data to speed up optimization
 LP_FREQ = 40 # Hz, for lowpass filtering accel and gyro data
+ACCEL_HP_FREQ = 4 # Hz, for highpass filtering rear accel before projection
 MAG_LP_FREQ = 20 # Hz, for lowpass filtering magnetometer data
 
 def main() -> None:
@@ -101,7 +102,7 @@ def main() -> None:
             name="highpass_accel",
             inputs=("accel/lpf/lis2",),
             outputs=("accel/lphp/lis2",),
-            fc_hz=2,
+            fc_hz=ACCEL_HP_FREQ,
             btype="high",
             N=2,
         ),
