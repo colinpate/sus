@@ -192,7 +192,7 @@ bool initLis3mdl(TwoWire &wire) {
   lis3mdl.setPerformanceMode(LIS3MDL_MEDIUMMODE);
   lis3mdl.setOperationMode(LIS3MDL_CONTINUOUSMODE);
   lis3mdl.setDataRate(LIS3MDL_DATARATE_155_HZ);
-  lis3mdl.setRange(LIS3MDL_RANGE_4_GAUSS);
+  lis3mdl.setRange(LIS3MDL_RANGE_8_GAUSS);
   return true;
 }
 

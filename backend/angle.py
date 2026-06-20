@@ -125,5 +125,8 @@ class FindBoringRegions(Step):
         for start, end in chunks:
             mask[start:end] = False
 
+        boring_percentage = 100 * (1 - np.sum(mask) / len(mask))
+        print("Interesting %:", boring_percentage)
+
         ws[self.outputs[0]] = chunks
         ws[self.outputs[1]] = mask
