@@ -141,6 +141,7 @@ class AngleLoader:
     offset: int = 0
     mark_bad_samples: bool = True
     bad_mask_pad_samples: int = ANGLE_RAW_PAD_SAMPLES
+    allow_degenerate: bool = False
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
@@ -154,8 +155,20 @@ class AngleLoader:
 
         x_raw = ((angle_raw + self.offset) % 4096) * np.pi * 2 / 4096
         if self.interpolate_bad:
-            x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
-            if np.any(bad_mask):
+            interpolated_bad_samples = False
+            good_samples = int(np.sum(~bad_mask))
+            if np.any(bad_mask) and good_samples < 2:
+                if not self.allow_degenerate:
+                    raise ValueError("Need at least two good angle samples to interpolate corrupted regions")
+                print(
+                    f"Warning: only {good_samples} good angle samples found in {self.path}; "
+                    "using un-interpolated angle data"
+                )
+                x = x_raw.copy()
+            else:
+                x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
+                interpolated_bad_samples = np.any(bad_mask)
+            if interpolated_bad_samples:
                 print(
                     f"Interpolated {np.sum(bad_mask)} corrupted angle samples "
                     f"({np.mean(bad_mask) * 100:.2f}%) from {self.path}"

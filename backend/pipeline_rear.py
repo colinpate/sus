@@ -51,6 +51,7 @@ def main() -> None:
             interpolate_bad=bool(angle_signal_config.get("interpolate_bad", False)),
             offset=int(angle_signal_config.get("offset", 2048)),
             mark_bad_samples=bool(angle_signal_config.get("mark_bad_samples", False)),
+            allow_degenerate=True,
         ),
     ]
 

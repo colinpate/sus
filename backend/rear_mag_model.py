@@ -115,7 +115,8 @@ class RearMagModel(MagToTravelModelCore):
             self.filter_chunk_dx,
             self.filter_chunk_abs_b_x_corr,
             self.filter_chunk_db_per_dx,
-            self.filter_chunk_max_b_x_corr
+            self.filter_chunk_max_b_x_corr,
+            self.filter_chunk_max_dm_dx
         ]
         return filter_fns
 
@@ -162,7 +163,7 @@ def load_ws(log_filename):
     ws_file = out_dir + "/all.npz"
     ws = np.load(ws_file)
     accel_idx = "2"
-    a = ws[f"accel/lphp/proj__x"][:, 0]
+    a = ws[f"accel/lphp/proj/zv__x"][:, 0]
     b_proj = ws["mag/proj/lpf__x"][:, 0]
     t = ws[f"accel/lpf/lis{accel_idx}__t"]
     zv_points = ws["mag_zv_points"]
@@ -203,6 +204,7 @@ def fit_regression_slope(x, y):
 def calc_binned_rmse(err: np.ndarray, gt: np.ndarray, min_bin_count: int = 100):
     edges = np.linspace(0.0, 150.0, 6)
     bin_rmses = []
+    bin_mes = []
     eligible_mses = []
     for i, (bin_min, bin_max) in enumerate(zip(edges[:-1], edges[1:])):
         if i == len(edges) - 2:
@@ -213,14 +215,17 @@ def calc_binned_rmse(err: np.ndarray, gt: np.ndarray, min_bin_count: int = 100):
         count = int(np.sum(bin_mask))
         if count:
             bin_mse = float(np.mean(err[bin_mask] ** 2))
+            bin_me = float(np.mean(err[bin_mask]))
             bin_rmses.append(bin_mse ** 0.5)
+            bin_mes.append(bin_me)
             if count >= min_bin_count:
                 eligible_mses.append(bin_mse)
         else:
             bin_rmses.append(np.nan)
+            bin_mes.append(np.nan)
 
     bin_rmse = float(np.sqrt(np.mean(eligible_mses))) if eligible_mses else np.nan
-    return bin_rmse, bin_rmses
+    return bin_rmse, bin_rmses, bin_mes
 
 def evaluate_predictions(pred_travel, travel, label, roi_mask):
     raw_rmse = np.mean((travel - pred_travel) ** 2) ** 0.5
@@ -236,14 +241,18 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
     pred_centered = pred_travel - np.mean(pred_travel)
     travel_centered = travel - np.mean(travel)
     centered_rmse = np.mean((travel_centered - pred_centered) ** 2) ** 0.5
+
     masked_pred = pred_travel[roi_mask]
     masked_travel = travel[roi_mask]
+
+    #masked_pred_offset = np.percentile(masked_pred, 1)# - np.percentile(masked_travel, 1)
+    masked_pred_offset = np.mean(masked_pred - masked_travel)
     masked_centered_err = (
-        masked_pred - np.mean(masked_pred)
+        masked_pred - masked_pred_offset
     ) - (
-        masked_travel - np.mean(masked_travel)
+        masked_travel
     )
-    bin_rmse, bin_rmses = calc_binned_rmse(masked_centered_err, masked_travel)
+    bin_rmse, bin_rmses, bin_mes = calc_binned_rmse(masked_centered_err, masked_travel)
     corr = np.corrcoef(pred_travel, travel)[0, 1]
 
     print(
@@ -257,7 +266,8 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
     )
     print(
         f"{label} masked centered bin RMSE: {bin_rmse:.3f} mm "
-        f"bins: {[round(x, 3) if np.isfinite(x) else np.nan for x in bin_rmses]}"
+        f"bins: {[round(x, 3) if np.isfinite(x) else np.nan for x in bin_rmses]}, "
+        f"bin MEs: {[round(x, 3) if np.isfinite(x) else np.nan for x in bin_mes]}"
     )
     print(
         f"RMS travel: {masked_rms_travel}"
@@ -273,6 +283,7 @@ def evaluate_predictions(pred_travel, travel, label, roi_mask):
         "bin_rmses": bin_rmses,
         "preds": pred_travel,
         "gt": travel,
+        "masked_pred_offset": masked_pred_offset
     }
 
 def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_prior=1 / 3):
@@ -294,10 +305,11 @@ def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_p
     oracle_model.set_coeffs(result.x[:3])
     return oracle_model, float(result.x[3]), result
 
-def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight):
+def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight, max_dmdx_thresh):
     model = RearMagModel(
         x0_weight=x0_weight, 
         chunking_method="centered_zv",
+        dm_dx_thresh=max_dmdx_thresh
         )
     chunks = model.create_chunks(zv_points, b_proj, accel_proj, t)
     model.prepare_chunks(chunks)
@@ -448,22 +460,25 @@ def main():
     log_filename = args.log_filename
     a_hp_proj, b_proj, t, travel, v_gt, a_gt, zv_points, roi_mask = load_ws(log_filename)
     results = []
-    for case_name, x0_weight in (
-        ("x0 0", 0),
-        ("x0 1", 1),
+    for case_name, max_dmdx_thresh in (
+        ("dm_dx_thresh 0", 0),
+        ("dm_dx_thresh 0.05", 0.05),
+        ("dm_dx_thresh 0.1", 0.1),
+        ("dm_dx_thresh 0.2", 0.2),
+        #("x0 1", 1),
 #       ("negative_accel_sign", -a_hp_proj),
     ):
-        _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight)
+        _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight=0, max_dmdx_thresh=max_dmdx_thresh)
         results.append((case_name, metrics))
 
-    get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
+    #get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
 
     if args.plot:
         plt.figure(figsize=(12, 6))
-        plt.scatter(b_proj, travel - np.mean(travel), label="travel", alpha=0.1)
+        plt.scatter(b_proj, travel, label="travel", alpha=0.1)
         for case_name, metrics in results:
             preds = metrics["preds"]
-            preds_centered = preds - np.mean(preds)
+            preds_centered = preds - metrics["masked_pred_offset"]
             plt.scatter(b_proj, preds_centered, label=case_name)
         plt.legend()
         plt.title("Predicted travel vs mag_proj")
