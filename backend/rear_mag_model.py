@@ -25,6 +25,7 @@ class RearMagModel(MagToTravelModelCore):
     min_chunk_dt: float = 0.1
     max_chunk_dt: float = 0.2
     min_chunk_db: float = 500
+    dm_dx_thresh: float | None = None
     pair_mode: str = "first_valid" # "max_db_per_dt" # 
     default_chunk_max_dx: float = 150.0
     max_b_x_corr: float | None = None
@@ -121,6 +122,8 @@ class RearMagModel(MagToTravelModelCore):
         return filter_fns
 
     def filter_chunk_max_dm_dx(self, chunk: MagToTravelChunk):
+        if self.dm_dx_thresh is None:
+            return True
         return chunk.metrics["dm/dx_median"] <= self.dm_dx_thresh
     
     def filter_chunk_max_b_x_corr(self, chunk: MagToTravelChunk):
