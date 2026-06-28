@@ -11,6 +11,7 @@ from angle_corruption import (
     interpolate_masked_signal,
 )
 from classes.time_series import TimeSeries
+from sensor_orientation import resolve_signal_orientation
 
 Workspace = Dict[str, Any]
 
@@ -114,13 +115,34 @@ class MagLoader:
             x = x - offset_vec
             print(f"Applying {self.data_name} offset {offset_vec}")
 
+        orientation_config = resolve_signal_orientation(signal_config)
+        orientation_matrix = None
+        if orientation_config is not None:
+            orientation_matrix = np.asarray(orientation_config, dtype=float)
+            if orientation_matrix.shape != (3, 3):
+                raise ValueError(
+                    f"{self.data_name} sensor_to_pod_matrix must be 3x3, got shape {orientation_matrix.shape}"
+                )
+            x = (orientation_matrix @ x.T).T
+            print(f"Applying {self.data_name} sensor-to-pod orientation {orientation_matrix.tolist()}")
+
+        frame = "pod" if orientation_matrix is not None else "sensor"
+        meta = {"fs_hz": fs_hz, "offset": offset, "lag": lag}
+        if orientation_matrix is not None:
+            meta.update(
+                {
+                    "orientation_preset": signal_config.get("orientation_preset"),
+                    "sensor_to_pod_matrix": orientation_matrix.tolist(),
+                }
+            )
+
         return {
             self.data_name: TimeSeries(
                 t=t,
                 x=x,
                 units="milli-Gauss",
-                frame="sensor",
-                meta={"fs_hz": fs_hz, "offset": offset, "lag": lag},
+                frame=frame,
+                meta=meta,
             )
         }
 

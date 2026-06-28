@@ -7,6 +7,8 @@ import struct
 from pathlib import Path
 from typing import Any, Dict, Iterator, Tuple
 
+from backend.sensor_orientation import MAG_LAYOUTS, signal_configs_for_mag_layout
+
 LEGACY_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "H" + "i")
 IMU_GYRO_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
 DUAL_MAG_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
@@ -79,39 +81,46 @@ def load_metadata(metadata_path: Path) -> Dict[str, Any]:
     return metadata
 
 
+def get_or_create_mapping(parent: Dict[str, Any], key: str) -> Dict[str, Any]:
+    value = parent.get(key)
+    if not isinstance(value, dict):
+        value = {}
+        parent[key] = value
+    return value
+
+
 def write_metadata(
     log_path: str,
     hypotenuse: float | None = None,
     top_adjacent: float | None = None,
     linkage_file: str | None = None,
+    mag_layout: str | None = None,
 ) -> Path | None:
-    if hypotenuse is None and top_adjacent is None and linkage_file is None:
+    if hypotenuse is None and top_adjacent is None and linkage_file is None and mag_layout is None:
         return None
 
     metadata_path = get_metadata_path(log_path)
     metadata = load_metadata(metadata_path)
 
-    steps = metadata.get("steps")
-    if not isinstance(steps, dict):
-        steps = {}
-        metadata["steps"] = steps
+    if hypotenuse is not None or top_adjacent is not None or linkage_file is not None:
+        steps = get_or_create_mapping(metadata, "steps")
 
-    angle_to_travel = steps.get("angle_to_travel")
-    if not isinstance(angle_to_travel, dict):
-        angle_to_travel = {}
-        steps["angle_to_travel"] = angle_to_travel
+        if hypotenuse is not None or top_adjacent is not None:
+            angle_to_travel = get_or_create_mapping(steps, "angle_to_travel")
+            if hypotenuse is not None:
+                angle_to_travel["hypotenuse"] = hypotenuse
+            if top_adjacent is not None:
+                angle_to_travel["top_adjacent"] = top_adjacent
 
-    if hypotenuse is not None:
-        angle_to_travel["hypotenuse"] = hypotenuse
-    if top_adjacent is not None:
-        angle_to_travel["top_adjacent"] = top_adjacent
-    
-    # Rear suspension stuff
-    linkage_angle_to_travel = steps.get("linkage_angle_to_travel")
-    if not isinstance(linkage_angle_to_travel, dict):
-        linkage_angle_to_travel = {}
-        steps["linkage_angle_to_travel"] = linkage_angle_to_travel
-    linkage_angle_to_travel["linkage_path"] = linkage_file
+        if linkage_file is not None:
+            linkage_angle_to_travel = get_or_create_mapping(steps, "linkage_angle_to_travel")
+            linkage_angle_to_travel["linkage_path"] = linkage_file
+
+    if mag_layout is not None:
+        signals = get_or_create_mapping(metadata, "signals")
+        for signal_name, signal_config in signal_configs_for_mag_layout(mag_layout).items():
+            existing_signal_config = get_or_create_mapping(signals, signal_name)
+            existing_signal_config.update(signal_config)
 
     with metadata_path.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
@@ -243,12 +252,12 @@ def main() -> None:
     p.add_argument(
         "--hypotenuse",
         type=float,
-        help="Write steps.angle_to_travel.hypotenuse to the input log's .meta.json file",
+        help="Write steps.angle_to_travel.hypotenuse to the output CSV's .meta.json file",
     )
     p.add_argument(
         "--top-adjacent",
         type=float,
-        help="Write steps.angle_to_travel.top_adjacent to the input log's .meta.json file",
+        help="Write steps.angle_to_travel.top_adjacent to the output CSV's .meta.json file",
     )
     p.add_argument(
         "--format",
@@ -259,6 +268,11 @@ def main() -> None:
         "--linkage-file",
         type=str,
         help="Linkage angle-to-travel file for rear suspension logs"
+    )
+    p.add_argument(
+        "--mag-layout",
+        choices=sorted(MAG_LAYOUTS.keys()),
+        help="Write magnetometer orientation metadata using a named hardware layout",
     )
     args = p.parse_args()
 
@@ -273,10 +287,11 @@ def main() -> None:
     print(f"Wrote: {csv_path}")
 
     metadata_path = write_metadata(
-        bin_path,
+        csv_path,
         hypotenuse=args.hypotenuse,
         top_adjacent=args.top_adjacent,
-        linkage_file=args.linkage_file
+        linkage_file=args.linkage_file,
+        mag_layout=args.mag_layout,
     )
     if metadata_path is not None:
         print(f"Wrote: {metadata_path}")

@@ -1,10 +1,22 @@
 {
   "signals": {
     "mag": {
-      "offset": [120.0, -35.0, 80.0]
+      "offset": [120.0, -35.0, 80.0],
+      "orientation_preset": "identity",
+      "sensor_to_pod_matrix": [
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0]
+      ]
     },
     "mag_lis": {
-      "offset": [0.0, 0.0, 0.0]
+      "offset": [0.0, 0.0, 0.0],
+      "orientation_preset": "rot_y_180",
+      "sensor_to_pod_matrix": [
+        [-1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, -1.0]
+      ]
     },
     "angle": {
       "offset": 2048,

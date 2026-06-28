@@ -42,6 +42,8 @@ class ProjectMag(Step):
 
 @dataclass
 class DiffMag(Step):
+    # Legacy per-step alignment. New sensor mounting geometry should be represented
+    # by signals.*.sensor_to_pod_matrix and applied by MagLoader.
     z_rotation_deg: float = 0
 
     @staticmethod
