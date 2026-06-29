@@ -83,6 +83,7 @@ class RearMagModel(MagToTravelModelCore):
     def create_chunks(self, idxs, mag, acc, t_s, mag_proj_bad_mask=None):
         self.validate_chunking_method()
         if self.chunking_method in ("centered_zv", "debiased_centered_zv"):
+            print("Using centered_zv chunking")
             return super().create_chunks(idxs, mag, acc, t_s, mag_proj_bad_mask)
         elif self.chunking_method == "paired_zv":
             chunks = []
@@ -114,10 +115,11 @@ class RearMagModel(MagToTravelModelCore):
     def get_filter_fns(self):
         filter_fns = [
             self.filter_chunk_dx,
-            self.filter_chunk_abs_b_x_corr,
-            self.filter_chunk_db_per_dx,
-            self.filter_chunk_max_b_x_corr,
-            self.filter_chunk_max_dm_dx
+            #self.filter_chunk_abs_b_x_corr,
+            #self.filter_chunk_db_per_dx,
+            #self.filter_chunk_max_b_x_corr,
+            #self.filter_chunk_max_dm_dx,
+            self.filter_chunk_dm_dx
         ]
         return filter_fns
 
@@ -141,25 +143,23 @@ class RearMagModel(MagToTravelModelCore):
             return True
         return chunk.metrics["db_per_dx"] >= self.min_db_per_dx
     
-def project_accel(a):
-    # Highpass accel and project
-    hp_fc_hz=4
-    sos_hp = butter(N=2, Wn=hp_fc_hz, btype="high", fs=200, output="sos")
-    a_hp = sosfiltfilt(sos_hp, a, axis=0)
-    a_hp_norm = np.linalg.norm(a_hp, axis=1)
+    def create_training_data(
+        self,
+        mag,
+        accel,
+        t,
+        idxs,
+    ):
+        if self.train_with_mask:
+            print("Rear mag model ignores train_mask during chunk selection")
 
-    mask = (a_hp_norm > 10)
-    # dilate mask
-    mask = np.convolve(mask, np.ones(200), mode="same") > 0
-
-    # Find main axis of acceleration
-    a_hp_m = a_hp[mask]
-    accel_axis = np.mean(a_hp_m[a_hp_m[:, 1] < 0], axis=0)
-    accel_axis /= np.linalg.norm(accel_axis)
-    print("Main accel axis:", accel_axis)
-    a_hp_proj = a_hp @ accel_axis
-    a_proj = a @ accel_axis
-    return a_hp_proj, a_proj
+        chunks = self.create_chunks(idxs, mag, accel, t)
+        self.prepare_chunks(chunks)
+        self.chunks = self.filter_chunks(chunks, self.get_filter_fns())
+        print("Training chunks:", len(chunks))
+        print("Filtered training chunks:", len(self.chunks))
+        return self.format_chunks_for_fit(self.chunks)
+    
 
 def load_ws(log_filename):
     out_dir = f"backend/run_artifacts/{log_filename}/cache/"
@@ -167,7 +167,7 @@ def load_ws(log_filename):
     ws = np.load(ws_file)
     accel_idx = "2"
     a = ws[f"accel/lphp/proj/zv__x"][:, 0]
-    b_proj = ws["mag/proj/lpf__x"][:, 0]
+    b_proj = ws["mag/angle/lpf__x"][:, 0]
     t = ws[f"accel/lpf/lis{accel_idx}__t"]
     zv_points = ws["mag_zv_points"]
     travel = ws["travel__x"][:, 0]
@@ -204,7 +204,7 @@ def fit_regression_slope(x, y):
         return np.nan
     return float(scipy.stats.linregress(x, y).slope)
 
-def calc_binned_rmse(err: np.ndarray, gt: np.ndarray, min_bin_count: int = 100):
+def calc_binned_rmse(err: np.ndarray, gt: np.ndarray, min_bin_count: int = 50):
     edges = np.linspace(0.0, 150.0, 6)
     bin_rmses = []
     bin_mes = []
@@ -308,22 +308,29 @@ def fit_oracle_model(mag, travel, guess_vec, pred_soft_mg, power_weight, power_p
     oracle_model.set_coeffs(result.x[:3])
     return oracle_model, float(result.x[3]), result
 
-def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight, max_dmdx_thresh):
+def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, params):
     model = RearMagModel(
-        x0_weight=x0_weight, 
         chunking_method="centered_zv",
-        dm_dx_thresh=max_dmdx_thresh
+        **params
         )
-    chunks = model.create_chunks(zv_points, b_proj, accel_proj, t)
-    model.prepare_chunks(chunks)
+    
+    input_arr = model.create_training_data(
+        mag=b_proj,
+        accel=accel_proj,
+        t=t,
+        idxs=zv_points
+    )
+    chunks_filt = model.chunks
+    #chunks = model.create_chunks(zv_points, b_proj, accel_proj, t)
+    #model.prepare_chunks(chunks)
 
-    model.calc_chunks_errors(chunks, travel, v_gt, a_gt)
+    model.calc_chunks_errors(chunks_filt, travel, v_gt, a_gt)
 
-    chunks_filt = model.filter_chunks(chunks, model.get_filter_fns())
+    #chunks_filt = model.filter_chunks(chunks, model.get_filter_fns())
     print(f"{case_name} training chunks: {len(chunks_filt)}")
 
-    chunk_corrs = [chunk.metrics["b_x_corr"] for chunk in chunks]
-    chunk_abs_errs = [np.median(np.abs(chunk.errors["x"])) for chunk in chunks]
+    chunk_corrs = [chunk.metrics["b_x_corr"] for chunk in chunks_filt]
+    chunk_abs_errs = [np.median(np.abs(chunk.errors["x"])) for chunk in chunks_filt]
     corr_err_corr = scipy.stats.spearmanr(chunk_corrs, chunk_abs_errs).correlation
     print("b-x corr to err correlation", corr_err_corr)
     x_mag_corrs, x_gt_corrs = get_chunk_corrs(chunks_filt, travel)
@@ -333,27 +340,28 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
             f"median corr(x, gt): {np.median(x_gt_corrs):.4f}"
         )
 
-    input_arr = model.format_chunks_for_fit(chunks_filt)
-    result = model.fit_model(input_arr, guess_vec=[0, -1, 1 / 3])
+    #input_arr = model.format_chunks_for_fit(chunks_filt)
+    result = model.train(input_arr, guess_vec=[0, 1, 1])
     pred_travel = model.model.pred_x(b_proj)
     metrics = evaluate_predictions(pred_travel, travel, case_name, roi_mask)
-    # oracle_model, oracle_offset, oracle_result = fit_oracle_model(
-    #     mag=b_proj[roi_mask],
-    #     travel=travel[roi_mask],
-    #     guess_vec=result.x.copy(),
-    #     pred_soft_mg=model.pred_soft_mg,
-    #     power_weight=model.power_weight,
-    # )
-    # oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
-    # oracle_metrics = evaluate_predictions(
-    #     oracle_pred_travel,
-    #     travel,
-    #     f"{case_name} oracle_gt_fit",
-    #     roi_mask,
-    # )
-    # metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
+    oracle_model, oracle_offset, oracle_result = fit_oracle_model(
+        mag=b_proj[roi_mask],
+        travel=travel[roi_mask],
+        guess_vec=result.x.copy(),
+        pred_soft_mg=model.pred_soft_mg,
+        power_weight=model.power_weight,
+    )
+    oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
+    oracle_metrics = evaluate_predictions(
+        oracle_pred_travel,
+        travel,
+        f"{case_name} oracle_gt_fit",
+        roi_mask,
+    )
+    metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
+    metrics["oracle_preds"] = oracle_metrics["preds"]
     print(f"{case_name} coeffs: {result.x}")
-    # print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
+    print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
     return result, metrics, chunks_filt
 
 
@@ -463,18 +471,16 @@ def main():
     log_filename = args.log_filename
     a_hp_proj, b_proj, t, travel, v_gt, a_gt, zv_points, roi_mask = load_ws(log_filename)
     results = []
-    for case_name, max_dmdx_thresh in (
-        ("dm_dx_thresh 0", 0),
-        ("dm_dx_thresh 0.05", 0.05),
-        ("dm_dx_thresh 0.1", 0.1),
-        ("dm_dx_thresh 0.2", 0.2),
+    for case_name, params in (
+        ("dm_dx_thresh 0", {"dm_dx_thresh": 0}),
+        ("dm_dx_thresh 0.05", {"dm_dx_thresh": 0.05}),
         #("x0 1", 1),
 #       ("negative_accel_sign", -a_hp_proj),
     ):
-        _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, x0_weight=0, max_dmdx_thresh=max_dmdx_thresh)
+        _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, params=params)
         results.append((case_name, metrics))
 
-    #get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
+    get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
 
     if args.plot:
         plt.figure(figsize=(12, 6))
@@ -483,6 +489,9 @@ def main():
             preds = metrics["preds"]
             preds_centered = preds - metrics["masked_pred_offset"]
             plt.scatter(b_proj, preds_centered, label=case_name)
+            oracle_preds = metrics.get("oracle_preds")
+            if oracle_preds is not None:
+                plt.scatter(b_proj, oracle_preds)
         plt.legend()
         plt.title("Predicted travel vs mag_proj")
         plt.xlabel("mag_proj")

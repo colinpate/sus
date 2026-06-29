@@ -41,6 +41,29 @@ class ProjectMag(Step):
 
 
 @dataclass
+class MagAngle(Step):
+    """Get the angle of the magnet signal from an arbitrary source"""
+    x_axis: int = 0
+    y_axis: int = 2
+
+    def run(self, ws: Workspace) -> None:
+        b: TimeSeries = ws[self.inputs[0]]
+
+        norm =  np.linalg.norm(b.x, axis=1)
+        b_diff_normed = (b.x.T / norm).T
+        b_angle = np.atan2(b_diff_normed[:, self.x_axis], b_diff_normed[:, self.y_axis])
+        b_angle -= np.min(b_angle)
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=b.t,
+            x=b_angle,
+            units="radians",
+            frame=b.frame,
+            meta={**b.meta},
+        )
+
+
+@dataclass
 class DiffMag(Step):
     # Legacy per-step alignment. New sensor mounting geometry should be represented
     # by signals.*.sensor_to_pod_matrix and applied by MagLoader.

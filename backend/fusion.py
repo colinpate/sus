@@ -160,15 +160,11 @@ class GetRearMagToTravelModel(Step, RearMagModel):
             idxs=idxs
         )
 
-        result = self.train(training_data, guess_vec=[0, -1, 1 / 3])
+        result = self.train(training_data, guess_vec=[0, 1, 1])
         x0, y_scale, power = result.x[0], result.x[1], result.x[2]
         print(f"Mag to travel model coefficients: {x0:.2f}, {y_scale:.2f}, {power:.3f}")
 
         x_preds = self.model.pred_x(mag)
-
-        for p in [0.5, 1, 2, 4, 8]:
-            min_trav = np.percentile(x_preds, p)
-            print(p, min_trav)
 
         x_preds_adj = x_preds - np.percentile(x_preds, self.zero_travel_percentile)
 
@@ -189,23 +185,6 @@ class GetRearMagToTravelModel(Step, RearMagModel):
         scatter_points = np.array([mag, x_preds_adj]).T
         ws[self.outputs[2]] = scatter_points
         ws[self.outputs[3]] = np.array([x0, y_scale, power])
-
-    def create_training_data(
-        self,
-        mag,
-        accel,
-        t,
-        idxs,
-    ):
-        if self.train_with_mask:
-            print("Rear mag model ignores train_mask during chunk selection")
-
-        chunks = self.create_chunks(idxs, mag, accel, t)
-        self.prepare_chunks(chunks)
-        self.chunks = self.filter_chunks(chunks, self.get_filter_fns())
-        print("Training chunks:", len(chunks))
-        print("Filtered training chunks:", len(self.chunks))
-        return self.format_chunks_for_fit(self.chunks)
 
 
 @dataclass
