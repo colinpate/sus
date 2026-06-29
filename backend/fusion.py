@@ -160,7 +160,7 @@ class GetRearMagToTravelModel(Step, RearMagModel):
             idxs=idxs
         )
 
-        result = self.train(training_data, guess_vec=[0, 1, 1])
+        result = self.train(training_data, guess_vec=[0.1, 250, 1 / 3])
         x0, y_scale, power = result.x[0], result.x[1], result.x[2]
         print(f"Mag to travel model coefficients: {x0:.2f}, {y_scale:.2f}, {power:.3f}")
 

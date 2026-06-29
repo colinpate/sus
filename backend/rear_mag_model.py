@@ -32,6 +32,7 @@ class RearMagModel(MagToTravelModelCore):
     min_abs_b_x_corr: float | None = None
     min_db_per_dx: float | None = None
     chunking_method: RearChunkingMethod = "centered_zv"
+    pred_soft_mg: float = 1.0
 
     allowed_chunking_methods: ClassVar[tuple[str, ...]] = (
         "centered_zv",
@@ -341,27 +342,27 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
         )
 
     #input_arr = model.format_chunks_for_fit(chunks_filt)
-    result = model.train(input_arr, guess_vec=[0, 1, 1])
+    result = model.train(input_arr, guess_vec=[0.1, 250, 1 / 3])
     pred_travel = model.model.pred_x(b_proj)
     metrics = evaluate_predictions(pred_travel, travel, case_name, roi_mask)
-    oracle_model, oracle_offset, oracle_result = fit_oracle_model(
-        mag=b_proj[roi_mask],
-        travel=travel[roi_mask],
-        guess_vec=result.x.copy(),
-        pred_soft_mg=model.pred_soft_mg,
-        power_weight=model.power_weight,
-    )
-    oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
-    oracle_metrics = evaluate_predictions(
-        oracle_pred_travel,
-        travel,
-        f"{case_name} oracle_gt_fit",
-        roi_mask,
-    )
-    metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
-    metrics["oracle_preds"] = oracle_metrics["preds"]
     print(f"{case_name} coeffs: {result.x}")
-    print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
+    # oracle_model, oracle_offset, oracle_result = fit_oracle_model(
+    #     mag=b_proj[roi_mask],
+    #     travel=travel[roi_mask],
+    #     guess_vec=result.x.copy(),
+    #     pred_soft_mg=model.pred_soft_mg,
+    #     power_weight=model.power_weight,
+    # )
+    # oracle_pred_travel = oracle_model.pred_x(b_proj) + oracle_offset
+    # oracle_metrics = evaluate_predictions(
+    #     oracle_pred_travel,
+    #     travel,
+    #     f"{case_name} oracle_gt_fit",
+    #     roi_mask,
+    # )
+    # metrics["oracle_masked_aligned_rmse"] = oracle_metrics["masked_aligned_rmse"]
+    # metrics["oracle_preds"] = oracle_metrics["preds"]
+    # print(f"{case_name} oracle coeffs: {oracle_result.x[:3]}, oracle offset: {oracle_offset}")
     return result, metrics, chunks_filt
 
 
@@ -472,15 +473,15 @@ def main():
     a_hp_proj, b_proj, t, travel, v_gt, a_gt, zv_points, roi_mask = load_ws(log_filename)
     results = []
     for case_name, params in (
-        ("dm_dx_thresh 0", {"dm_dx_thresh": 0}),
-        ("dm_dx_thresh 0.05", {"dm_dx_thresh": 0.05}),
-        #("x0 1", 1),
-#       ("negative_accel_sign", -a_hp_proj),
+        ("pred_soft_mg 0.1", {"pred_soft_mg": 0.1}),
+        ("pred_soft_mg 0.5", {"pred_soft_mg": 0.5}),
+        ("pred_soft_mg 1", {"pred_soft_mg": 1}),
+        ("pred_soft_mg 10", {"pred_soft_mg": 10}),
     ):
         _, metrics, chunks_filt = run_case(case_name, b_proj, a_hp_proj, t, travel, v_gt, a_gt, zv_points, roi_mask, params=params)
         results.append((case_name, metrics))
 
-    get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
+    #get_chunk_slopes(chunks_filt, b_proj, travel, roi_mask, args.plot)
 
     if args.plot:
         plt.figure(figsize=(12, 6))
@@ -489,9 +490,9 @@ def main():
             preds = metrics["preds"]
             preds_centered = preds - metrics["masked_pred_offset"]
             plt.scatter(b_proj, preds_centered, label=case_name)
-            oracle_preds = metrics.get("oracle_preds")
-            if oracle_preds is not None:
-                plt.scatter(b_proj, oracle_preds)
+            #oracle_preds = metrics.get("oracle_preds")
+            #if oracle_preds is not None:
+            #    plt.scatter(b_proj, oracle_preds)
         plt.legend()
         plt.title("Predicted travel vs mag_proj")
         plt.xlabel("mag_proj")

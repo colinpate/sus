@@ -136,6 +136,8 @@ class MagToTravelModelCore:
         return self.chunk_min_dx <= chunk.metrics["dx"] <= self.chunk_max_dx
     
     def filter_chunk_dm_dx(self, chunk: MagToTravelChunk):
+        if self.dm_dx_thresh is None:
+            return True
         return chunk.metrics["dm/dx_median"] >= self.dm_dx_thresh
     
     def filter_chunk_badmask(self, chunk: MagToTravelChunk):

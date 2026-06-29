@@ -49,9 +49,9 @@ class MagAngle(Step):
     def run(self, ws: Workspace) -> None:
         b: TimeSeries = ws[self.inputs[0]]
 
-        norm =  np.linalg.norm(b.x, axis=1)
+        norm = np.maximum(np.linalg.norm(b.x, axis=1), 1e-12)
         b_diff_normed = (b.x.T / norm).T
-        b_angle = np.atan2(b_diff_normed[:, self.x_axis], b_diff_normed[:, self.y_axis])
+        b_angle = np.unwrap(np.atan2(b_diff_normed[:, self.x_axis], b_diff_normed[:, self.y_axis]))
         b_angle -= np.min(b_angle)
 
         ws[self.outputs[0]] = TimeSeries(
