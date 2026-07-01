@@ -162,10 +162,17 @@ def main() -> None:
             dec_freq=DEC_FREQ,
         ),
         # GetAccelTravelVectorRear(
-        #     name="get_acc_trav_vec",
+        #     name="get_acc_trav_vec_rear",
         #     inputs=("accel/lpf/relative",),
-        #     outputs=("accel_trav_vec",),
+        #     outputs=("accel_trav_vec2",),
         # ),
+        # ProjectAccel(
+        #     name="project_accel_rear",
+        #     inputs=("accel_trav_vec2", "accel/lpf/relative",),
+        #     outputs=("accel/lpf/proj2",),
+        #     plot_keys=("accel/lpf/proj2",)
+        # ),
+
         GetAccelTravelVector(
             name="get_acc_trav_vec",
             inputs=("accel/lpf/relative",),
@@ -174,7 +181,6 @@ def main() -> None:
                 PlotSpec(kind="scatter", key="mags_vs_means"),
             )
         ),
-        
         ProjectAccel(
             name="project_accel",
             inputs=("accel_trav_vec", "accel/lpf/relative",),
@@ -216,9 +222,14 @@ def main() -> None:
         ),
         GetAccelError(
             name="accel_proj_error",
-            inputs=("accel/lphp/proj", "travel"),
+            inputs=("accel/lpf/proj", "travel"),
             outputs=(),
         ),
+        # GetAccelError(
+        #     name="accel_proj_error_rear",
+        #     inputs=("accel/lpf/proj2", "travel"),
+        #     outputs=(),
+        # ),
         FindBoringRegions(
             name="find_boring_regions",
             inputs=("travel",),

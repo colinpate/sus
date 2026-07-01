@@ -342,7 +342,7 @@ def run_case(case_name, b_proj, accel_proj, t, travel, v_gt, a_gt, zv_points, ro
         )
 
     #input_arr = model.format_chunks_for_fit(chunks_filt)
-    result = model.train(input_arr, guess_vec=[0.1, 250, 1 / 3])
+    result = model.train(input_arr, guess_vec=[1, 1, 1])
     pred_travel = model.model.pred_x(b_proj)
     metrics = evaluate_predictions(pred_travel, travel, case_name, roi_mask)
     print(f"{case_name} coeffs: {result.x}")
@@ -490,9 +490,9 @@ def main():
             preds = metrics["preds"]
             preds_centered = preds - metrics["masked_pred_offset"]
             plt.scatter(b_proj, preds_centered, label=case_name)
-            #oracle_preds = metrics.get("oracle_preds")
-            #if oracle_preds is not None:
-            #    plt.scatter(b_proj, oracle_preds)
+            oracle_preds = metrics.get("oracle_preds")
+            if oracle_preds is not None:
+               plt.scatter(b_proj, oracle_preds)
         plt.legend()
         plt.title("Predicted travel vs mag_proj")
         plt.xlabel("mag_proj")
