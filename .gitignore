@@ -215,4 +215,4 @@ __marimo__/
 *.json
 
 # Local firmware secrets
-fw/wifi_config.h
+firmware/esp32_thingplus/wifi_config.h
