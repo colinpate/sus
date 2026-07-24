@@ -1,0 +1,36 @@
+/ {
+	sus_board: sus-board {
+		compatible = "zephyr,user";
+
+		/* XIAO D6 = nRF P1.11. Use <&gpio0 29 GPIO_ACTIVE_HIGH> for D3. */
+		vperiph-en-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+
+		/* XIAO D7 = nRF P1.12, XIAO D2 = nRF P0.28. */
+		flash-cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+		imu-int-gpios = <&gpio0 28 GPIO_ACTIVE_HIGH>;
+
+		/* Raw line reads for bring-up diagnostics; peripherals still own pins. */
+		i2c-sda-gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+		i2c-scl-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		flash-sck-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+		flash-miso-gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;
+		flash-mosi-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&xiao_i2c {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+};
+
+&xiao_spi {
+	status = "okay";
+};
+
+/*
+ * The stock XIAO board definition maps UART0 to D6/D7. This board uses those
+ * pins for V_periph enable and flash CS#, while the console runs over USB CDC.
+ */
+&uart0 {
+	status = "disabled";
+};

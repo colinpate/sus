@@ -216,3 +216,19 @@ __marimo__/
 
 # Local firmware secrets
 firmware/esp32_thingplus/wifi_config.h
+
+# nRF Connect SDK / Zephyr build and workspace artifacts
+/.zephyr-cache/
+/.west/
+/build-*/
+/twister-out*/
+firmware/nrf52840/**/build*/
+firmware/nrf52840/**/twister-out*/
+firmware/nrf52840/**/.west/
+firmware/nrf52840/**/.zephyr-cache/
+firmware/nrf52840/**/compile_commands.json
+firmware/nrf52840/**/*.elf
+firmware/nrf52840/**/*.hex
+firmware/nrf52840/**/*.map
+firmware/nrf52840/**/*.uf2
+firmware/nrf52840/**/*.zip
