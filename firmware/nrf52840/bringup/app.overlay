@@ -5,22 +5,60 @@
 		/* XIAO D6 = nRF P1.11. Use <&gpio0 29 GPIO_ACTIVE_HIGH> for D3. */
 		vperiph-en-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
 
-		/* XIAO D7 = nRF P1.12, XIAO D2 = nRF P0.28. */
+		/* XIAO D7 = nRF P1.12. */
 		flash-cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
-		imu-int-gpios = <&gpio0 28 GPIO_ACTIVE_HIGH>;
+	};
 
-		/* Raw line reads for bring-up diagnostics; peripherals still own pins. */
-		i2c-sda-gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
-		i2c-scl-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
-		flash-sck-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
-		flash-miso-gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;
-		flash-mosi-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
+	aliases {
+		imu1 = &imu1;
+		imu2 = &imu2;
+		mmc = &mmc;
+		lis3mdl = &lis3mdl;
 	};
 };
 
 &xiao_i2c {
 	status = "okay";
-	clock-frequency = <I2C_BITRATE_STANDARD>;
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	/*
+	 * LSM6DSOX uses the LSM6DSO driver for its common accelerometer,
+	 * gyroscope, and temperature register set.
+	 */
+	imu1: lsm6dso@6a {
+		compatible = "st,lsm6dso";
+		reg = <0x6a>;
+		accel-range = <1>; /* +/-16 g */
+		accel-odr = <5>;   /* 208 Hz */
+		gyro-range = <6>;  /* +/-2000 dps */
+		gyro-odr = <5>;    /* 208 Hz */
+		status = "okay";
+	};
+
+	imu2: lsm6dso32@6b {
+		compatible = "st,lsm6dso32";
+		reg = <0x6b>;
+		accel-range = <1>; /* +/-32 g on LSM6DSO32 */
+		accel-odr = <5>;   /* 208 Hz */
+		gyro-range = <6>;  /* +/-2000 dps */
+		gyro-odr = <5>;    /* 208 Hz */
+		status = "okay";
+	};
+
+	mmc: magnetometer@30 {
+		compatible = "memsic,mmc56x3";
+		reg = <0x30>;
+		magn-odr = <100>;
+		bandwidth-selection-bits-0;
+		auto-self-reset;
+		status = "okay";
+	};
+
+	lis3mdl: magnetometer@1c {
+		compatible = "st,lis3mdl-magn";
+		reg = <0x1c>;
+		status = "okay";
+	};
 };
 
 &xiao_spi {
@@ -29,7 +67,7 @@
 
 /*
  * The stock XIAO board definition maps UART0 to D6/D7. This board uses those
- * pins for V_periph enable and flash CS#, while the console runs over USB CDC.
+ * pins for board functions, while the console runs over USB CDC.
  */
 &uart0 {
 	status = "disabled";

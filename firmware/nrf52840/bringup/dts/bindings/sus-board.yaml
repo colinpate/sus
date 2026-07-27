@@ -1,4 +1,4 @@
-description: GPIO assignments for the SUS custom board bringup app
+description: Board-level controls for the SUS sensor firmware
 
 compatible: "zephyr,user"
 
@@ -11,34 +11,4 @@ properties:
   flash-cs-gpios:
     type: phandle-array
     required: true
-    description: SPI flash chip-select GPIO.
-
-  imu-int-gpios:
-    type: phandle-array
-    required: true
-    description: LSM6DSO INT1 GPIO.
-
-  i2c-sda-gpios:
-    type: phandle-array
-    required: true
-    description: I2C SDA GPIO used for raw line-level diagnostics.
-
-  i2c-scl-gpios:
-    type: phandle-array
-    required: true
-    description: I2C SCL GPIO used for raw line-level diagnostics.
-
-  flash-sck-gpios:
-    type: phandle-array
-    required: true
-    description: SPI flash clock GPIO used for raw line-level diagnostics.
-
-  flash-miso-gpios:
-    type: phandle-array
-    required: true
-    description: SPI flash MISO GPIO used for raw line-level diagnostics.
-
-  flash-mosi-gpios:
-    type: phandle-array
-    required: true
-    description: SPI flash MOSI GPIO used for raw line-level diagnostics.
+    description: GPIO used as the external SPI flash chip select.
