@@ -5,8 +5,6 @@
 		/* XIAO D6 = nRF P1.11. Use <&gpio0 29 GPIO_ACTIVE_HIGH> for D3. */
 		vperiph-en-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
 
-		/* XIAO D7 = nRF P1.12. */
-		flash-cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
 	};
 
 	aliases {
@@ -63,6 +61,21 @@
 
 &xiao_spi {
 	status = "okay";
+	cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+
+	mx25l25645g: flash@0 {
+		compatible = "jedec,spi-nor";
+		status = "okay";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+		spi-cpol;
+		spi-cpha;
+		jedec-id = [c2 20 19];
+		size = <268435456>;
+		has-dpd;
+		t-enter-dpd = <10000>;
+		t-exit-dpd = <30000>;
+	};
 };
 
 /*

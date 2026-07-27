@@ -1,9 +1,9 @@
 # Flash logic host tests
 
-These tests exercise the flash ring and log-transfer state machine without
-Zephyr or a physical flash device. `fake_flash.c` provides a dense array of
-erased, valid, or dirty sectors and records reads, erases, and transport
-events.
+These tests exercise log writing, commit recovery, the flash ring, and log
+transfer without Zephyr or a physical flash device. `fake_flash.c` provides a
+dense array of erased, valid, or dirty sectors and records reads, writes,
+erases, and transport events.
 
 Build and run directly with a host C compiler:
 

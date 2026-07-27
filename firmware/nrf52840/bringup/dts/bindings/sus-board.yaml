@@ -7,8 +7,3 @@ properties:
     type: phandle-array
     required: true
     description: GPIO that enables the switched peripheral rail.
-
-  flash-cs-gpios:
-    type: phandle-array
-    required: true
-    description: GPIO used as the external SPI flash chip select.

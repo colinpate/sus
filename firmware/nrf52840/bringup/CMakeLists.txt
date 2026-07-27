@@ -5,7 +5,9 @@ project(sus_board_bringup)
 
 target_sources(app PRIVATE
 	src/board_power.c
+	src/flash.c
 	src/flash_smoke_test.c
+	src/flash_zephyr.c
 	src/main.c
 	src/sensor_reader.c
 )

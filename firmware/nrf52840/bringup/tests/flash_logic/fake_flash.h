@@ -10,19 +10,20 @@
 
 struct fake_sector {
 	enum flash_sector_state state;
-	uint32_t log_id;
-	uint32_t sequence;
+	struct flash_chunk chunk;
 };
 
 struct fake_sent_chunk {
 	uint32_t log_id;
 	uint32_t sequence;
+	uint16_t payload_length;
 };
 
 struct fake_flash {
 	uint32_t sector_count;
 	struct fake_sector sectors[FAKE_FLASH_MAX_SECTORS];
 	uint32_t read_count[FAKE_FLASH_MAX_SECTORS];
+	uint32_t write_count[FAKE_FLASH_MAX_SECTORS];
 	uint32_t erase_count[FAKE_FLASH_MAX_SECTORS];
 
 	uint32_t sent_log_starts[FAKE_FLASH_MAX_EVENTS];
@@ -38,18 +39,20 @@ struct fake_flash {
 	uint32_t end_script_position;
 
 	int32_t fail_read_sector;
+	int32_t fail_write_sector;
 	int32_t fail_erase_sector;
 };
 
 void fake_flash_init(struct fake_flash *fake, uint32_t sector_count);
-void fake_flash_set_valid(struct fake_flash *fake, uint32_t sector,
-			  uint32_t log_id, uint32_t sequence);
+void fake_flash_set_data(struct fake_flash *fake, uint32_t sector,
+			 uint32_t log_id, uint32_t sequence);
 void fake_flash_set_dirty(struct fake_flash *fake, uint32_t sector,
 			  uint32_t log_id, uint32_t sequence);
 void fake_flash_script_log_end(struct fake_flash *fake,
 			       const enum flash_transport_result *responses,
 			       uint32_t response_count);
 
-extern const struct flash_log_ops fake_flash_ops;
+extern const struct flash_storage_ops fake_flash_storage_ops;
+extern const struct flash_transport_ops fake_flash_transport_ops;
 
 #endif /* SUS_TEST_FAKE_FLASH_H_ */
