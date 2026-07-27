@@ -1,9 +1,14 @@
 # Flash logic host tests
 
-These tests exercise log writing, commit recovery, the flash ring, and log
+These tests exercise log writing, boot recovery, the flash ring, and raw-sector
 transfer without Zephyr or a physical flash device. `fake_flash.c` provides a
 dense array of erased, valid, or dirty sectors and records reads, writes,
-erases, and transport events.
+erases, transfer ranges, and host dispositions.
+
+The recovery cases cover dirty and erased sectors inside an occupied range,
+dirty newest tails, interrupted old-log erases, wrapped logs, retries, and
+exact transfer boundaries. Commit sectors are written and transmitted, but
+log validation is intentionally left to the receiving host.
 
 Build and run directly with a host C compiler:
 

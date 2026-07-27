@@ -29,8 +29,11 @@ enum flash_sector_state {
 };
 
 enum flash_transport_result {
-	FLASH_TRANSPORT_ACK,
-	FLASH_TRANSPORT_ERROR,
+	/* The host durably accepted the exact reported range. */
+	FLASH_TRANSPORT_ERASE,
+	/* Keep the range and send it again. */
+	FLASH_TRANSPORT_RETRY,
+	/* Stop sending and keep the range. */
 	FLASH_TRANSPORT_DONE,
 };
 
@@ -39,12 +42,21 @@ enum flash_log_result {
 	FLASH_LOG_EMPTY,
 	FLASH_LOG_FULL,
 	FLASH_LOG_CORRUPT,
-	FLASH_LOG_INCOMPLETE,
 	FLASH_LOG_IO_ERROR,
 	FLASH_LOG_TRANSPORT_ERROR,
 	FLASH_LOG_TRANSPORT_DONE,
 	FLASH_LOG_BAD_STATE,
 	FLASH_LOG_INVALID_ARGUMENT,
+};
+
+struct flash_transfer_summary {
+	uint32_t log_id;
+	uint32_t start_sector;
+	/* Half-open range: end_sector is not part of the transfer. */
+	uint32_t end_sector;
+	uint32_t sector_count;
+	/* CRC-32 over all raw 4 KiB sectors in transfer order. */
+	uint32_t raw_crc;
 };
 
 struct flash_storage_ops {
@@ -57,16 +69,19 @@ struct flash_storage_ops {
 };
 
 struct flash_transport_ops {
-	int (*send_log_start)(void *context, uint32_t log_id);
-	int (*send_chunk)(void *context, const struct flash_chunk *chunk);
-	enum flash_transport_result (*send_log_end)(void *context,
-						    uint32_t log_id,
-						    uint32_t log_crc);
+	int (*begin)(void *context, uint32_t log_id,
+		     uint32_t start_sector);
+	int (*send_sector)(void *context, uint32_t sector,
+			   const struct flash_chunk *raw_sector);
+	enum flash_transport_result
+		(*finish)(void *context,
+			  const struct flash_transfer_summary *summary);
 };
 
 struct flash_log {
 	uint32_t read_sector;
 	uint32_t write_sector;
+	uint32_t read_log_id;
 	uint32_t next_log_id;
 	uint32_t sector_count;
 	struct flash_chunk *scratch;
@@ -76,13 +91,10 @@ struct flash_log {
 	void *transport_context;
 
 	bool write_active;
-	bool tail_incomplete;
 	uint32_t active_log_id;
 	uint32_t active_sequence;
 	uint32_t active_start_sector;
 	uint32_t active_crc_state;
-	uint32_t incomplete_start_sector;
-	uint32_t incomplete_log_id;
 };
 
 enum flash_log_result flash_log_init(struct flash_log *log,
@@ -109,8 +121,6 @@ enum flash_log_result flash_log_append(struct flash_log *log,
 				       size_t payload_length);
 enum flash_log_result flash_log_close(struct flash_log *log);
 enum flash_log_result flash_log_abort(struct flash_log *log);
-enum flash_log_result
-flash_log_discard_incomplete(struct flash_log *log);
 enum flash_log_result flash_log_read_one(struct flash_log *log);
 enum flash_log_result flash_log_drain(struct flash_log *log,
 				      uint8_t max_retries);

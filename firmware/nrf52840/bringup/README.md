@@ -21,17 +21,35 @@ same Zephyr driver. `src/main.c` owns the console output loop.
 
 The flash journal uses one 4 KiB sector per data chunk and writes a separate
 commit sector when a log closes. A commit stores the final sequence count and
-aggregate payload CRC, so startup scanning can distinguish complete logs from
-power-interrupted writes. One physical sector remains reserved to keep the
-ring's full and empty states unambiguous.
+aggregate payload CRC as evidence for the receiving host. The device does not
+try to classify a transferred log as complete or corrupt. One physical sector
+remains reserved to keep the ring's full and empty states unambiguous.
 
 Initialize the production storage adapter with
 `flash_zephyr_storage_init_default()`, pass `flash_zephyr_storage_ops` to
 `flash_log_init()`, and then call `flash_log_scan()` before beginning a new
 log. `flash_log_begin()`, `flash_log_append()`, and `flash_log_close()` form the
-normal write path. If startup scanning reports `FLASH_LOG_INCOMPLETE`, the
-application may preserve it for diagnosis or discard it explicitly with
-`flash_log_discard_incomplete()`.
+normal write path.
+
+Startup recovery finds the physical ring range bounded by the oldest and
+newest valid sectors. Dirty or invalid sectors in the free arc after the newest
+sector are erased, including a partially programmed newest tail and remnants
+of an interrupted old-log erase. Dirty or erased sectors inside the occupied
+arc are preserved for transmission.
+
+`flash_log_read_one()` snapshots the write pointer and streams raw sectors
+starting at the read pointer. It stops before the first valid sector with a
+different log ID, or at the write-pointer snapshot. The transfer summary
+identifies the exact half-open sector range and includes a CRC over the raw
+sector bytes. The host then returns:
+
+- `FLASH_TRANSPORT_ERASE` after it has durably accepted that exact range
+- `FLASH_TRANSPORT_RETRY` to retain and retransmit the range
+- `FLASH_TRANSPORT_DONE` to stop without erasing the range
+
+This also handles an incomplete newest log without a special device state:
+boot recovery trims its dirty tail, the valid prefix is transmitted, and the
+host detects the missing commit marker.
 
 The XIAO board definition routes `printk()` to USB CDC ACM, so serial prints should work over USB. After flashing, open the board's USB serial port at 115200 baud. The baud rate is mostly ceremonial for USB CDC, but it keeps terminal tools happy.
 

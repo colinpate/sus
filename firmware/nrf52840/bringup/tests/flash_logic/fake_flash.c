@@ -58,41 +58,50 @@ static int fake_erase_sector(void *context, uint32_t sector)
 	return 0;
 }
 
-static int fake_send_log_start(void *context, uint32_t log_id)
+static int fake_transfer_begin(void *context, uint32_t log_id,
+			       uint32_t start_sector)
 {
 	struct fake_flash *fake = context;
+	struct fake_transfer_start *start;
 
-	assert(fake->sent_log_start_count < FAKE_FLASH_MAX_EVENTS);
-	fake->sent_log_starts[fake->sent_log_start_count++] = log_id;
+	assert(fake->start_count < FAKE_FLASH_MAX_EVENTS);
+	start = &fake->starts[fake->start_count++];
+	start->log_id = log_id;
+	start->start_sector = start_sector;
 	return 0;
 }
 
-static int fake_send_chunk(void *context, const struct flash_chunk *chunk)
+static int fake_send_sector(void *context, uint32_t sector,
+			    const struct flash_chunk *raw_sector)
 {
 	struct fake_flash *fake = context;
-	struct fake_sent_chunk *sent;
+	struct fake_sent_sector *sent;
 
-	assert(fake->sent_chunk_count < FAKE_FLASH_MAX_EVENTS);
-	sent = &fake->sent_chunks[fake->sent_chunk_count++];
-	sent->log_id = chunk->log_id;
-	sent->sequence = chunk->sequence;
-	sent->payload_length = chunk->payload_length;
+	assert(sector < fake->sector_count);
+	assert(fake->sent_sector_count < FAKE_FLASH_MAX_EVENTS);
+	sent = &fake->sent_sectors[fake->sent_sector_count++];
+	sent->sector = sector;
+	sent->state = fake->sectors[sector].state;
+	sent->magic = raw_sector->magic;
+	sent->log_id = raw_sector->log_id;
+	sent->sequence = raw_sector->sequence;
 	return 0;
 }
 
 static enum flash_transport_result
-fake_send_log_end(void *context, uint32_t log_id, uint32_t log_crc)
+fake_transfer_finish(void *context,
+		     const struct flash_transfer_summary *summary)
 {
 	struct fake_flash *fake = context;
-	enum flash_transport_result result = FLASH_TRANSPORT_ACK;
+	enum flash_transport_result result = FLASH_TRANSPORT_ERASE;
 
-	assert(fake->sent_log_end_count < FAKE_FLASH_MAX_EVENTS);
-	fake->sent_log_ends[fake->sent_log_end_count] = log_id;
-	fake->sent_log_crcs[fake->sent_log_end_count] = log_crc;
-	fake->sent_log_end_count++;
+	assert(fake->summary_count < FAKE_FLASH_MAX_EVENTS);
+	fake->summaries[fake->summary_count++] = *summary;
 
-	if (fake->end_script_position < fake->end_script_length) {
-		result = fake->end_script[fake->end_script_position++];
+	if (fake->finish_script_position <
+	    fake->finish_script_length) {
+		result =
+			fake->finish_script[fake->finish_script_position++];
 	}
 	return result;
 }
@@ -104,9 +113,9 @@ const struct flash_storage_ops fake_flash_storage_ops = {
 };
 
 const struct flash_transport_ops fake_flash_transport_ops = {
-	.send_log_start = fake_send_log_start,
-	.send_chunk = fake_send_chunk,
-	.send_log_end = fake_send_log_end,
+	.begin = fake_transfer_begin,
+	.send_sector = fake_send_sector,
+	.finish = fake_transfer_finish,
 };
 
 void fake_flash_init(struct fake_flash *fake, uint32_t sector_count)
@@ -150,13 +159,14 @@ void fake_flash_set_dirty(struct fake_flash *fake, uint32_t sector,
 	fake->sectors[sector].state = FLASH_SECTOR_DIRTY;
 }
 
-void fake_flash_script_log_end(struct fake_flash *fake,
-			       const enum flash_transport_result *responses,
-			       uint32_t response_count)
+void fake_flash_script_finish(
+	struct fake_flash *fake,
+	const enum flash_transport_result *responses,
+	uint32_t response_count)
 {
 	assert(response_count <= FAKE_FLASH_MAX_EVENTS);
-	memcpy(fake->end_script, responses,
-	       response_count * sizeof(fake->end_script[0]));
-	fake->end_script_length = response_count;
-	fake->end_script_position = 0;
+	memcpy(fake->finish_script, responses,
+	       response_count * sizeof(fake->finish_script[0]));
+	fake->finish_script_length = response_count;
+	fake->finish_script_position = 0;
 }

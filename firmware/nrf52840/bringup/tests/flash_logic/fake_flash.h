@@ -13,10 +13,17 @@ struct fake_sector {
 	struct flash_chunk chunk;
 };
 
-struct fake_sent_chunk {
+struct fake_transfer_start {
+	uint32_t log_id;
+	uint32_t start_sector;
+};
+
+struct fake_sent_sector {
+	uint32_t sector;
+	enum flash_sector_state state;
+	uint32_t magic;
 	uint32_t log_id;
 	uint32_t sequence;
-	uint16_t payload_length;
 };
 
 struct fake_flash {
@@ -26,17 +33,16 @@ struct fake_flash {
 	uint32_t write_count[FAKE_FLASH_MAX_SECTORS];
 	uint32_t erase_count[FAKE_FLASH_MAX_SECTORS];
 
-	uint32_t sent_log_starts[FAKE_FLASH_MAX_EVENTS];
-	uint32_t sent_log_start_count;
-	struct fake_sent_chunk sent_chunks[FAKE_FLASH_MAX_EVENTS];
-	uint32_t sent_chunk_count;
-	uint32_t sent_log_ends[FAKE_FLASH_MAX_EVENTS];
-	uint32_t sent_log_crcs[FAKE_FLASH_MAX_EVENTS];
-	uint32_t sent_log_end_count;
+	struct fake_transfer_start starts[FAKE_FLASH_MAX_EVENTS];
+	uint32_t start_count;
+	struct fake_sent_sector sent_sectors[FAKE_FLASH_MAX_EVENTS];
+	uint32_t sent_sector_count;
+	struct flash_transfer_summary summaries[FAKE_FLASH_MAX_EVENTS];
+	uint32_t summary_count;
 
-	enum flash_transport_result end_script[FAKE_FLASH_MAX_EVENTS];
-	uint32_t end_script_length;
-	uint32_t end_script_position;
+	enum flash_transport_result finish_script[FAKE_FLASH_MAX_EVENTS];
+	uint32_t finish_script_length;
+	uint32_t finish_script_position;
 
 	int32_t fail_read_sector;
 	int32_t fail_write_sector;
@@ -48,9 +54,10 @@ void fake_flash_set_data(struct fake_flash *fake, uint32_t sector,
 			 uint32_t log_id, uint32_t sequence);
 void fake_flash_set_dirty(struct fake_flash *fake, uint32_t sector,
 			  uint32_t log_id, uint32_t sequence);
-void fake_flash_script_log_end(struct fake_flash *fake,
-			       const enum flash_transport_result *responses,
-			       uint32_t response_count);
+void fake_flash_script_finish(
+	struct fake_flash *fake,
+	const enum flash_transport_result *responses,
+	uint32_t response_count);
 
 extern const struct flash_storage_ops fake_flash_storage_ops;
 extern const struct flash_transport_ops fake_flash_transport_ops;

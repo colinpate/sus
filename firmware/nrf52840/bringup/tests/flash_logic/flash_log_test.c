@@ -60,12 +60,26 @@ static void write_log(struct fixture *fixture, uint32_t log_id,
 	CHECK(flash_log_close(&fixture->log) == FLASH_LOG_OK);
 }
 
-static void test_empty_scan(void)
+static void check_summary(const struct flash_transfer_summary *summary,
+			  uint32_t log_id, uint32_t start_sector,
+			  uint32_t end_sector, uint32_t sector_count)
+{
+	CHECK(summary->log_id == log_id);
+	CHECK(summary->start_sector == start_sector);
+	CHECK(summary->end_sector == end_sector);
+	CHECK(summary->sector_count == sector_count);
+	CHECK(summary->raw_crc != 0U);
+}
+
+static void test_empty_scan_cleans_dirty_media(void)
 {
 	struct fixture fixture;
 
 	fixture_init(&fixture, 6);
+	fake_flash_set_dirty(&fixture.fake, 3, 9, 0);
+
 	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
+	CHECK(fixture.fake.erase_count[3] == 1);
 	CHECK(fixture.log.read_sector == 0);
 	CHECK(fixture.log.write_sector == 0);
 	CHECK(fixture.log.next_log_id == 0);
@@ -96,7 +110,7 @@ static void test_writer_creates_data_and_commit(void)
 	assert_ring_state(&fixture.log);
 }
 
-static void test_one_chunk_log_round_trip(void)
+static void test_one_log_streams_data_and_commit_raw(void)
 {
 	struct fixture fixture;
 	uint32_t free_sector_reads;
@@ -104,19 +118,22 @@ static void test_one_chunk_log_round_trip(void)
 	fixture_init(&fixture, 6);
 	write_log(&fixture, 7, 1);
 	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
-	CHECK(fixture.log.read_sector == 0);
-	CHECK(fixture.log.write_sector == 2);
-	CHECK(fixture.log.next_log_id == 8);
 
 	free_sector_reads = fixture.fake.read_count[2];
 	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
 	CHECK(fixture.fake.read_count[2] == free_sector_reads);
-	CHECK(fixture.fake.sent_log_start_count == 1);
-	CHECK(fixture.fake.sent_log_starts[0] == 7);
-	CHECK(fixture.fake.sent_chunk_count == 1);
-	CHECK(fixture.fake.sent_chunks[0].log_id == 7);
-	CHECK(fixture.fake.sent_chunks[0].sequence == 0);
-	CHECK(fixture.fake.sent_log_end_count == 1);
+	CHECK(fixture.fake.start_count == 1);
+	CHECK(fixture.fake.starts[0].log_id == 7);
+	CHECK(fixture.fake.starts[0].start_sector == 0);
+	CHECK(fixture.fake.sent_sector_count == 2);
+	CHECK(fixture.fake.sent_sectors[0].sector == 0);
+	CHECK(fixture.fake.sent_sectors[0].magic ==
+	      FLASH_LOG_DATA_MAGIC);
+	CHECK(fixture.fake.sent_sectors[1].sector == 1);
+	CHECK(fixture.fake.sent_sectors[1].magic ==
+	      FLASH_LOG_COMMIT_MAGIC);
+	CHECK(fixture.fake.summary_count == 1);
+	check_summary(&fixture.fake.summaries[0], 7, 0, 2, 2);
 	CHECK(fixture.fake.erase_count[0] == 1);
 	CHECK(fixture.fake.erase_count[1] == 1);
 	CHECK(fixture.fake.erase_count[2] == 0);
@@ -124,7 +141,7 @@ static void test_one_chunk_log_round_trip(void)
 	assert_ring_state(&fixture.log);
 }
 
-static void test_two_logs_preserve_boundary(void)
+static void test_two_logs_stop_at_valid_new_id(void)
 {
 	struct fixture fixture;
 
@@ -134,20 +151,25 @@ static void test_two_logs_preserve_boundary(void)
 	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
 
 	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
-	CHECK(fixture.fake.sent_chunk_count == 2);
-	CHECK(fixture.fake.sent_chunks[0].sequence == 0);
-	CHECK(fixture.fake.sent_chunks[1].sequence == 1);
+	CHECK(fixture.fake.sent_sector_count == 3);
+	CHECK(fixture.fake.sent_sectors[0].sequence == 0);
+	CHECK(fixture.fake.sent_sectors[1].sequence == 1);
+	CHECK(fixture.fake.sent_sectors[2].magic ==
+	      FLASH_LOG_COMMIT_MAGIC);
+	check_summary(&fixture.fake.summaries[0], 10, 0, 3, 3);
 	CHECK(fixture.fake.erase_count[0] == 1);
 	CHECK(fixture.fake.erase_count[1] == 1);
 	CHECK(fixture.fake.erase_count[2] == 1);
 	CHECK(fixture.fake.erase_count[3] == 0);
-	CHECK(fixture.fake.sectors[3].state == FLASH_SECTOR_VALID);
 	CHECK(fixture.log.read_sector == 3);
+	CHECK(fixture.log.read_log_id == 11);
 
 	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
-	CHECK(fixture.fake.sent_chunk_count == 3);
-	CHECK(fixture.fake.sent_chunks[2].log_id == 11);
-	CHECK(fixture.fake.sent_chunks[2].sequence == 0);
+	CHECK(fixture.fake.sent_sector_count == 5);
+	CHECK(fixture.fake.sent_sectors[3].log_id == 11);
+	CHECK(fixture.fake.sent_sectors[4].magic ==
+	      FLASH_LOG_COMMIT_MAGIC);
+	check_summary(&fixture.fake.summaries[1], 11, 3, 5, 2);
 	CHECK(flash_log_is_empty(&fixture.log));
 	assert_ring_state(&fixture.log);
 }
@@ -165,10 +187,14 @@ static void test_wrapped_log(void)
 	CHECK(fixture.log.write_sector == 2);
 
 	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
-	CHECK(fixture.fake.sent_chunk_count == 3);
-	CHECK(fixture.fake.sent_chunks[0].sequence == 0);
-	CHECK(fixture.fake.sent_chunks[1].sequence == 1);
-	CHECK(fixture.fake.sent_chunks[2].sequence == 2);
+	CHECK(fixture.fake.sent_sector_count == 4);
+	CHECK(fixture.fake.sent_sectors[0].sector == 4);
+	CHECK(fixture.fake.sent_sectors[1].sector == 5);
+	CHECK(fixture.fake.sent_sectors[2].sector == 0);
+	CHECK(fixture.fake.sent_sectors[3].sector == 1);
+	CHECK(fixture.fake.sent_sectors[3].magic ==
+	      FLASH_LOG_COMMIT_MAGIC);
+	check_summary(&fixture.fake.summaries[0], 20, 4, 2, 4);
 	CHECK(fixture.fake.erase_count[4] == 1);
 	CHECK(fixture.fake.erase_count[5] == 1);
 	CHECK(fixture.fake.erase_count[0] == 1);
@@ -189,7 +215,6 @@ static void test_reserved_sector_full(void)
 	write_log(&fixture, 30, 4);
 	CHECK(fixture.log.read_sector == 1);
 	CHECK(fixture.log.write_sector == 0);
-	CHECK(!flash_log_is_empty(&fixture.log));
 	CHECK(flash_log_is_full(&fixture.log));
 	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
 	CHECK(flash_log_is_full(&fixture.log));
@@ -197,7 +222,8 @@ static void test_reserved_sector_full(void)
 	reserved_sector_reads = fixture.fake.read_count[0];
 	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
 	CHECK(fixture.fake.read_count[0] == reserved_sector_reads);
-	CHECK(fixture.fake.sent_chunk_count == 4);
+	CHECK(fixture.fake.sent_sector_count == 5);
+	check_summary(&fixture.fake.summaries[0], 30, 1, 0, 5);
 	CHECK(flash_log_is_empty(&fixture.log));
 	CHECK(!flash_log_is_full(&fixture.log));
 	assert_ring_state(&fixture.log);
@@ -242,94 +268,125 @@ static void test_abort_erases_partial_log(void)
 	assert_ring_state(&fixture.log);
 }
 
-static void test_dirty_sector_is_not_consumed(void)
+static void test_dirty_sector_inside_log_is_streamed_raw(void)
 {
 	struct fixture fixture;
 
-	fixture_init(&fixture, 6);
-	write_log(&fixture, 40, 1);
+	fixture_init(&fixture, 7);
+	write_log(&fixture, 40, 2);
+	fake_flash_set_dirty(&fixture.fake, 1, 40, 1);
+
 	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
-	fake_flash_set_dirty(&fixture.fake, 0, 40, 0);
-
-	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_CORRUPT);
-	CHECK(fixture.fake.sent_log_start_count == 0);
-	CHECK(fixture.fake.sent_chunk_count == 0);
-	CHECK(fixture.fake.sent_log_end_count == 0);
-	CHECK(fixture.fake.erase_count[0] == 0);
-	CHECK(fixture.log.read_sector == 0);
-	CHECK(fixture.log.write_sector == 2);
-	assert_ring_state(&fixture.log);
-}
-
-static void test_transport_retry_then_ack(void)
-{
-	struct fixture fixture;
-	const enum flash_transport_result responses[] = {
-		FLASH_TRANSPORT_ERROR,
-		FLASH_TRANSPORT_ACK,
-	};
-
-	fixture_init(&fixture, 6);
-	write_log(&fixture, 60, 1);
-	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
-	fake_flash_script_log_end(&fixture.fake, responses, 2);
-
-	CHECK(flash_log_drain(&fixture.log, 3) == FLASH_LOG_OK);
-	CHECK(fixture.fake.sent_log_start_count == 2);
-	CHECK(fixture.fake.sent_chunk_count == 2);
-	CHECK(fixture.fake.sent_log_end_count == 2);
-	CHECK(fixture.fake.erase_count[0] == 1);
+	CHECK(fixture.fake.erase_count[1] == 0);
+	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
+	CHECK(fixture.fake.sent_sector_count == 3);
+	CHECK(fixture.fake.sent_sectors[1].sector == 1);
+	CHECK(fixture.fake.sent_sectors[1].state ==
+	      FLASH_SECTOR_DIRTY);
+	check_summary(&fixture.fake.summaries[0], 40, 0, 3, 3);
 	CHECK(fixture.fake.erase_count[1] == 1);
 	CHECK(flash_log_is_empty(&fixture.log));
-	assert_ring_state(&fixture.log);
 }
 
-static void test_scan_rejects_gap(void)
+static void test_erased_gap_inside_log_is_streamed_raw(void)
 {
 	struct fixture fixture;
 
-	fixture_init(&fixture, 6);
-	write_log(&fixture, 70, 1);
+	fixture_init(&fixture, 7);
+	write_log(&fixture, 50, 1);
 	memcpy(&fixture.fake.sectors[2], &fixture.fake.sectors[1],
 	       sizeof(fixture.fake.sectors[2]));
 	memset(&fixture.fake.sectors[1].chunk, 0xff,
 	       sizeof(fixture.fake.sectors[1].chunk));
 	fixture.fake.sectors[1].state = FLASH_SECTOR_ERASED;
 
-	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_CORRUPT);
-	CHECK(fixture.fake.erase_count[0] == 0);
-	CHECK(fixture.fake.erase_count[2] == 0);
+	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
+	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
+	CHECK(fixture.fake.sent_sector_count == 3);
+	CHECK(fixture.fake.sent_sectors[1].state ==
+	      FLASH_SECTOR_ERASED);
+	CHECK(fixture.fake.sent_sectors[2].magic ==
+	      FLASH_LOG_COMMIT_MAGIC);
+	check_summary(&fixture.fake.summaries[0], 50, 0, 3, 3);
+	CHECK(flash_log_is_empty(&fixture.log));
+}
+
+static void test_transport_retry_then_erase(void)
+{
+	struct fixture fixture;
+	const enum flash_transport_result responses[] = {
+		FLASH_TRANSPORT_RETRY,
+		FLASH_TRANSPORT_ERASE,
+	};
+
+	fixture_init(&fixture, 6);
+	write_log(&fixture, 60, 1);
+	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
+	fake_flash_script_finish(&fixture.fake, responses, 2);
+
+	CHECK(flash_log_drain(&fixture.log, 3) == FLASH_LOG_OK);
+	CHECK(fixture.fake.start_count == 2);
+	CHECK(fixture.fake.sent_sector_count == 4);
+	CHECK(fixture.fake.summary_count == 2);
+	CHECK(fixture.fake.summaries[0].raw_crc ==
+	      fixture.fake.summaries[1].raw_crc);
+	CHECK(fixture.fake.erase_count[0] == 1);
+	CHECK(fixture.fake.erase_count[1] == 1);
+	CHECK(flash_log_is_empty(&fixture.log));
 	assert_ring_state(&fixture.log);
 }
 
-static void test_scan_reports_incomplete_tail(void)
+static void test_transport_done_preserves_range(void)
+{
+	struct fixture fixture;
+	const enum flash_transport_result response =
+		FLASH_TRANSPORT_DONE;
+
+	fixture_init(&fixture, 6);
+	write_log(&fixture, 65, 1);
+	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
+	fake_flash_script_finish(&fixture.fake, &response, 1);
+
+	CHECK(flash_log_read_one(&fixture.log) ==
+	      FLASH_LOG_TRANSPORT_DONE);
+	CHECK(fixture.log.read_sector == 0);
+	CHECK(fixture.log.write_sector == 2);
+	CHECK(fixture.fake.erase_count[0] == 0);
+	CHECK(fixture.fake.erase_count[1] == 0);
+	CHECK(!flash_log_is_empty(&fixture.log));
+}
+
+static void test_scan_trims_incomplete_newest_dirty_tail(void)
 {
 	struct fixture fixture;
 	uint8_t payload = 1;
 
-	fixture_init(&fixture, 6);
+	fixture_init(&fixture, 8);
+	write_log(&fixture, 70, 1);
 	CHECK(flash_log_begin(&fixture.log, NULL) == FLASH_LOG_OK);
 	CHECK(flash_log_append(&fixture.log, &payload, sizeof(payload)) ==
 	      FLASH_LOG_OK);
+	fake_flash_set_dirty(&fixture.fake, 3, 71, 1);
 
-	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_INCOMPLETE);
-	CHECK(fixture.log.tail_incomplete);
-	CHECK(flash_log_begin(&fixture.log, NULL) ==
-	      FLASH_LOG_INCOMPLETE);
-	CHECK(flash_log_read_one(&fixture.log) ==
-	      FLASH_LOG_INCOMPLETE);
-	CHECK(fixture.fake.erase_count[0] == 0);
-	CHECK(flash_log_discard_incomplete(&fixture.log) ==
-	      FLASH_LOG_OK);
-	CHECK(fixture.fake.erase_count[0] == 1);
+	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
+	CHECK(fixture.fake.erase_count[3] == 1);
+	CHECK(fixture.fake.sectors[2].state == FLASH_SECTOR_VALID);
+	CHECK(fixture.log.read_sector == 0);
+	CHECK(fixture.log.write_sector == 3);
+	CHECK(fixture.log.next_log_id == 72);
+
+	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
+	check_summary(&fixture.fake.summaries[0], 70, 0, 2, 2);
+	CHECK(fixture.log.read_sector == 2);
+	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
+	check_summary(&fixture.fake.summaries[1], 71, 2, 3, 1);
+	CHECK(fixture.fake.sent_sectors[2].magic ==
+	      FLASH_LOG_DATA_MAGIC);
 	CHECK(flash_log_is_empty(&fixture.log));
-	CHECK(fixture.log.next_log_id == 0);
-	CHECK(flash_log_begin(&fixture.log, NULL) == FLASH_LOG_OK);
-	CHECK(flash_log_abort(&fixture.log) == FLASH_LOG_OK);
 	assert_ring_state(&fixture.log);
 }
 
-static void test_scan_reclaims_dirty_tail_sector(void)
+static void test_scan_reclaims_dirty_free_arc(void)
 {
 	struct fixture fixture;
 
@@ -346,13 +403,49 @@ static void test_scan_reclaims_dirty_tail_sector(void)
 	assert_ring_state(&fixture.log);
 }
 
+static void test_scan_cleans_interrupted_old_erase(void)
+{
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	write_log(&fixture, 80, 1);
+	write_log(&fixture, 81, 1);
+	CHECK(fake_flash_storage_ops.erase_sector(&fixture.fake, 0) == 0);
+	fake_flash_set_dirty(&fixture.fake, 1, 80, 1);
+
+	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_OK);
+	CHECK(fixture.fake.erase_count[1] == 1);
+	CHECK(fixture.fake.sectors[1].state == FLASH_SECTOR_ERASED);
+	CHECK(fixture.log.read_sector == 2);
+	CHECK(fixture.log.read_log_id == 81);
+	CHECK(fixture.log.write_sector == 4);
+	CHECK(flash_log_read_one(&fixture.log) == FLASH_LOG_OK);
+	check_summary(&fixture.fake.summaries[0], 81, 2, 4, 2);
+	CHECK(flash_log_is_empty(&fixture.log));
+}
+
+static void test_scan_rejects_valid_sector_in_free_arc(void)
+{
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	fake_flash_set_data(&fixture.fake, 0, 90, 0);
+	fake_flash_set_data(&fixture.fake, 2, 92, 0);
+	fake_flash_set_data(&fixture.fake, 4, 91, 0);
+
+	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_CORRUPT);
+	CHECK(fixture.fake.erase_count[4] == 0);
+	assert_ring_state(&fixture.log);
+}
+
 static void test_scan_rejects_all_sectors_valid(void)
 {
 	struct fixture fixture;
 
 	fixture_init(&fixture, 6);
 	for (uint32_t sequence = 0; sequence < 6; sequence++) {
-		fake_flash_set_data(&fixture.fake, sequence, 80, sequence);
+		fake_flash_set_data(&fixture.fake, sequence, 100,
+				    sequence);
 	}
 	CHECK(flash_log_scan(&fixture.log) == FLASH_LOG_CORRUPT);
 	assert_ring_state(&fixture.log);
@@ -367,30 +460,38 @@ static void run_test(const char *name, void (*test)(void))
 
 int main(void)
 {
-	run_test("empty_scan", test_empty_scan);
+	run_test("empty_scan_cleans_dirty_media",
+		 test_empty_scan_cleans_dirty_media);
 	run_test("writer_creates_data_and_commit",
 		 test_writer_creates_data_and_commit);
-	run_test("one_chunk_log_round_trip",
-		 test_one_chunk_log_round_trip);
-	run_test("two_logs_preserve_boundary",
-		 test_two_logs_preserve_boundary);
+	run_test("one_log_streams_data_and_commit_raw",
+		 test_one_log_streams_data_and_commit_raw);
+	run_test("two_logs_stop_at_valid_new_id",
+		 test_two_logs_stop_at_valid_new_id);
 	run_test("wrapped_log", test_wrapped_log);
 	run_test("reserved_sector_full", test_reserved_sector_full);
 	run_test("writer_reserves_commit_sector",
 		 test_writer_reserves_commit_sector);
 	run_test("abort_erases_partial_log",
 		 test_abort_erases_partial_log);
-	run_test("dirty_sector_is_not_consumed",
-		 test_dirty_sector_is_not_consumed);
-	run_test("transport_retry_then_ack",
-		 test_transport_retry_then_ack);
-	run_test("scan_rejects_gap", test_scan_rejects_gap);
-	run_test("scan_reports_incomplete_tail",
-		 test_scan_reports_incomplete_tail);
-	run_test("scan_reclaims_dirty_tail_sector",
-		 test_scan_reclaims_dirty_tail_sector);
+	run_test("dirty_sector_inside_log_is_streamed_raw",
+		 test_dirty_sector_inside_log_is_streamed_raw);
+	run_test("erased_gap_inside_log_is_streamed_raw",
+		 test_erased_gap_inside_log_is_streamed_raw);
+	run_test("transport_retry_then_erase",
+		 test_transport_retry_then_erase);
+	run_test("transport_done_preserves_range",
+		 test_transport_done_preserves_range);
+	run_test("scan_trims_incomplete_newest_dirty_tail",
+		 test_scan_trims_incomplete_newest_dirty_tail);
+	run_test("scan_reclaims_dirty_free_arc",
+		 test_scan_reclaims_dirty_free_arc);
+	run_test("scan_cleans_interrupted_old_erase",
+		 test_scan_cleans_interrupted_old_erase);
+	run_test("scan_rejects_valid_sector_in_free_arc",
+		 test_scan_rejects_valid_sector_in_free_arc);
 	run_test("scan_rejects_all_sectors_valid",
 		 test_scan_rejects_all_sectors_valid);
-	printf("[  PASSED  ] 14 tests\n");
+	printf("[  PASSED  ] 17 tests\n");
 	return 0;
 }

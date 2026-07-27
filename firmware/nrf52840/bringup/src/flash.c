@@ -24,8 +24,8 @@ static bool flash_log_has_storage(const struct flash_storage_ops *storage)
 static bool
 flash_log_has_transport(const struct flash_transport_ops *transport)
 {
-	return transport != NULL && transport->send_log_start != NULL &&
-	       transport->send_chunk != NULL && transport->send_log_end != NULL;
+	return transport != NULL && transport->begin != NULL &&
+	       transport->send_sector != NULL && transport->finish != NULL;
 }
 
 static uint32_t flash_crc32_update(uint32_t state, const void *data,
@@ -57,13 +57,6 @@ static void flash_store_u32_le(uint8_t output[4], uint32_t value)
 	output[1] = (uint8_t)(value >> 8U);
 	output[2] = (uint8_t)(value >> 16U);
 	output[3] = (uint8_t)(value >> 24U);
-}
-
-static uint32_t flash_load_u32_le(const uint8_t input[4])
-{
-	return (uint32_t)input[0] | ((uint32_t)input[1] << 8U) |
-	       ((uint32_t)input[2] << 16U) |
-	       ((uint32_t)input[3] << 24U);
 }
 
 static bool flash_chunk_header_is_valid(const struct flash_chunk *chunk)
@@ -156,19 +149,12 @@ flash_log_erase_range(struct flash_log *log, uint32_t start, uint32_t end)
 }
 
 static enum flash_log_result
-flash_log_validate_journal(struct flash_log *log,
-			   uint32_t valid_sector_count)
+flash_log_clean_free_arc(struct flash_log *log)
 {
-	uint32_t cursor = log->read_sector;
+	uint32_t cursor = log->write_sector;
 	uint32_t traversed = 0;
-	uint32_t current_log_id = 0;
-	uint32_t expected_sequence = 0;
-	uint32_t log_crc_state = FLASH_CRC_INITIAL;
-	uint32_t current_log_start = cursor;
-	bool first_log = true;
-	bool committed = false;
 
-	while (cursor != log->write_sector) {
+	while (cursor != log->read_sector) {
 		enum flash_sector_state state;
 		enum flash_log_result result =
 			flash_log_read_sector(log, cursor, &state);
@@ -176,43 +162,21 @@ flash_log_validate_journal(struct flash_log *log,
 		if (result != FLASH_LOG_OK) {
 			return result;
 		}
-		if (state != FLASH_SECTOR_VALID ||
-		    !flash_chunk_is_valid(log->scratch)) {
+		if (state == FLASH_SECTOR_VALID &&
+		    flash_chunk_is_valid(log->scratch)) {
+			/*
+			 * A valid sector in the free arc means the recovered
+			 * oldest/newest bounds do not describe one ring range.
+			 */
 			return FLASH_LOG_CORRUPT;
 		}
-
-		if (first_log || log->scratch->log_id != current_log_id) {
-			if (!first_log && !committed) {
-				return FLASH_LOG_CORRUPT;
+		if (state == FLASH_SECTOR_DIRTY ||
+		    (state == FLASH_SECTOR_VALID &&
+		     !flash_chunk_is_valid(log->scratch))) {
+			if (log->storage->erase_sector(log->storage_context,
+						       cursor) != 0) {
+				return FLASH_LOG_IO_ERROR;
 			}
-			current_log_id = log->scratch->log_id;
-			current_log_start = cursor;
-			expected_sequence = 0;
-			log_crc_state = FLASH_CRC_INITIAL;
-			committed = false;
-			first_log = false;
-		}
-
-		if (log->scratch->magic == FLASH_LOG_DATA_MAGIC) {
-			if (committed ||
-			    log->scratch->sequence != expected_sequence) {
-				return FLASH_LOG_CORRUPT;
-			}
-			log_crc_state = flash_crc32_update(
-				log_crc_state, log->scratch->payload,
-				log->scratch->payload_length);
-			expected_sequence++;
-		} else {
-			uint32_t committed_crc =
-				flash_load_u32_le(log->scratch->payload);
-
-			if (committed ||
-			    log->scratch->sequence != expected_sequence ||
-			    committed_crc !=
-				    flash_crc32_finish(log_crc_state)) {
-				return FLASH_LOG_CORRUPT;
-			}
-			committed = true;
 		}
 
 		traversed++;
@@ -222,68 +186,28 @@ flash_log_validate_journal(struct flash_log *log,
 		cursor = flash_log_next_sector(log, cursor);
 	}
 
-	if (traversed != valid_sector_count) {
-		return FLASH_LOG_CORRUPT;
-	}
-	if (!committed) {
-		log->incomplete_start_sector = current_log_start;
-		log->incomplete_log_id = current_log_id;
-	}
-	return committed ? FLASH_LOG_OK : FLASH_LOG_INCOMPLETE;
+	return FLASH_LOG_OK;
 }
 
 static enum flash_log_result
-flash_log_locate_committed_log(struct flash_log *log, uint32_t *end_sector,
-			       uint32_t *log_id, uint32_t *log_crc)
+flash_log_clean_empty_media(struct flash_log *log)
 {
-	uint32_t cursor = log->read_sector;
-	uint32_t expected_sequence = 0;
-	uint32_t crc_state = FLASH_CRC_INITIAL;
-
-	while (cursor != log->write_sector) {
+	for (uint32_t sector = 0; sector < log->sector_count; sector++) {
 		enum flash_sector_state state;
 		enum flash_log_result result =
-			flash_log_read_sector(log, cursor, &state);
+			flash_log_read_sector(log, sector, &state);
 
 		if (result != FLASH_LOG_OK) {
 			return result;
 		}
-		if (state != FLASH_SECTOR_VALID ||
-		    !flash_chunk_is_valid(log->scratch)) {
-			return FLASH_LOG_CORRUPT;
+		if (state != FLASH_SECTOR_ERASED &&
+		    log->storage->erase_sector(log->storage_context,
+					       sector) != 0) {
+			return FLASH_LOG_IO_ERROR;
 		}
-
-		if (expected_sequence == 0U) {
-			*log_id = log->scratch->log_id;
-		}
-		if (log->scratch->log_id != *log_id) {
-			return FLASH_LOG_INCOMPLETE;
-		}
-
-		if (log->scratch->magic == FLASH_LOG_DATA_MAGIC) {
-			if (log->scratch->sequence != expected_sequence) {
-				return FLASH_LOG_CORRUPT;
-			}
-			crc_state = flash_crc32_update(
-				crc_state, log->scratch->payload,
-				log->scratch->payload_length);
-			expected_sequence++;
-			cursor = flash_log_next_sector(log, cursor);
-			continue;
-		}
-
-		if (log->scratch->sequence != expected_sequence ||
-		    flash_load_u32_le(log->scratch->payload) !=
-			    flash_crc32_finish(crc_state)) {
-			return FLASH_LOG_CORRUPT;
-		}
-
-		*log_crc = flash_crc32_finish(crc_state);
-		*end_sector = flash_log_next_sector(log, cursor);
-		return FLASH_LOG_OK;
 	}
 
-	return FLASH_LOG_INCOMPLETE;
+	return FLASH_LOG_OK;
 }
 
 enum flash_log_result flash_log_init(struct flash_log *log,
@@ -342,8 +266,6 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 	uint32_t newest_log_id = 0;
 	uint32_t newest_sequence = 0;
 	uint32_t valid_sector_count = 0;
-	uint32_t dirty_sector_count = 0;
-	uint32_t dirty_sector = 0;
 
 	if (log == NULL || log->scratch == NULL ||
 	    !flash_log_has_storage(log->storage)) {
@@ -352,9 +274,9 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 
 	log->read_sector = 0;
 	log->write_sector = 0;
+	log->read_log_id = 0;
 	log->next_log_id = 0;
 	log->write_active = false;
-	log->tail_incomplete = false;
 
 	for (uint32_t sector = 0; sector < log->sector_count; sector++) {
 		enum flash_sector_state state;
@@ -364,16 +286,9 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 		if (result != FLASH_LOG_OK) {
 			return result;
 		}
-		if (state == FLASH_SECTOR_DIRTY) {
-			dirty_sector = sector;
-			dirty_sector_count++;
+		if (state != FLASH_SECTOR_VALID ||
+		    !flash_chunk_is_valid(log->scratch)) {
 			continue;
-		}
-		if (state == FLASH_SECTOR_ERASED) {
-			continue;
-		}
-		if (!flash_chunk_is_valid(log->scratch)) {
-			return FLASH_LOG_CORRUPT;
 		}
 
 		if (valid_sector_count == 0U ||
@@ -382,6 +297,7 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 			oldest_log_id = log->scratch->log_id;
 			oldest_sequence = log->scratch->sequence;
 			log->read_sector = sector;
+			log->read_log_id = log->scratch->log_id;
 		}
 		if (valid_sector_count == 0U ||
 		    flash_chunk_is_newer(log->scratch, newest_log_id,
@@ -396,28 +312,12 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 	if (valid_sector_count >= log->sector_count) {
 		return FLASH_LOG_CORRUPT;
 	}
-	if (dirty_sector_count != 0U) {
-		if (dirty_sector_count != 1U ||
-		    dirty_sector != log->write_sector) {
-			return FLASH_LOG_CORRUPT;
-		}
-		if (log->storage->erase_sector(log->storage_context,
-					       dirty_sector) != 0) {
-			return FLASH_LOG_IO_ERROR;
-		}
-	}
 	if (valid_sector_count == 0U) {
-		return FLASH_LOG_OK;
+		return flash_log_clean_empty_media(log);
 	}
 
 	log->next_log_id = newest_log_id + 1U;
-	enum flash_log_result result =
-		flash_log_validate_journal(log, valid_sector_count);
-
-	if (result == FLASH_LOG_INCOMPLETE) {
-		log->tail_incomplete = true;
-	}
-	return result;
+	return flash_log_clean_free_arc(log);
 }
 
 enum flash_log_result flash_log_begin(struct flash_log *log,
@@ -428,9 +328,6 @@ enum flash_log_result flash_log_begin(struct flash_log *log,
 	}
 	if (log->write_active) {
 		return FLASH_LOG_BAD_STATE;
-	}
-	if (log->tail_incomplete) {
-		return FLASH_LOG_INCOMPLETE;
 	}
 	if (flash_log_is_full(log)) {
 		return FLASH_LOG_FULL;
@@ -452,6 +349,8 @@ enum flash_log_result flash_log_append(struct flash_log *log,
 				       const void *payload,
 				       size_t payload_length)
 {
+	bool was_empty;
+
 	if (log == NULL || payload == NULL ||
 	    payload_length > FLASH_LOG_PAYLOAD_BYTES) {
 		return FLASH_LOG_INVALID_ARGUMENT;
@@ -466,6 +365,7 @@ enum flash_log_result flash_log_append(struct flash_log *log,
 		return FLASH_LOG_FULL;
 	}
 
+	was_empty = flash_log_is_empty(log);
 	memset(log->scratch, 0xff, sizeof(*log->scratch));
 	log->scratch->magic = FLASH_LOG_DATA_MAGIC;
 	log->scratch->log_id = log->active_log_id;
@@ -480,6 +380,9 @@ enum flash_log_result flash_log_append(struct flash_log *log,
 		return FLASH_LOG_IO_ERROR;
 	}
 
+	if (was_empty) {
+		log->read_log_id = log->active_log_id;
+	}
 	log->active_crc_state = flash_crc32_update(
 		log->active_crc_state, payload, payload_length);
 	log->active_sequence++;
@@ -491,6 +394,7 @@ enum flash_log_result flash_log_append(struct flash_log *log,
 enum flash_log_result flash_log_close(struct flash_log *log)
 {
 	uint32_t log_crc;
+	bool was_empty;
 
 	if (log == NULL || !flash_log_has_storage(log->storage)) {
 		return FLASH_LOG_INVALID_ARGUMENT;
@@ -502,6 +406,7 @@ enum flash_log_result flash_log_close(struct flash_log *log)
 		return FLASH_LOG_FULL;
 	}
 
+	was_empty = flash_log_is_empty(log);
 	log_crc = flash_crc32_finish(log->active_crc_state);
 	memset(log->scratch, 0xff, sizeof(*log->scratch));
 	log->scratch->magic = FLASH_LOG_COMMIT_MAGIC;
@@ -517,6 +422,9 @@ enum flash_log_result flash_log_close(struct flash_log *log)
 		return FLASH_LOG_IO_ERROR;
 	}
 
+	if (was_empty) {
+		log->read_log_id = log->active_log_id;
+	}
 	log->write_sector =
 		flash_log_next_sector(log, log->write_sector);
 	log->write_active = false;
@@ -547,96 +455,85 @@ enum flash_log_result flash_log_abort(struct flash_log *log)
 	return FLASH_LOG_OK;
 }
 
-enum flash_log_result
-flash_log_discard_incomplete(struct flash_log *log)
-{
-	enum flash_log_result result;
-
-	if (log == NULL || !flash_log_has_storage(log->storage)) {
-		return FLASH_LOG_INVALID_ARGUMENT;
-	}
-	if (log->write_active) {
-		return FLASH_LOG_BAD_STATE;
-	}
-	if (!log->tail_incomplete) {
-		return FLASH_LOG_BAD_STATE;
-	}
-
-	result = flash_log_erase_range(log, log->incomplete_start_sector,
-				       log->write_sector);
-	if (result != FLASH_LOG_OK) {
-		return result;
-	}
-
-	log->write_sector = log->incomplete_start_sector;
-	log->next_log_id = log->incomplete_log_id;
-	log->tail_incomplete = false;
-	return FLASH_LOG_OK;
-}
-
 enum flash_log_result flash_log_read_one(struct flash_log *log)
 {
-	uint32_t end_sector;
-	uint32_t log_id;
-	uint32_t log_crc;
+	struct flash_transfer_summary summary;
 	uint32_t cursor;
-	enum flash_log_result result;
+	uint32_t write_snapshot;
+	uint32_t raw_crc_state = FLASH_CRC_INITIAL;
+	uint32_t next_read_log_id = log != NULL ? log->read_log_id : 0U;
+	bool next_log_found = false;
 
 	if (log == NULL || log->scratch == NULL ||
 	    !flash_log_has_storage(log->storage) ||
 	    !flash_log_has_transport(log->transport)) {
 		return FLASH_LOG_INVALID_ARGUMENT;
 	}
+	if (log->write_active) {
+		return FLASH_LOG_BAD_STATE;
+	}
 	if (flash_log_is_empty(log)) {
 		return FLASH_LOG_EMPTY;
 	}
 
-	result = flash_log_locate_committed_log(
-		log, &end_sector, &log_id, &log_crc);
-	if (result != FLASH_LOG_OK) {
-		return result;
-	}
+	cursor = log->read_sector;
+	write_snapshot = log->write_sector;
+	memset(&summary, 0, sizeof(summary));
+	summary.log_id = log->read_log_id;
+	summary.start_sector = cursor;
 
-	if (log->transport->send_log_start(log->transport_context,
-					   log_id) != 0) {
+	if (log->transport->begin(log->transport_context, summary.log_id,
+				  summary.start_sector) != 0) {
 		return FLASH_LOG_TRANSPORT_ERROR;
 	}
 
-	cursor = log->read_sector;
-	while (cursor != end_sector) {
+	while (cursor != write_snapshot) {
 		enum flash_sector_state state;
+		enum flash_log_result result =
+			flash_log_read_sector(log, cursor, &state);
 
-		result = flash_log_read_sector(log, cursor, &state);
 		if (result != FLASH_LOG_OK) {
 			return result;
 		}
-		if (state != FLASH_SECTOR_VALID ||
-		    !flash_chunk_is_valid(log->scratch)) {
-			return FLASH_LOG_CORRUPT;
-		}
-		if (log->scratch->magic == FLASH_LOG_COMMIT_MAGIC) {
+		if (state == FLASH_SECTOR_VALID &&
+		    flash_chunk_is_valid(log->scratch) &&
+		    log->scratch->log_id != summary.log_id) {
+			next_read_log_id = log->scratch->log_id;
+			next_log_found = true;
 			break;
 		}
-		if (log->transport->send_chunk(log->transport_context,
-					       log->scratch) != 0) {
+
+		if (log->transport->send_sector(log->transport_context,
+						cursor, log->scratch) != 0) {
 			return FLASH_LOG_TRANSPORT_ERROR;
 		}
+		raw_crc_state = flash_crc32_update(
+			raw_crc_state, log->scratch, sizeof(*log->scratch));
+		summary.sector_count++;
 		cursor = flash_log_next_sector(log, cursor);
 	}
 
-	switch (log->transport->send_log_end(log->transport_context,
-					     log_id, log_crc)) {
-	case FLASH_TRANSPORT_ACK:
-		result = flash_log_erase_range(log, log->read_sector,
-					       end_sector);
+	summary.end_sector = cursor;
+	summary.raw_crc = flash_crc32_finish(raw_crc_state);
+
+	switch (log->transport->finish(log->transport_context, &summary)) {
+	case FLASH_TRANSPORT_ERASE: {
+		enum flash_log_result result =
+			flash_log_erase_range(log, summary.start_sector,
+					      summary.end_sector);
+
 		if (result != FLASH_LOG_OK) {
 			return result;
 		}
-		log->read_sector = end_sector;
+		log->read_sector = summary.end_sector;
+		if (next_log_found) {
+			log->read_log_id = next_read_log_id;
+		}
 		return FLASH_LOG_OK;
+	}
 	case FLASH_TRANSPORT_DONE:
 		return FLASH_LOG_TRANSPORT_DONE;
-	case FLASH_TRANSPORT_ERROR:
+	case FLASH_TRANSPORT_RETRY:
 	default:
 		return FLASH_LOG_TRANSPORT_ERROR;
 	}
