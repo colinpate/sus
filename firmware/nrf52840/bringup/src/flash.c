@@ -1,209 +1,295 @@
-#include <stdint.h>
-#include <stdbool.h>
 #include "flash.h"
 
-#define SECTOR_BYTES 4096
-#define CHUNK_METADATA_BYTES 18
-#define PAYLOAD_BYTES (SECTOR_BYTES - CHUNK_METADATA_BYTES)
-#define FLASH_START_ADDR 0
-#define FLASH_END_ADDR (1 << 18)
-#define SECTOR_ADDR_INCR SECTOR_BYTES
+#include <limits.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
-#define SERIAL_LOG_ACK 1
-#define SERIAL_LOG_ERR 2
-#define SERIAL_DONE 3
-#define SERIAL_MAX_RETRIES 3
+_Static_assert(sizeof(struct flash_chunk) == FLASH_LOG_SECTOR_BYTES,
+	       "flash_chunk must occupy exactly one flash sector");
+_Static_assert(offsetof(struct flash_chunk, crc) ==
+		       FLASH_LOG_SECTOR_BYTES - sizeof(uint32_t),
+	       "flash_chunk CRC must be the final word in the sector");
 
-#define SECTOR_ERASED 1
-#define SECTOR_CRC_FAIL 2
-
-#define LOG_READ_INVALID 1
-#define LOG_READ_SERIAL_ERR 2
-#define LOG_READ_SERIAL_DONE 3
-#define LOG_READ_EMPTY 4
-
-uint32_t flash_write_addr;
-uint32_t flash_read_addr;
-uint32_t flash_log_id;
-
-struct flash_chunk {
-    uint32_t magic;
-    uint32_t log_id;
-    uint32_t sequence;
-    uint16_t payload_length;
-    uint8_t  payload[PAYLOAD_BYTES];
-    uint32_t crc;
-};
-
-uint32_t flash_next_sector_addr(uint32_t addr){
-    if ((addr + SECTOR_ADDR_INCR) < FLASH_END_ADDR) {
-        return addr + SECTOR_ADDR_INCR;
-    } else {
-        return FLASH_START_ADDR;
-    }
+static bool flash_log_has_required_ops(const struct flash_log_ops *ops)
+{
+	return ops != NULL && ops->read_sector != NULL &&
+	       ops->erase_sector != NULL && ops->send_log_start != NULL &&
+	       ops->send_chunk != NULL && ops->send_log_end != NULL;
 }
 
-/*
- * Keep one sector unused so read_addr == write_addr is unambiguously empty.
- * write_addr points to the next free sector and read_addr points to the oldest
- * unread sector.
- */
-bool flash_is_empty(void){
-    return flash_write_addr == flash_read_addr;
+static bool flash_chunk_is_older(const struct flash_chunk *candidate,
+				 uint32_t oldest_log_id,
+				 uint32_t oldest_sequence)
+{
+	return candidate->log_id < oldest_log_id ||
+	       (candidate->log_id == oldest_log_id &&
+		candidate->sequence < oldest_sequence);
 }
 
-bool flash_is_full(void){
-    return flash_next_sector_addr(flash_write_addr) == flash_read_addr;
+static bool flash_chunk_is_newer(const struct flash_chunk *candidate,
+				 uint32_t newest_log_id,
+				 uint32_t newest_sequence)
+{
+	return candidate->log_id > newest_log_id ||
+	       (candidate->log_id == newest_log_id &&
+		candidate->sequence > newest_sequence);
 }
 
-void update_log_crc(uint32_t* crc, struct flash_chunk* chunk){
+static enum flash_log_result
+flash_log_read_sector(struct flash_log *log, uint32_t sector,
+		      enum flash_sector_state *state)
+{
+	if (log->ops->read_sector(log->ops_context, sector, log->scratch,
+				  state) != 0) {
+		return FLASH_LOG_IO_ERROR;
+	}
 
+	return FLASH_LOG_OK;
 }
 
-void flash_read_sector(uint32_t addr, struct flash_chunk* chunk){
+static enum flash_log_result
+flash_log_validate_contiguous_range(struct flash_log *log,
+				    uint32_t valid_sector_count)
+{
+	uint32_t cursor = log->read_sector;
+	uint32_t traversed = 0;
 
+	while (cursor != log->write_sector) {
+		enum flash_sector_state state;
+		enum flash_log_result result =
+			flash_log_read_sector(log, cursor, &state);
+
+		if (result != FLASH_LOG_OK) {
+			return result;
+		}
+		if (state != FLASH_SECTOR_VALID) {
+			return FLASH_LOG_CORRUPT;
+		}
+
+		traversed++;
+		if (traversed >= log->sector_count) {
+			return FLASH_LOG_CORRUPT;
+		}
+		cursor = flash_log_next_sector(log, cursor);
+	}
+
+	return traversed == valid_sector_count ? FLASH_LOG_OK :
+						 FLASH_LOG_CORRUPT;
 }
 
-void flash_erase_sectors(uint32_t start_addr, uint32_t end_addr){
-    // erase the half-open range [start_addr, end_addr)
-    // wrap around if start > end
+static enum flash_log_result
+flash_log_erase_range(struct flash_log *log, uint32_t start, uint32_t end)
+{
+	uint32_t cursor = start;
+	uint32_t traversed = 0;
+
+	while (cursor != end) {
+		if (log->ops->erase_sector(log->ops_context, cursor) != 0) {
+			return FLASH_LOG_IO_ERROR;
+		}
+
+		traversed++;
+		if (traversed >= log->sector_count) {
+			return FLASH_LOG_CORRUPT;
+		}
+		cursor = flash_log_next_sector(log, cursor);
+	}
+
+	return FLASH_LOG_OK;
 }
 
-uint8_t check_chunk(struct flash_chunk* chunk){
-    // if erased, return SECTOR_ERASED
-    // if not erased but crc fail, return SECTOR_CRC_FAIL
-    return 0;
+enum flash_log_result flash_log_init(struct flash_log *log,
+				     uint32_t sector_count,
+				     struct flash_chunk *scratch,
+				     const struct flash_log_ops *ops,
+				     void *ops_context)
+{
+	if (log == NULL || scratch == NULL || sector_count < 2U ||
+	    !flash_log_has_required_ops(ops)) {
+		return FLASH_LOG_INVALID_ARGUMENT;
+	}
+
+	memset(log, 0, sizeof(*log));
+	log->sector_count = sector_count;
+	log->scratch = scratch;
+	log->ops = ops;
+	log->ops_context = ops_context;
+
+	return FLASH_LOG_OK;
 }
 
-void flash_scan(void){
-    uint32_t lowest_seq = UINT32_MAX;
-    uint32_t lowest_id = UINT32_MAX;
-    uint32_t highest_seq = 0;
-    uint32_t highest_id = 0;
-    struct flash_chunk curr_chunk;
-
-    // Presume empty
-    flash_read_addr = FLASH_START_ADDR;
-    flash_write_addr = flash_read_addr;
-    bool valid_found = false;
-    flash_log_id = 0;
-
-    for (
-        uint32_t search_addr = FLASH_START_ADDR; 
-        search_addr < FLASH_END_ADDR; 
-        search_addr += SECTOR_ADDR_INCR
-    ){
-        flash_read_sector(search_addr, &curr_chunk);
-        uint8_t check_result = check_chunk(&curr_chunk);
-        if (check_result == 0){
-            // Valid CRC
-            if (!valid_found){
-                lowest_seq = curr_chunk.sequence;
-                highest_seq = curr_chunk.sequence;
-                lowest_id = curr_chunk.log_id;
-                highest_id = curr_chunk.log_id;
-                flash_read_addr = search_addr;
-                flash_write_addr = flash_next_sector_addr(search_addr);
-                valid_found = true;
-            } else {
-                if (curr_chunk.log_id < lowest_id){
-                    lowest_id = curr_chunk.log_id;
-                    lowest_seq = curr_chunk.sequence;
-                    flash_read_addr = search_addr;
-                } else if (curr_chunk.log_id == lowest_id){
-                    if (curr_chunk.sequence < lowest_seq){
-                        lowest_seq = curr_chunk.sequence;
-                        flash_read_addr = search_addr;
-                    }
-                }
-
-                if (curr_chunk.log_id > highest_id){
-                    highest_id = curr_chunk.log_id;
-                    highest_seq = curr_chunk.sequence;
-                    flash_write_addr = flash_next_sector_addr(search_addr);
-                } else if (curr_chunk.log_id == highest_id){
-                    if (curr_chunk.sequence > highest_seq){
-                        highest_seq = curr_chunk.sequence;
-                        flash_write_addr = flash_next_sector_addr(search_addr);
-                    }
-                }
-            }
-        }
-    }
-    flash_log_id = valid_found ? highest_id + 1 : 0;
+uint32_t flash_log_next_sector(const struct flash_log *log, uint32_t sector)
+{
+	return (sector + 1U) % log->sector_count;
 }
 
-uint8_t flash_read_log(void){
-    struct flash_chunk chunk;
-    uint32_t addr = flash_read_addr;
-    uint32_t log_crc = 0;
-    uint32_t read_log_id = 0;
-    bool first_read = true;
-
-    if (flash_is_empty()){
-        return LOG_READ_EMPTY;
-    }
-
-    while (addr != flash_write_addr){
-        flash_read_sector(addr, &chunk);
-        uint8_t check_result = check_chunk(&chunk);
-
-        if (check_result != 0){
-            return LOG_READ_INVALID;
-        }
-
-        if (first_read){
-            read_log_id = chunk.log_id;
-            serial_send_log_start(read_log_id);
-            first_read = false;
-        } else if (chunk.log_id != read_log_id){
-            // addr still points to the first sector of the next log
-            break;
-        }
-
-        serial_send_chunk(&chunk);
-        update_log_crc(&log_crc, &chunk);
-        addr = flash_next_sector_addr(addr);
-    }
-
-    uint8_t ret = serial_send_log_end(read_log_id, log_crc);
-    if (ret == SERIAL_LOG_ACK){
-        // receiver acknowledged
-        // Erase previous log sectors and set read addr to start of next log
-        flash_erase_sectors(flash_read_addr, addr);
-        flash_read_addr = addr;
-    } else if (ret == SERIAL_LOG_ERR) {
-        // resend same log
-        return LOG_READ_SERIAL_ERR;
-    } else if (ret == SERIAL_DONE){
-        return LOG_READ_SERIAL_DONE;
-    }
-    return 0;
+bool flash_log_is_empty(const struct flash_log *log)
+{
+	return log->read_sector == log->write_sector;
 }
 
-void read_flash(void){
-    uint8_t num_retries = 0;
-    if (!flash_is_empty()){
-        while (true){
-            uint8_t ret = flash_read_log();
-            if (ret == LOG_READ_SERIAL_ERR){
-                if (num_retries >= SERIAL_MAX_RETRIES){
-                    break;
-                } else {
-                    num_retries += 1;
-                }
-            } else if (
-                (ret == LOG_READ_SERIAL_DONE) ||
-                (ret == LOG_READ_INVALID) ||
-                (ret == LOG_READ_EMPTY)
-            ){
-                break;
-            } else if (flash_is_empty()){
-                break;
-            } else {
-                // Give each log its own retry budget.
-                num_retries = 0;
-            }
-        }
-    }
+bool flash_log_is_full(const struct flash_log *log)
+{
+	return flash_log_next_sector(log, log->write_sector) ==
+	       log->read_sector;
+}
+
+enum flash_log_result flash_log_scan(struct flash_log *log)
+{
+	uint32_t oldest_log_id = UINT32_MAX;
+	uint32_t oldest_sequence = UINT32_MAX;
+	uint32_t newest_log_id = 0;
+	uint32_t newest_sequence = 0;
+	uint32_t valid_sector_count = 0;
+	bool dirty_found = false;
+
+	if (log == NULL || log->scratch == NULL ||
+	    !flash_log_has_required_ops(log->ops)) {
+		return FLASH_LOG_INVALID_ARGUMENT;
+	}
+
+	log->read_sector = 0;
+	log->write_sector = 0;
+	log->next_log_id = 0;
+
+	for (uint32_t sector = 0; sector < log->sector_count; sector++) {
+		enum flash_sector_state state;
+		enum flash_log_result result =
+			flash_log_read_sector(log, sector, &state);
+
+		if (result != FLASH_LOG_OK) {
+			return result;
+		}
+		if (state == FLASH_SECTOR_DIRTY) {
+			dirty_found = true;
+			continue;
+		}
+		if (state == FLASH_SECTOR_ERASED) {
+			continue;
+		}
+
+		if (valid_sector_count == 0U ||
+		    flash_chunk_is_older(log->scratch, oldest_log_id,
+					 oldest_sequence)) {
+			oldest_log_id = log->scratch->log_id;
+			oldest_sequence = log->scratch->sequence;
+			log->read_sector = sector;
+		}
+		if (valid_sector_count == 0U ||
+		    flash_chunk_is_newer(log->scratch, newest_log_id,
+					 newest_sequence)) {
+			newest_log_id = log->scratch->log_id;
+			newest_sequence = log->scratch->sequence;
+			log->write_sector = flash_log_next_sector(log, sector);
+		}
+		valid_sector_count++;
+	}
+
+	if (dirty_found || valid_sector_count >= log->sector_count) {
+		return FLASH_LOG_CORRUPT;
+	}
+	if (valid_sector_count == 0U) {
+		return FLASH_LOG_OK;
+	}
+
+	log->next_log_id = newest_log_id + 1U;
+	return flash_log_validate_contiguous_range(log, valid_sector_count);
+}
+
+enum flash_log_result flash_log_read_one(struct flash_log *log)
+{
+	uint32_t cursor;
+	uint32_t log_crc = 0;
+	uint32_t read_log_id = 0;
+	bool first_chunk = true;
+
+	if (log == NULL || log->scratch == NULL ||
+	    !flash_log_has_required_ops(log->ops)) {
+		return FLASH_LOG_INVALID_ARGUMENT;
+	}
+	if (flash_log_is_empty(log)) {
+		return FLASH_LOG_EMPTY;
+	}
+
+	cursor = log->read_sector;
+	while (cursor != log->write_sector) {
+		enum flash_sector_state state;
+		enum flash_log_result result =
+			flash_log_read_sector(log, cursor, &state);
+
+		if (result != FLASH_LOG_OK) {
+			return result;
+		}
+		if (state != FLASH_SECTOR_VALID) {
+			return FLASH_LOG_CORRUPT;
+		}
+
+		if (first_chunk) {
+			read_log_id = log->scratch->log_id;
+			if (log->ops->send_log_start(log->ops_context,
+						     read_log_id) != 0) {
+				return FLASH_LOG_TRANSPORT_ERROR;
+			}
+			first_chunk = false;
+		} else if (log->scratch->log_id != read_log_id) {
+			break;
+		}
+
+		if (log->ops->send_chunk(log->ops_context, log->scratch) != 0) {
+			return FLASH_LOG_TRANSPORT_ERROR;
+		}
+		if (log->ops->update_log_crc != NULL) {
+			log_crc = log->ops->update_log_crc(
+				log->ops_context, log_crc, log->scratch);
+		}
+		cursor = flash_log_next_sector(log, cursor);
+	}
+
+	switch (log->ops->send_log_end(log->ops_context, read_log_id,
+				       log_crc)) {
+	case FLASH_TRANSPORT_ACK: {
+		enum flash_log_result result =
+			flash_log_erase_range(log, log->read_sector, cursor);
+
+		if (result != FLASH_LOG_OK) {
+			return result;
+		}
+		log->read_sector = cursor;
+		return FLASH_LOG_OK;
+	}
+	case FLASH_TRANSPORT_DONE:
+		return FLASH_LOG_TRANSPORT_DONE;
+	case FLASH_TRANSPORT_ERROR:
+	default:
+		return FLASH_LOG_TRANSPORT_ERROR;
+	}
+}
+
+enum flash_log_result flash_log_drain(struct flash_log *log,
+				      uint8_t max_retries)
+{
+	uint8_t retries = 0;
+
+	if (log == NULL) {
+		return FLASH_LOG_INVALID_ARGUMENT;
+	}
+
+	while (!flash_log_is_empty(log)) {
+		enum flash_log_result result = flash_log_read_one(log);
+
+		if (result == FLASH_LOG_OK) {
+			retries = 0;
+			continue;
+		}
+		if (result != FLASH_LOG_TRANSPORT_ERROR) {
+			return result;
+		}
+		if (retries >= max_retries) {
+			return result;
+		}
+		retries++;
+	}
+
+	return FLASH_LOG_OK;
 }
