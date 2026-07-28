@@ -11,19 +11,23 @@ nRF52840-based SUS board. It:
 - prints acceleration in mg, angular velocity in 0.1 dps, magnetic field in
   mG, and IMU temperature in degrees C over USB serial
 
-`src/sensor_reader.c` owns sensor discovery, sampling, and unit conversion.
-`src/board_power.c` brings up the switched peripheral rail before Zephyr
-initializes its sensor drivers. `src/flash.c` contains the hardware-independent
-flash journal, including append, commit, scan, recovery, and upload logic.
-`src/flash_zephyr.c` adapts that journal to Zephyr's `jedec,spi-nor` driver for
-the MX25L25645GM2I-08G. `src/flash_smoke_test.c` reads the JEDEC ID through the
-same Zephyr driver. `src/main.c` owns the console output loop.
+This bring-up console remains intentionally simple. The separate
+[`../recorder`](../recorder/README.md) application adds 200 Hz flash recording,
+button-controlled System OFF, and retained log IDs.
 
-The flash journal uses one 4 KiB sector per data chunk and writes a separate
-commit sector when a log closes. A commit stores the final sequence count and
-aggregate payload CRC as evidence for the receiving host. The device does not
-try to classify a transferred log as complete or corrupt. One physical sector
-remains reserved to keep the ring's full and empty states unambiguous.
+Shared board support lives in [`../common`](../common/README.md).
+`../common/src/sensor_reader.c` owns sensor discovery, sampling, and unit
+conversion, while `../common/src/board_power.c` controls the switched
+peripheral rail. The bring-up app keeps only its own console entry point and
+`src/flash_smoke_test.c`, which reads the JEDEC ID through Zephyr's SPI NOR
+driver.
+
+The shared flash journal in `../common/src/flash.c` uses one 4 KiB sector per
+data chunk and writes a separate commit sector when a log closes. A commit
+stores the final sequence count and aggregate payload CRC as evidence for the
+receiving host. The device does not try to classify a transferred log as
+complete or corrupt. One physical sector remains reserved to keep the ring's
+full and empty states unambiguous.
 
 Initialize the production storage adapter with
 `flash_zephyr_storage_init_default()`, pass `flash_zephyr_storage_ops` to
@@ -82,7 +86,8 @@ If you are using the UF2 bootloader, copy this file to the mounted XIAO bootload
 firmware/nrf52840/bringup/build-sensors/zephyr/zephyr.uf2
 ```
 
-The hardware and operating-point assumptions live in `app.overlay`:
+The shared hardware and operating-point assumptions live in
+`../common/sus_board.dtsi`; `app.overlay` includes that file:
 
 - `D6`: `V_periph` enable
 - `D7`: flash `CS#`
@@ -95,7 +100,8 @@ The hardware and operating-point assumptions live in `app.overlay`:
 - MMC5603 runs in 100 Hz continuous mode with automatic set/reset
 - LIS3MDL runs at 155 Hz and +/-8 gauss
 
-If `V_periph` enable is actually on `D3`, edit `app.overlay` before building:
+If `V_periph` enable is actually on `D3`, edit `../common/sus_board.dtsi`
+before building:
 
 ```dts
 vperiph-en-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;

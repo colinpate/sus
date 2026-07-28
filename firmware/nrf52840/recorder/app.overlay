@@ -1,0 +1,38 @@
+#include "../common/sus_board.dtsi"
+
+/ {
+	buttons {
+		compatible = "gpio-keys";
+
+		record_button: record_button {
+			/* XIAO D2 = nRF P0.28; pressed connects the pin to ground. */
+			gpios = <&gpio0 28 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Record / wake button";
+		};
+	};
+
+	aliases {
+		sw0 = &record_button;
+		retainedmemdevice = &retainedmem0;
+	};
+
+	/*
+	 * Retain one 4 KiB nRF52840 RAM section across System OFF. The normal
+	 * SRAM node below is shortened so the linker cannot use this region.
+	 */
+	sram0@2003f000 {
+		compatible = "zephyr,memory-region", "mmio-sram";
+		reg = <0x2003f000 DT_SIZE_K(4)>;
+		zephyr,memory-region = "RetainedMem";
+		status = "okay";
+
+		retainedmem0: retainedmem {
+			compatible = "zephyr,retained-ram";
+			status = "okay";
+		};
+	};
+};
+
+&sram0 {
+	reg = <0x20000000 DT_SIZE_K(252)>;
+};

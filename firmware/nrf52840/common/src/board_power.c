@@ -1,5 +1,7 @@
 #include "board_power.h"
 
+#include <errno.h>
+
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/init.h>
@@ -35,4 +37,19 @@ SYS_INIT(board_peripheral_power_init, POST_KERNEL, 0);
 bool board_peripheral_power_is_ready(void)
 {
 	return peripheral_power_ready;
+}
+
+int board_peripheral_power_set_enabled(bool enabled)
+{
+	int err;
+
+	if (!gpio_is_ready_dt(&peripheral_enable)) {
+		return -ENODEV;
+	}
+
+	err = gpio_pin_set_dt(&peripheral_enable, enabled ? 1 : 0);
+	if (err == 0) {
+		peripheral_power_ready = enabled;
+	}
+	return err;
 }
