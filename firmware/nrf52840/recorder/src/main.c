@@ -18,6 +18,7 @@
 #include "as5600.h"
 #include "board_power.h"
 #include "flash.h"
+#include "flash_serial.h"
 #include "flash_zephyr.h"
 #include "log_id_retention.h"
 #include "log_record.h"
@@ -27,6 +28,7 @@
 #define BUTTON_POLL_MS 20U
 #define BUTTON_DEBOUNCE_MS 50U
 #define BUTTON_LONG_PRESS_MS 800U
+#define UPLOAD_HELLO_WINDOW_MS 5000U
 #define RECORD_QUEUE_DEPTH 128U
 #define RECORDS_PER_SECTOR \
 	(FLASH_LOG_PAYLOAD_BYTES / sizeof(struct sus_log_record))
@@ -41,6 +43,8 @@ static const struct gpio_dt_spec record_button =
 	GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 static const struct device *const usb_controller =
 	DEVICE_DT_GET(DT_NODELABEL(zephyr_udc0));
+static const struct device *const serial_uart =
+	DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
 static struct sus_sensor_reader sensor_reader;
 static struct sus_as5600 angle_sensor;
@@ -229,7 +233,7 @@ static void enter_system_off(struct flash_zephyr_storage *storage)
 		return;
 	}
 
-	printk("Entering System OFF; press D2 to record again\n");
+	printk("Entering System OFF; press D3 to record again\n");
 	k_msleep(10);
 
 	if (device_is_ready(usb_controller)) {
@@ -280,6 +284,7 @@ int main(void)
 	static struct flash_zephyr_storage storage;
 	static struct flash_chunk scratch;
 	static struct flash_log log;
+	static struct flash_serial_transport serial_transport;
 	static struct record_accumulator accumulator;
 	struct sus_log_record record;
 	enum flash_log_result log_result;
@@ -287,7 +292,11 @@ int main(void)
 	uint32_t active_log_id = 0;
 	uint32_t written_records = 0;
 	int64_t next_status_ms;
+	enum flash_serial_session_result upload_result;
+	const struct flash_transport_ops *transport_ops = NULL;
+	void *transport_context = NULL;
 	bool writer_ok = true;
+	bool serial_ready = false;
 	int err;
 
 	printk("\nSUS 200 Hz recorder starting\n");
@@ -306,9 +315,20 @@ int main(void)
 		return 0;
 	}
 
+	err = flash_serial_transport_init(
+		&serial_transport, serial_uart, storage.sector_count);
+	if (err == 0) {
+		transport_ops = &flash_serial_transport_ops;
+		transport_context = &serial_transport;
+		serial_ready = true;
+	} else {
+		printk("USB log upload unavailable: %d\n", err);
+	}
+
 	log_result = flash_log_init(
 		&log, storage.sector_count, &scratch,
-		&flash_zephyr_storage_ops, &storage, NULL, NULL);
+		&flash_zephyr_storage_ops, &storage, transport_ops,
+		transport_context);
 	if (log_result != FLASH_LOG_OK) {
 		printk("Flash log initialization failed: %d\n", log_result);
 		enter_system_off(&storage);
@@ -341,6 +361,27 @@ int main(void)
 		printk("Could not synchronize retained log ID: %d\n", err);
 	}
 
+	if (serial_ready) {
+		printk("Waiting %u ms for a USB log receiver...\n",
+		       UPLOAD_HELLO_WINDOW_MS);
+		upload_result = flash_serial_upload_session(
+			&serial_transport, &log,
+			UPLOAD_HELLO_WINDOW_MS);
+		if (upload_result != FLASH_SERIAL_NO_HOST) {
+			err = log_id_retention_store(log.next_log_id);
+			if (err != 0) {
+				printk("Post-upload log ID retention failed: %d\n",
+				       err);
+			}
+			printk("USB upload session %s; powering down\n",
+			       upload_result ==
+					       FLASH_SERIAL_SESSION_COMPLETE ?
+				       "complete" : "failed");
+			enter_system_off(&storage);
+			return 0;
+		}
+	}
+
 	log_result = flash_log_begin(&log, &active_log_id);
 	if (log_result != FLASH_LOG_OK) {
 		printk("Could not begin log: %d\n", log_result);
@@ -355,7 +396,7 @@ int main(void)
 		       log.next_log_id, err);
 	}
 
-	printk("Recording log %u at 200 Hz; hold D2 for 0.8 s to stop\n",
+	printk("Recording log %u at 200 Hz; hold D3 for 0.8 s to stop\n",
 	       active_log_id);
 	k_thread_start(sampler_thread_id);
 	k_thread_start(button_thread_id);

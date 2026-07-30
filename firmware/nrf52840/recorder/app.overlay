@@ -5,8 +5,8 @@
 		compatible = "gpio-keys";
 
 		record_button: record_button {
-			/* XIAO D2 = nRF P0.28; pressed connects the pin to ground. */
-			gpios = <&gpio0 28 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			/* XIAO D3 = nRF P0.29; normally open, pressed connects to ground. */
+			gpios = <&gpio0 29 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Record / wake button";
 		};
 	};

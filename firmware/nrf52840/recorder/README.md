@@ -10,17 +10,33 @@ This directory contains only recorder-specific behavior and configuration.
 
 ## User flow
 
-- Press the active-low button on XIAO `D2` to wake from System OFF.
-- Recording starts automatically after boot and flash recovery.
-- Hold `D2` for 0.8 seconds to stop.
+- Press the normally-open button from XIAO `D3` to ground to wake from
+  System OFF.
+- After boot and flash recovery, the recorder waits five seconds for the USB
+  receiver. Recording starts automatically if no receiver connects.
+- Hold `D3` for 0.8 seconds to stop.
 - The recorder drains queued samples, writes the final partial sector, writes
   the log commit marker, powers down the sensor rail and SPI NOR, then enters
   System OFF.
 
 The press that wakes the device is ignored by the long-press detector until
-the button has first been released. `D2` is selected in `app.overlay`; change
-the `record_button` GPIO there if the production board routes the button to a
+the button has first been released. `D3` (`P0.29`) is selected in
+`app.overlay` as an active-low input with an internal pull-up; change the
+`record_button` GPIO there if the production board routes the button to a
 different pin.
+
+## USB log transfer
+
+`host/receive_logs.py` is the MVP PC receiver. It uses the board's existing USB
+CDC serial port and a COBS-framed, CRC-protected binary protocol. Transfer runs
+only during the boot window, before the sampling threads start, so binary data
+cannot interleave with recorder status messages.
+
+The host stores every raw sector, classifies the log from its sector CRCs,
+sequence numbers, and commit marker, and extracts valid payload records into a
+normal `.bin` file. Only after durable storage does it return the exact
+transfer summary with permission to erase those flash sectors. See
+[`host/README.md`](host/README.md) for setup and usage.
 
 ## Record and flash layout
 
