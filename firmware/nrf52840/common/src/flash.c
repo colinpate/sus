@@ -149,10 +149,20 @@ flash_log_erase_range(struct flash_log *log, uint32_t start, uint32_t end)
 }
 
 static enum flash_log_result
-flash_log_clean_free_arc(struct flash_log *log)
+flash_log_clean_free_arc(struct flash_log *log,
+			 flash_log_scan_progress_fn progress,
+			 void *progress_context)
 {
 	uint32_t cursor = log->write_sector;
 	uint32_t traversed = 0;
+	uint32_t total = log->read_sector >= log->write_sector ?
+			 log->read_sector - log->write_sector :
+			 log->sector_count - log->write_sector +
+				 log->read_sector;
+
+	if (progress != NULL) {
+		progress(progress_context, FLASH_LOG_SCAN_CLEANUP, 0U, total);
+	}
 
 	while (cursor != log->read_sector) {
 		enum flash_sector_state state;
@@ -173,6 +183,11 @@ flash_log_clean_free_arc(struct flash_log *log)
 		if (state == FLASH_SECTOR_DIRTY ||
 		    (state == FLASH_SECTOR_VALID &&
 		     !flash_chunk_is_valid(log->scratch))) {
+			if (progress != NULL) {
+				progress(progress_context,
+					 FLASH_LOG_SCAN_CLEANUP_ERASE,
+					 traversed, total);
+			}
 			if (log->storage->erase_sector(log->storage_context,
 						       cursor) != 0) {
 				return FLASH_LOG_IO_ERROR;
@@ -183,6 +198,10 @@ flash_log_clean_free_arc(struct flash_log *log)
 		if (traversed >= log->sector_count) {
 			return FLASH_LOG_CORRUPT;
 		}
+		if (progress != NULL) {
+			progress(progress_context, FLASH_LOG_SCAN_CLEANUP,
+				 traversed, total);
+		}
 		cursor = flash_log_next_sector(log, cursor);
 	}
 
@@ -190,8 +209,15 @@ flash_log_clean_free_arc(struct flash_log *log)
 }
 
 static enum flash_log_result
-flash_log_clean_empty_media(struct flash_log *log)
+flash_log_clean_empty_media(struct flash_log *log,
+			    flash_log_scan_progress_fn progress,
+			    void *progress_context)
 {
+	if (progress != NULL) {
+		progress(progress_context, FLASH_LOG_SCAN_CLEANUP, 0U,
+			 log->sector_count);
+	}
+
 	for (uint32_t sector = 0; sector < log->sector_count; sector++) {
 		enum flash_sector_state state;
 		enum flash_log_result result =
@@ -201,9 +227,20 @@ flash_log_clean_empty_media(struct flash_log *log)
 			return result;
 		}
 		if (state != FLASH_SECTOR_ERASED &&
-		    log->storage->erase_sector(log->storage_context,
-					       sector) != 0) {
-			return FLASH_LOG_IO_ERROR;
+		    progress != NULL) {
+			progress(progress_context,
+				 FLASH_LOG_SCAN_CLEANUP_ERASE,
+				 sector, log->sector_count);
+		}
+		if (state != FLASH_SECTOR_ERASED) {
+			if (log->storage->erase_sector(log->storage_context,
+						       sector) != 0) {
+				return FLASH_LOG_IO_ERROR;
+			}
+		}
+		if (progress != NULL) {
+			progress(progress_context, FLASH_LOG_SCAN_CLEANUP,
+				 sector + 1U, log->sector_count);
 		}
 	}
 
@@ -333,7 +370,9 @@ flash_log_checkpoint_restore(struct flash_log *log,
 	return FLASH_LOG_OK;
 }
 
-enum flash_log_result flash_log_scan(struct flash_log *log)
+enum flash_log_result flash_log_scan_with_progress(
+	struct flash_log *log, flash_log_scan_progress_fn progress,
+	void *progress_context)
 {
 	uint32_t oldest_log_id = UINT32_MAX;
 	uint32_t oldest_sequence = UINT32_MAX;
@@ -351,6 +390,10 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 	log->read_log_id = 0;
 	log->next_log_id = 0;
 	log->write_active = false;
+	if (progress != NULL) {
+		progress(progress_context, FLASH_LOG_SCAN_DISCOVER, 0U,
+			 log->sector_count);
+	}
 
 	for (uint32_t sector = 0; sector < log->sector_count; sector++) {
 		enum flash_sector_state state;
@@ -359,6 +402,10 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 
 		if (result != FLASH_LOG_OK) {
 			return result;
+		}
+		if (progress != NULL) {
+			progress(progress_context, FLASH_LOG_SCAN_DISCOVER,
+				 sector + 1U, log->sector_count);
 		}
 		if (state != FLASH_SECTOR_VALID ||
 		    !flash_chunk_is_valid(log->scratch)) {
@@ -387,11 +434,17 @@ enum flash_log_result flash_log_scan(struct flash_log *log)
 		return FLASH_LOG_CORRUPT;
 	}
 	if (valid_sector_count == 0U) {
-		return flash_log_clean_empty_media(log);
+		return flash_log_clean_empty_media(
+			log, progress, progress_context);
 	}
 
 	log->next_log_id = newest_log_id + 1U;
-	return flash_log_clean_free_arc(log);
+	return flash_log_clean_free_arc(log, progress, progress_context);
+}
+
+enum flash_log_result flash_log_scan(struct flash_log *log)
+{
+	return flash_log_scan_with_progress(log, NULL, NULL);
 }
 
 enum flash_log_result flash_log_begin(struct flash_log *log,

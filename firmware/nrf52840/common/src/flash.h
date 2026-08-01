@@ -49,6 +49,16 @@ enum flash_log_result {
 	FLASH_LOG_INVALID_ARGUMENT,
 };
 
+enum flash_log_scan_phase {
+	FLASH_LOG_SCAN_DISCOVER,
+	FLASH_LOG_SCAN_CLEANUP,
+	FLASH_LOG_SCAN_CLEANUP_ERASE,
+};
+
+typedef void (*flash_log_scan_progress_fn)(
+	void *context, enum flash_log_scan_phase phase,
+	uint32_t completed_sectors, uint32_t total_sectors);
+
 struct flash_transfer_summary {
 	uint32_t log_id;
 	uint32_t start_sector;
@@ -128,6 +138,9 @@ void flash_chunk_finalize(struct flash_chunk *chunk);
 bool flash_chunk_is_valid(const struct flash_chunk *chunk);
 
 enum flash_log_result flash_log_scan(struct flash_log *log);
+enum flash_log_result flash_log_scan_with_progress(
+	struct flash_log *log, flash_log_scan_progress_fn progress,
+	void *progress_context);
 enum flash_log_result flash_log_begin(struct flash_log *log,
 				      uint32_t *log_id);
 enum flash_log_result flash_log_append(struct flash_log *log,

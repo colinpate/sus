@@ -31,6 +31,8 @@
 #define BUTTON_LONG_PRESS_MS 800U
 #define UPLOAD_HELLO_WINDOW_MS 5000U
 #define RECORD_QUEUE_DEPTH 128U
+#define FLASH_SCAN_STATUS_INTERVAL_SECTORS 256U
+#define FLASH_SCAN_STATUS_INTERVAL_MS 5000U
 #define EXPECTED_SENSOR_MASK \
 	(SUS_SENSOR_IMU1 | SUS_SENSOR_IMU2 | SUS_SENSOR_MMC5603 | \
 	 SUS_SENSOR_LIS3MDL)
@@ -58,6 +60,74 @@ static atomic_t missed_deadlines;
 static atomic_t angle_read_errors;
 static atomic_t sensor_fault_detected;
 static bool record_button_ready;
+
+struct flash_scan_status {
+	int64_t started_ms;
+	int64_t last_report_ms;
+	uint32_t erased_sectors;
+	bool erase_pending;
+};
+
+static void flash_scan_progress(void *context,
+				enum flash_log_scan_phase phase,
+				uint32_t completed_sectors,
+				uint32_t total_sectors)
+{
+	struct flash_scan_status *status = context;
+	int64_t now = k_uptime_get();
+	uint32_t elapsed_seconds;
+	uint32_t percent;
+	bool report_due;
+
+	if (phase == FLASH_LOG_SCAN_CLEANUP_ERASE) {
+		status->erase_pending = true;
+		if (status->erased_sectors != 0U &&
+		    now - status->last_report_ms <
+			    FLASH_SCAN_STATUS_INTERVAL_MS) {
+			return;
+		}
+		elapsed_seconds = (uint32_t)((now - status->started_ms) /
+					     1000);
+		printk("Flash scan cleanup: starting erase %u after "
+		       "%u/%u inspected, elapsed=%u s\n",
+		       status->erased_sectors + 1U, completed_sectors,
+		       total_sectors, elapsed_seconds);
+		status->last_report_ms = now;
+		return;
+	}
+
+	if (phase == FLASH_LOG_SCAN_CLEANUP && status->erase_pending) {
+		status->erased_sectors++;
+		status->erase_pending = false;
+	}
+	if (completed_sectors == 0U || total_sectors == 0U) {
+		return;
+	}
+
+	report_due = completed_sectors == total_sectors ||
+		     (completed_sectors %
+		      FLASH_SCAN_STATUS_INTERVAL_SECTORS) == 0U ||
+		     now - status->last_report_ms >=
+			     FLASH_SCAN_STATUS_INTERVAL_MS;
+	if (!report_due) {
+		return;
+	}
+
+	elapsed_seconds = (uint32_t)((now - status->started_ms) / 1000);
+	percent = (completed_sectors * 100U) / total_sectors;
+	if (phase == FLASH_LOG_SCAN_DISCOVER) {
+		printk("Flash scan discover: %u/%u inspected (%u%%), "
+		       "elapsed=%u s\n",
+		       completed_sectors, total_sectors, percent,
+		       elapsed_seconds);
+	} else {
+		printk("Flash scan cleanup: %u/%u inspected (%u%%), "
+		       "erased=%u, elapsed=%u s\n",
+		       completed_sectors, total_sectors, percent,
+		       status->erased_sectors, elapsed_seconds);
+	}
+	status->last_report_ms = now;
+}
 
 static void make_record(struct sus_log_record *record)
 {
@@ -313,6 +383,7 @@ int main(void)
 	static struct record_accumulator accumulator;
 	struct sus_log_record record;
 	struct retained_log_state retained_state;
+	struct flash_scan_status scan_status;
 	enum flash_log_result log_result;
 	uint32_t active_log_id = 0;
 	uint32_t written_records = 0;
@@ -388,13 +459,24 @@ int main(void)
 				printk("Retained flash checkpoint rejected: %d\n",
 				       log_result);
 			}
+		} else {
+			printk("Retained flash checkpoint is dirty; "
+			       "full scan required\n");
 		}
+	} else {
+		printk("Retained flash checkpoint unavailable: %d; "
+		       "full scan required\n", err);
 	}
 
 	if (!checkpoint_restored) {
 		status_led_set(STATUS_LED_PURPLE);
-		printk("Scanning flash log...\n");
-		log_result = flash_log_scan(&log);
+		scan_status = (struct flash_scan_status) {
+			.started_ms = k_uptime_get(),
+			.last_report_ms = k_uptime_get(),
+		};
+		printk("Scanning %u flash sectors...\n", log.sector_count);
+		log_result = flash_log_scan_with_progress(
+			&log, flash_scan_progress, &scan_status);
 		if (log_result != FLASH_LOG_OK) {
 			printk("Flash scan failed: %d\n", log_result);
 			indicate_error();

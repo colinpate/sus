@@ -22,6 +22,34 @@ struct fixture {
 	struct fake_flash fake;
 };
 
+struct scan_progress_capture {
+	uint32_t discover_calls;
+	uint32_t cleanup_calls;
+	uint32_t erase_calls;
+	uint32_t discover_completed;
+	uint32_t cleanup_completed;
+	uint32_t total;
+};
+
+static void capture_scan_progress(void *context,
+				  enum flash_log_scan_phase phase,
+				  uint32_t completed_sectors,
+				  uint32_t total_sectors)
+{
+	struct scan_progress_capture *capture = context;
+
+	capture->total = total_sectors;
+	if (phase == FLASH_LOG_SCAN_DISCOVER) {
+		capture->discover_calls++;
+		capture->discover_completed = completed_sectors;
+	} else if (phase == FLASH_LOG_SCAN_CLEANUP) {
+		capture->cleanup_calls++;
+		capture->cleanup_completed = completed_sectors;
+	} else {
+		capture->erase_calls++;
+	}
+}
+
 static void fixture_init(struct fixture *fixture, uint32_t sector_count)
 {
 	enum flash_log_result result;
@@ -86,6 +114,25 @@ static void test_empty_scan_cleans_dirty_media(void)
 	CHECK(flash_log_is_empty(&fixture.log));
 	CHECK(!flash_log_is_full(&fixture.log));
 	assert_ring_state(&fixture.log);
+}
+
+static void test_scan_reports_discovery_and_cleanup_progress(void)
+{
+	struct scan_progress_capture capture = { 0 };
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	fake_flash_set_dirty(&fixture.fake, 3, 9, 0);
+
+	CHECK(flash_log_scan_with_progress(
+		      &fixture.log, capture_scan_progress, &capture) ==
+	      FLASH_LOG_OK);
+	CHECK(capture.discover_calls == 7);
+	CHECK(capture.cleanup_calls == 7);
+	CHECK(capture.erase_calls == 1);
+	CHECK(capture.discover_completed == 6);
+	CHECK(capture.cleanup_completed == 6);
+	CHECK(capture.total == 6);
 }
 
 static void test_writer_creates_data_and_commit(void)
@@ -541,6 +588,8 @@ int main(void)
 {
 	run_test("empty_scan_cleans_dirty_media",
 		 test_empty_scan_cleans_dirty_media);
+	run_test("scan_reports_discovery_and_cleanup_progress",
+		 test_scan_reports_discovery_and_cleanup_progress);
 	run_test("writer_creates_data_and_commit",
 		 test_writer_creates_data_and_commit);
 	run_test("checkpoint_restores_closed_log_with_boundary_reads",
@@ -579,6 +628,6 @@ int main(void)
 		 test_scan_rejects_valid_sector_in_free_arc);
 	run_test("scan_rejects_all_sectors_valid",
 		 test_scan_rejects_all_sectors_valid);
-	printf("[  PASSED  ] 21 tests\n");
+	printf("[  PASSED  ] 22 tests\n");
 	return 0;
 }

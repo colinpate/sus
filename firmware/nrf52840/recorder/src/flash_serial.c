@@ -524,6 +524,13 @@ flash_serial_upload_session(struct flash_serial_transport *transport,
 		if (err != 0) {
 			return FLASH_SERIAL_SESSION_ERROR;
 		}
+		if (frame.type == FLASH_SERIAL_HELLO &&
+		    frame.token == 0U) {
+			if (send_info(transport, log) != 0) {
+				return FLASH_SERIAL_SESSION_ERROR;
+			}
+			continue;
+		}
 		if (frame.type == FLASH_SERIAL_SESSION_DONE &&
 		    frame.token == 0U) {
 			return FLASH_SERIAL_SESSION_COMPLETE;
