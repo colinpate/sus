@@ -259,6 +259,80 @@ bool flash_log_can_append(const struct flash_log *log)
 	return flash_log_next_sector(log, after_data) != log->read_sector;
 }
 
+void flash_log_checkpoint_save(const struct flash_log *log,
+			       struct flash_log_checkpoint *checkpoint)
+{
+	if (log == NULL || checkpoint == NULL) {
+		return;
+	}
+
+	checkpoint->sector_count = log->sector_count;
+	checkpoint->read_sector = log->read_sector;
+	checkpoint->write_sector = log->write_sector;
+	checkpoint->read_log_id = log->read_log_id;
+	checkpoint->next_log_id = log->next_log_id;
+}
+
+enum flash_log_result
+flash_log_checkpoint_restore(struct flash_log *log,
+			     const struct flash_log_checkpoint *checkpoint)
+{
+	enum flash_log_result result;
+	enum flash_sector_state state;
+	uint32_t previous_write_sector;
+
+	if (log == NULL || checkpoint == NULL || log->scratch == NULL ||
+	    !flash_log_has_storage(log->storage) ||
+	    checkpoint->sector_count != log->sector_count ||
+	    checkpoint->read_sector >= log->sector_count ||
+	    checkpoint->write_sector >= log->sector_count) {
+		return FLASH_LOG_INVALID_ARGUMENT;
+	}
+
+	/* The reserved write sector must always be ready for the next append. */
+	result = flash_log_read_sector(log, checkpoint->write_sector, &state);
+	if (result != FLASH_LOG_OK) {
+		return result;
+	}
+	if (state != FLASH_SECTOR_ERASED) {
+		return FLASH_LOG_CORRUPT;
+	}
+
+	if (checkpoint->read_sector != checkpoint->write_sector) {
+		result = flash_log_read_sector(log, checkpoint->read_sector,
+					       &state);
+		if (result != FLASH_LOG_OK) {
+			return result;
+		}
+		if (state != FLASH_SECTOR_VALID ||
+		    log->scratch->log_id != checkpoint->read_log_id) {
+			return FLASH_LOG_CORRUPT;
+		}
+
+		previous_write_sector = checkpoint->write_sector == 0U ?
+					log->sector_count - 1U :
+					checkpoint->write_sector - 1U;
+		result = flash_log_read_sector(log, previous_write_sector,
+					       &state);
+		if (result != FLASH_LOG_OK) {
+			return result;
+		}
+		if (state != FLASH_SECTOR_VALID ||
+		    log->scratch->magic != FLASH_LOG_COMMIT_MAGIC ||
+		    log->scratch->log_id + 1U != checkpoint->next_log_id) {
+			return FLASH_LOG_CORRUPT;
+		}
+	}
+
+	log->read_sector = checkpoint->read_sector;
+	log->write_sector = checkpoint->write_sector;
+	log->read_log_id = checkpoint->read_log_id;
+	log->next_log_id = checkpoint->next_log_id;
+	log->write_active = false;
+	log->active_crc_state = FLASH_CRC_INITIAL;
+	return FLASH_LOG_OK;
+}
+
 enum flash_log_result flash_log_scan(struct flash_log *log)
 {
 	uint32_t oldest_log_id = UINT32_MAX;

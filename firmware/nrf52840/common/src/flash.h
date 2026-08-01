@@ -97,6 +97,14 @@ struct flash_log {
 	uint32_t active_crc_state;
 };
 
+struct flash_log_checkpoint {
+	uint32_t sector_count;
+	uint32_t read_sector;
+	uint32_t write_sector;
+	uint32_t read_log_id;
+	uint32_t next_log_id;
+};
+
 enum flash_log_result flash_log_init(struct flash_log *log,
 				     uint32_t sector_count,
 				     struct flash_chunk *scratch,
@@ -109,6 +117,12 @@ uint32_t flash_log_next_sector(const struct flash_log *log, uint32_t sector);
 bool flash_log_is_empty(const struct flash_log *log);
 bool flash_log_is_full(const struct flash_log *log);
 bool flash_log_can_append(const struct flash_log *log);
+
+void flash_log_checkpoint_save(const struct flash_log *log,
+			       struct flash_log_checkpoint *checkpoint);
+enum flash_log_result
+flash_log_checkpoint_restore(struct flash_log *log,
+			     const struct flash_log_checkpoint *checkpoint);
 
 void flash_chunk_finalize(struct flash_chunk *chunk);
 bool flash_chunk_is_valid(const struct flash_chunk *chunk);

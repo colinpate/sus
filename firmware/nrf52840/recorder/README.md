@@ -25,6 +25,22 @@ the button has first been released. `D3` (`P0.29`) is selected in
 `record_button` GPIO there if the production board routes the button to a
 different pin.
 
+## Status LED
+
+The XIAO's RGB LED reports recorder state:
+
+- White: hardware initialization or retained-checkpoint validation.
+- Purple: full external-flash recovery scan.
+- Blue: waiting for a USB receiver or serving an upload session.
+- Green: recording with all configured sensors responding.
+- Yellow: recording with an unavailable/failed sensor, dropped sample, or
+  missed sampling deadline.
+- Red: fatal flash, retention, upload, or recording error.
+
+Sensor failure indication is sticky for the current recording. Fatal errors
+remain red for 1.5 seconds before shutdown, and the LED is switched off before
+System OFF to avoid wasting battery power.
+
 ## USB log transfer
 
 `host/receive_logs.py` is the MVP PC receiver. It uses the board's existing USB
@@ -65,23 +81,27 @@ provide a driver for it. Its runtime configuration matches the ESP firmware.
 If a sensor is unavailable or a read fails, its fields are zero; the sequence
 and status counters still expose timing or queue loss.
 
-## Log-ID retention
+## Flash checkpoint retention
 
 The top 4 KiB nRF52840 RAM section is excluded from normal SRAM and retained
-across System OFF. It contains a magic, format version, next log ID, inverted
-copy, and CRC.
+across System OFF. It contains a magic, format version, clean/dirty marker,
+the flash ring read/write pointers, the oldest and next log IDs, an inverted
+copy of the next ID, and a CRC.
 
 At boot:
 
-1. Scan external flash.
-2. If flash contains valid sectors, use its recovered next log ID.
-3. If flash is empty and retained RAM validates, restore its next log ID.
-4. Otherwise begin at zero.
+1. If retained RAM contains a clean checkpoint, validate the write sector,
+   oldest sector, and newest commit sector, then restore the ring directly.
+2. If the checkpoint is dirty, invalid, or fails a boundary check, scan
+   external flash and recover the ring normally.
+3. If a scan finds empty flash but retained RAM is valid, preserve its next
+   log ID; otherwise begin at zero.
 
-The retained value is updated immediately when a new ID is consumed and again
-before System OFF. Thus normal deep sleep preserves IDs even after the host
-has emptied flash. A true power loss while flash is empty remains the only
-case where the ID can be lost.
+The checkpoint is marked dirty before any upload, erase, or recording can
+modify flash. It is marked clean only after a recording commit or upload
+session completes successfully. Thus normal System OFF wake avoids the full
+32 MiB scan, while interrupted operations safely fall back to recovery. The
+retained next ID also preserves IDs after the host has emptied flash.
 
 ## Build
 
@@ -107,4 +127,5 @@ PATH=/opt/nordic/ncs/toolchains/ccc010f809/bin:$PATH \
   --build firmware/nrf52840/recorder/build
 ```
 
-The UF2 output is `firmware/nrf52840/recorder/build/zephyr/zephyr.uf2`.
+The UF2 output is
+`firmware/nrf52840/recorder/build/recorder/zephyr/zephyr.uf2`.

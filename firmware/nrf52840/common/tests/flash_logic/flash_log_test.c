@@ -110,6 +110,85 @@ static void test_writer_creates_data_and_commit(void)
 	assert_ring_state(&fixture.log);
 }
 
+static void test_checkpoint_restores_closed_log_with_boundary_reads(void)
+{
+	struct flash_log_checkpoint checkpoint;
+	struct flash_chunk restored_scratch;
+	struct flash_log restored;
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	write_log(&fixture, 7, 1);
+	flash_log_checkpoint_save(&fixture.log, &checkpoint);
+	memset(fixture.fake.read_count, 0,
+	       sizeof(fixture.fake.read_count));
+	CHECK(flash_log_init(&restored, 6, &restored_scratch,
+			     &fake_flash_storage_ops, &fixture.fake,
+			     &fake_flash_transport_ops, &fixture.fake) ==
+	      FLASH_LOG_OK);
+
+	CHECK(flash_log_checkpoint_restore(&restored, &checkpoint) ==
+	      FLASH_LOG_OK);
+	CHECK(restored.read_sector == 0);
+	CHECK(restored.write_sector == 2);
+	CHECK(restored.read_log_id == 7);
+	CHECK(restored.next_log_id == 8);
+	CHECK(fixture.fake.read_count[0] == 1);
+	CHECK(fixture.fake.read_count[1] == 1);
+	CHECK(fixture.fake.read_count[2] == 1);
+	CHECK(fixture.fake.read_count[3] == 0);
+}
+
+static void test_checkpoint_restores_empty_log_with_one_read(void)
+{
+	struct flash_log_checkpoint checkpoint;
+	struct flash_chunk restored_scratch;
+	struct flash_log restored;
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	fixture.log.next_log_id = 42;
+	flash_log_checkpoint_save(&fixture.log, &checkpoint);
+	CHECK(flash_log_init(&restored, 6, &restored_scratch,
+			     &fake_flash_storage_ops, &fixture.fake,
+			     &fake_flash_transport_ops, &fixture.fake) ==
+	      FLASH_LOG_OK);
+
+	CHECK(flash_log_checkpoint_restore(&restored, &checkpoint) ==
+	      FLASH_LOG_OK);
+	CHECK(flash_log_is_empty(&restored));
+	CHECK(restored.next_log_id == 42);
+	CHECK(fixture.fake.read_count[0] == 1);
+}
+
+static void test_checkpoint_rejects_dirty_write_sector(void)
+{
+	struct flash_log_checkpoint checkpoint;
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	write_log(&fixture, 7, 1);
+	flash_log_checkpoint_save(&fixture.log, &checkpoint);
+	fake_flash_set_dirty(&fixture.fake, checkpoint.write_sector, 8, 0);
+
+	CHECK(flash_log_checkpoint_restore(&fixture.log, &checkpoint) ==
+	      FLASH_LOG_CORRUPT);
+}
+
+static void test_checkpoint_rejects_noncommit_tail(void)
+{
+	struct flash_log_checkpoint checkpoint;
+	struct fixture fixture;
+
+	fixture_init(&fixture, 6);
+	write_log(&fixture, 7, 1);
+	flash_log_checkpoint_save(&fixture.log, &checkpoint);
+	fake_flash_set_data(&fixture.fake, 1, 7, 1);
+
+	CHECK(flash_log_checkpoint_restore(&fixture.log, &checkpoint) ==
+	      FLASH_LOG_CORRUPT);
+}
+
 static void test_one_log_streams_data_and_commit_raw(void)
 {
 	struct fixture fixture;
@@ -464,6 +543,14 @@ int main(void)
 		 test_empty_scan_cleans_dirty_media);
 	run_test("writer_creates_data_and_commit",
 		 test_writer_creates_data_and_commit);
+	run_test("checkpoint_restores_closed_log_with_boundary_reads",
+		 test_checkpoint_restores_closed_log_with_boundary_reads);
+	run_test("checkpoint_restores_empty_log_with_one_read",
+		 test_checkpoint_restores_empty_log_with_one_read);
+	run_test("checkpoint_rejects_dirty_write_sector",
+		 test_checkpoint_rejects_dirty_write_sector);
+	run_test("checkpoint_rejects_noncommit_tail",
+		 test_checkpoint_rejects_noncommit_tail);
 	run_test("one_log_streams_data_and_commit_raw",
 		 test_one_log_streams_data_and_commit_raw);
 	run_test("two_logs_stop_at_valid_new_id",
@@ -492,6 +579,6 @@ int main(void)
 		 test_scan_rejects_valid_sector_in_free_arc);
 	run_test("scan_rejects_all_sectors_valid",
 		 test_scan_rejects_all_sectors_valid);
-	printf("[  PASSED  ] 17 tests\n");
+	printf("[  PASSED  ] 21 tests\n");
 	return 0;
 }

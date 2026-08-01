@@ -449,6 +449,8 @@ int flash_serial_transport_init(struct flash_serial_transport *transport,
 				const struct device *uart,
 				uint32_t sector_count)
 {
+	int err;
+
 	if (transport == NULL || uart == NULL || !device_is_ready(uart) ||
 	    sector_count < 3U) {
 		return -EINVAL;
@@ -459,8 +461,15 @@ int flash_serial_transport_init(struct flash_serial_transport *transport,
 	transport->sector_count = sector_count;
 	transport->token_counter = k_cycle_get_32();
 	k_sem_init(&transport->tx_done, 0, 1);
-	return uart_irq_callback_user_data_set(
+	err = uart_irq_callback_user_data_set(
 		uart, serial_uart_callback, transport);
+	if (err != 0) {
+		return err;
+	}
+
+	/* The CDC ACM driver does not queue USB OUT transfers until RX is enabled. */
+	uart_irq_rx_enable(uart);
+	return 0;
 }
 
 static int send_info(struct flash_serial_transport *transport,

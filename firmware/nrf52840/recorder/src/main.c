@@ -23,6 +23,7 @@
 #include "log_id_retention.h"
 #include "log_record.h"
 #include "sensor_reader.h"
+#include "status_led.h"
 
 #define SAMPLE_INTERVAL_MS 5U
 #define BUTTON_POLL_MS 20U
@@ -30,6 +31,9 @@
 #define BUTTON_LONG_PRESS_MS 800U
 #define UPLOAD_HELLO_WINDOW_MS 5000U
 #define RECORD_QUEUE_DEPTH 128U
+#define EXPECTED_SENSOR_MASK \
+	(SUS_SENSOR_IMU1 | SUS_SENSOR_IMU2 | SUS_SENSOR_MMC5603 | \
+	 SUS_SENSOR_LIS3MDL)
 #define RECORDS_PER_SECTOR \
 	(FLASH_LOG_PAYLOAD_BYTES / sizeof(struct sus_log_record))
 
@@ -52,6 +56,7 @@ static atomic_t stop_requested;
 static atomic_t dropped_records;
 static atomic_t missed_deadlines;
 static atomic_t angle_read_errors;
+static atomic_t sensor_fault_detected;
 static bool record_button_ready;
 
 static void make_record(struct sus_log_record *record)
@@ -60,6 +65,9 @@ static void make_record(struct sus_log_record *record)
 	uint16_t angle;
 
 	sus_sensor_reader_read(&sensor_reader, &sample);
+	if ((sample.valid & EXPECTED_SENSOR_MASK) != EXPECTED_SENSOR_MASK) {
+		atomic_set(&sensor_fault_detected, 1);
+	}
 	memset(record, 0, sizeof(*record));
 	record->timestamp_ms = sample.timestamp_ms;
 	record->sequence = sample.sequence;
@@ -79,6 +87,7 @@ static void make_record(struct sus_log_record *record)
 
 	if (sus_as5600_read(&angle_sensor, &angle) != 0) {
 		atomic_inc(&angle_read_errors);
+		atomic_set(&sensor_fault_detected, 1);
 	} else {
 		record->angle = angle;
 	}
@@ -239,7 +248,23 @@ static void enter_system_off(struct flash_zephyr_storage *storage)
 	if (device_is_ready(usb_controller)) {
 		(void)udc_disable(usb_controller);
 	}
+	status_led_set(STATUS_LED_OFF);
 	sys_poweroff();
+}
+
+static void indicate_error(void)
+{
+	status_led_set(STATUS_LED_RED);
+	/* Keep fatal errors visible before System OFF removes LED power. */
+	k_msleep(1500);
+}
+
+static int retain_log_state(const struct flash_log *log, bool clean)
+{
+	struct flash_log_checkpoint checkpoint;
+
+	flash_log_checkpoint_save(log, &checkpoint);
+	return log_id_retention_store(&checkpoint, clean);
 }
 
 static int recorder_hardware_init(void)
@@ -287,8 +312,8 @@ int main(void)
 	static struct flash_serial_transport serial_transport;
 	static struct record_accumulator accumulator;
 	struct sus_log_record record;
+	struct retained_log_state retained_state;
 	enum flash_log_result log_result;
-	uint32_t retained_next_log_id;
 	uint32_t active_log_id = 0;
 	uint32_t written_records = 0;
 	int64_t next_status_ms;
@@ -297,13 +322,23 @@ int main(void)
 	void *transport_context = NULL;
 	bool writer_ok = true;
 	bool serial_ready = false;
+	bool retained_state_available = false;
+	bool checkpoint_restored = false;
+	bool recording_error = false;
 	int err;
 
 	printk("\nSUS 200 Hz recorder starting\n");
+	err = status_led_init();
+	if (err != 0) {
+		printk("Status LED unavailable: %d\n", err);
+	} else {
+		status_led_set(STATUS_LED_WHITE);
+	}
 
 	err = recorder_hardware_init();
 	if (err != 0) {
 		printk("Hardware initialization failed: %d\n", err);
+		indicate_error();
 		enter_system_off(NULL);
 		return 0;
 	}
@@ -311,6 +346,7 @@ int main(void)
 	err = flash_zephyr_storage_init_default(&storage);
 	if (err != 0) {
 		printk("Flash initialization failed: %d\n", err);
+		indicate_error();
 		enter_system_off(&storage);
 		return 0;
 	}
@@ -331,47 +367,82 @@ int main(void)
 		transport_context);
 	if (log_result != FLASH_LOG_OK) {
 		printk("Flash log initialization failed: %d\n", log_result);
+		indicate_error();
 		enter_system_off(&storage);
 		return 0;
 	}
 
-	printk("Scanning flash log...\n");
-	log_result = flash_log_scan(&log);
-	if (log_result != FLASH_LOG_OK) {
-		printk("Flash scan failed: %d\n", log_result);
-		enter_system_off(&storage);
-		return 0;
+	err = log_id_retention_load(&retained_state);
+	if (err == 0) {
+		retained_state_available = true;
+		if (retained_state.clean) {
+			log_result = flash_log_checkpoint_restore(
+				&log, &retained_state.checkpoint);
+			if (log_result == FLASH_LOG_OK) {
+				checkpoint_restored = true;
+				printk("Restored flash checkpoint: read=%u "
+				       "write=%u next_log=%u\n",
+				       log.read_sector, log.write_sector,
+				       log.next_log_id);
+			} else {
+				printk("Retained flash checkpoint rejected: %d\n",
+				       log_result);
+			}
+		}
 	}
 
-	err = log_id_retention_load(&retained_next_log_id);
-	if (flash_log_is_empty(&log) && err == 0) {
-		log.next_log_id = retained_next_log_id;
-		printk("Restored next log ID %u from retained RAM\n",
-		       retained_next_log_id);
-	} else if (!flash_log_is_empty(&log)) {
-		printk("Recovered next log ID %u from flash\n",
-		       log.next_log_id);
-	} else {
-		printk("No retained log ID; starting at %u\n",
-		       log.next_log_id);
+	if (!checkpoint_restored) {
+		status_led_set(STATUS_LED_PURPLE);
+		printk("Scanning flash log...\n");
+		log_result = flash_log_scan(&log);
+		if (log_result != FLASH_LOG_OK) {
+			printk("Flash scan failed: %d\n", log_result);
+			indicate_error();
+			enter_system_off(&storage);
+			return 0;
+		}
+
+		if (flash_log_is_empty(&log) && retained_state_available) {
+			log.next_log_id =
+				retained_state.checkpoint.next_log_id;
+			printk("Restored next log ID %u from retained RAM\n",
+			       log.next_log_id);
+		} else if (!flash_log_is_empty(&log)) {
+			printk("Recovered next log ID %u from flash\n",
+			       log.next_log_id);
+		} else {
+			printk("No retained log ID; starting at %u\n",
+			       log.next_log_id);
+		}
 	}
 
-	err = log_id_retention_store(log.next_log_id);
+	/* Any flash mutation makes these pointers unsafe until re-checkpointed. */
+	err = retain_log_state(&log, false);
 	if (err != 0) {
-		printk("Could not synchronize retained log ID: %d\n", err);
+		printk("Could not invalidate retained flash checkpoint: %d\n",
+		       err);
+		indicate_error();
+		enter_system_off(&storage);
+		return 0;
 	}
 
 	if (serial_ready) {
+		status_led_set(STATUS_LED_BLUE);
 		printk("Waiting %u ms for a USB log receiver...\n",
 		       UPLOAD_HELLO_WINDOW_MS);
 		upload_result = flash_serial_upload_session(
 			&serial_transport, &log,
 			UPLOAD_HELLO_WINDOW_MS);
 		if (upload_result != FLASH_SERIAL_NO_HOST) {
-			err = log_id_retention_store(log.next_log_id);
-			if (err != 0) {
-				printk("Post-upload log ID retention failed: %d\n",
-				       err);
+			if (upload_result == FLASH_SERIAL_SESSION_COMPLETE) {
+				err = retain_log_state(&log, true);
+				if (err != 0) {
+					printk("Post-upload checkpoint failed: %d\n",
+					       err);
+					indicate_error();
+				}
+			} else {
+				indicate_error();
 			}
 			printk("USB upload session %s; powering down\n",
 			       upload_result ==
@@ -385,19 +456,20 @@ int main(void)
 	log_result = flash_log_begin(&log, &active_log_id);
 	if (log_result != FLASH_LOG_OK) {
 		printk("Could not begin log: %d\n", log_result);
+		indicate_error();
 		enter_system_off(&storage);
 		return 0;
 	}
 
-	/* flash_log_begin() consumes an ID, so retain the new next ID now. */
-	err = log_id_retention_store(log.next_log_id);
-	if (err != 0) {
-		printk("Could not retain next log ID %u: %d\n",
-		       log.next_log_id, err);
-	}
-
 	printk("Recording log %u at 200 Hz; hold D3 for 0.8 s to stop\n",
 	       active_log_id);
+	if ((sensor_reader.available & EXPECTED_SENSOR_MASK) ==
+			EXPECTED_SENSOR_MASK && angle_sensor.available) {
+		status_led_set(STATUS_LED_GREEN);
+	} else {
+		atomic_set(&sensor_fault_detected, 1);
+		status_led_set(STATUS_LED_YELLOW);
+	}
 	k_thread_start(sampler_thread_id);
 	k_thread_start(button_thread_id);
 	next_status_ms = k_uptime_get() + 1000;
@@ -410,6 +482,8 @@ int main(void)
 			if (log_result != FLASH_LOG_OK) {
 				printk("Flash append stopped: %d\n",
 				       log_result);
+				status_led_set(STATUS_LED_RED);
+				recording_error = true;
 				writer_ok = false;
 				atomic_set(&stop_requested, 1);
 				break;
@@ -417,6 +491,11 @@ int main(void)
 		}
 
 		if (k_uptime_get() >= next_status_ms) {
+			if ((atomic_get(&sensor_fault_detected) != 0 ||
+			     atomic_get(&dropped_records) != 0 ||
+			     atomic_get(&missed_deadlines) != 0) && writer_ok) {
+				status_led_set(STATUS_LED_YELLOW);
+			}
 			printk("log=%u records=%u queued=%u dropped=%ld "
 			       "missed=%ld\n",
 			       active_log_id, written_records,
@@ -436,6 +515,8 @@ int main(void)
 			if (log_result != FLASH_LOG_OK) {
 				printk("Final flash append failed: %d\n",
 				       log_result);
+				status_led_set(STATUS_LED_RED);
+				recording_error = true;
 				writer_ok = false;
 			}
 		}
@@ -447,12 +528,16 @@ int main(void)
 		if (log_result != FLASH_LOG_OK) {
 			printk("Partial-sector write failed: %d\n",
 			       log_result);
+			status_led_set(STATUS_LED_RED);
+			recording_error = true;
 			writer_ok = false;
 		}
 	}
 
 	log_result = flash_log_close(&log);
 	if (log_result != FLASH_LOG_OK) {
+		status_led_set(STATUS_LED_RED);
+		recording_error = true;
 		printk("Commit write failed: %d; boot recovery will retain "
 		       "the valid prefix\n", log_result);
 	} else {
@@ -465,11 +550,18 @@ int main(void)
 		       writer_ok ? "" : " (recording stopped early)");
 	}
 
-	err = log_id_retention_store(log.next_log_id);
-	if (err != 0) {
-		printk("Final retained log ID update failed: %d\n", err);
+	if (log_result == FLASH_LOG_OK) {
+		err = retain_log_state(&log, true);
+		if (err != 0) {
+			printk("Final flash checkpoint failed: %d\n", err);
+			status_led_set(STATUS_LED_RED);
+			recording_error = true;
+		}
 	}
 
+	if (recording_error) {
+		indicate_error();
+	}
 	enter_system_off(&storage);
 	return 0;
 }

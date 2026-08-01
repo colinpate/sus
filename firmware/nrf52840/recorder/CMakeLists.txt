@@ -20,6 +20,7 @@ target_sources(app PRIVATE
 	src/flash_serial.c
 	src/log_id_retention.c
 	src/main.c
+	src/status_led.c
 )
 
 target_compile_options(app PRIVATE
