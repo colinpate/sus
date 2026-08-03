@@ -27,6 +27,7 @@ enum flash_serial_message {
 	FLASH_SERIAL_EMPTY = 9,
 	FLASH_SERIAL_SESSION_DONE = 10,
 	FLASH_SERIAL_ERROR = 11,
+	FLASH_SERIAL_ERASE_COMPLETE = 12,
 };
 
 enum flash_serial_disposition {
@@ -150,8 +151,22 @@ static size_t cobs_decode_in_place(uint8_t *buffer, size_t encoded_length)
 static void serial_uart_callback(const struct device *uart, void *user_data)
 {
 	struct flash_serial_transport *transport = user_data;
+	unsigned char byte;
 
-	if (uart_irq_update(uart) <= 0 || !uart_irq_tx_ready(uart) ||
+	if (uart_irq_update(uart) <= 0) {
+		return;
+	}
+
+	while (uart_irq_rx_ready(uart)) {
+		if (uart_fifo_read(uart, &byte, 1) <= 0) {
+			break;
+		}
+		if (k_msgq_put(&transport->rx_queue, &byte, K_NO_WAIT) != 0) {
+			atomic_set(&transport->rx_overflow, 1);
+		}
+	}
+
+	if (!uart_irq_tx_ready(uart) ||
 	    atomic_get(&transport->tx_active) == 0) {
 		return;
 	}
@@ -290,8 +305,11 @@ static int receive_frame(struct flash_serial_transport *transport,
 	while (k_uptime_get() < deadline) {
 		unsigned char byte;
 
-		if (uart_poll_in(transport->uart, &byte) != 0) {
-			k_msleep(1);
+		if (atomic_cas(&transport->rx_overflow, 1, 0)) {
+			encoded_length = 0;
+			overflow = true;
+		}
+		if (k_msgq_get(&transport->rx_queue, &byte, K_MSEC(1)) != 0) {
 			continue;
 		}
 		if (byte != 0U) {
@@ -460,6 +478,9 @@ int flash_serial_transport_init(struct flash_serial_transport *transport,
 	transport->uart = uart;
 	transport->sector_count = sector_count;
 	transport->token_counter = k_cycle_get_32();
+	k_msgq_init(&transport->rx_queue, transport->rx_queue_buffer,
+		      sizeof(transport->rx_queue_buffer[0]),
+		      FLASH_SERIAL_RX_QUEUE_BYTES);
 	k_sem_init(&transport->tx_done, 0, 1);
 	err = uart_irq_callback_user_data_set(
 		uart, serial_uart_callback, transport);
@@ -549,6 +570,12 @@ flash_serial_upload_session(struct flash_serial_transport *transport,
 
 		result = flash_log_read_one(log);
 		if (result == FLASH_LOG_OK) {
+			if (send_frame(transport,
+				       FLASH_SERIAL_ERASE_COMPLETE,
+				       transport->active_token,
+				       NULL, 0U) != 0) {
+				return FLASH_SERIAL_SESSION_ERROR;
+			}
 			continue;
 		}
 		if (result == FLASH_LOG_TRANSPORT_DONE) {

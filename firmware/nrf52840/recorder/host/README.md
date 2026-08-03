@@ -20,9 +20,10 @@ python3 -m pip install \
   -r firmware/nrf52840/recorder/host/requirements.txt
 ```
 
-Connect or wake the recorder, then start the receiver. The PC waits up to
-90 seconds at a low HELLO rate, so it can run while the firmware is still
-scanning flash and will catch the five-second post-scan upload window:
+The receiver waits for the requested serial device to appear, then waits up to
+90 seconds at a low HELLO rate. It can therefore be started before waking or
+connecting the recorder, and while the firmware is scanning flash, and will
+catch the five-second post-scan upload window:
 
 ```sh
 python3 firmware/nrf52840/recorder/host/receive_logs.py \
@@ -79,11 +80,14 @@ SECTOR_ACK     ->
                <- END
 ERASE/RETRY/
 DONE           ->
+               <- ERASE_COMPLETE (after ERASE only)
 ```
 
 `ERASE`, `RETRY`, and `DONE` echo the transfer token and the complete `END`
 summary. The recorder accepts an erase only when the log ID, half-open sector
-range, sector count, and raw CRC all match.
+range, sector count, and raw CRC all match. After `ERASE`, the receiver waits
+for `ERASE_COMPLETE` before requesting the next log, so large synchronous
+flash erases cannot trip the normal frame timeout.
 
 ## Tests
 

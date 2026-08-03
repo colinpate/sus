@@ -39,6 +39,7 @@ class Message(enum.IntEnum):
     EMPTY = 9
     SESSION_DONE = 10
     ERROR = 11
+    ERASE_COMPLETE = 12
 
 
 class Disposition(enum.IntEnum):
@@ -220,7 +221,8 @@ class SerialProtocol:
         while monotonic() < deadline:
             if self.pending:
                 return self.pending.popleft()
-            data = self.serial.read(512)
+            waiting = int(getattr(self.serial, "in_waiting", 0))
+            data = self.serial.read(min(512, waiting) if waiting > 0 else 1)
             if data:
                 self.pending.extend(self.stream.feed(data))
         raise TimeoutError("timed out waiting for a protocol frame")

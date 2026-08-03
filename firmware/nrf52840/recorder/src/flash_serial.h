@@ -14,7 +14,8 @@
 	(12U + 8U + FLASH_LOG_SECTOR_BYTES + 4U)
 #define FLASH_SERIAL_MAX_ENCODED_BYTES \
 	(FLASH_SERIAL_MAX_DECODED_BYTES + \
-	 FLASH_SERIAL_MAX_DECODED_BYTES / 254U + 2U)
+	 FLASH_SERIAL_MAX_DECODED_BYTES / 254U + 3U)
+#define FLASH_SERIAL_RX_QUEUE_BYTES 256U
 
 enum flash_serial_session_result {
 	FLASH_SERIAL_NO_HOST,
@@ -28,6 +29,9 @@ struct flash_serial_transport {
 	uint32_t token_counter;
 	uint32_t active_token;
 	uint32_t active_ordinal;
+	struct k_msgq rx_queue;
+	char rx_queue_buffer[FLASH_SERIAL_RX_QUEUE_BYTES];
+	atomic_t rx_overflow;
 	struct k_sem tx_done;
 	const uint8_t *tx_data;
 	size_t tx_length;

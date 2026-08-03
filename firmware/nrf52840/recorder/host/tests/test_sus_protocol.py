@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 HOST_DIRECTORY = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HOST_DIRECTORY))
@@ -30,7 +31,7 @@ from sus_protocol import (  # noqa: E402
     decode_frame,
     encode_frame,
 )
-from receive_logs import receive_all  # noqa: E402
+from receive_logs import receive_all, wait_for_serial_port  # noqa: E402
 
 
 def make_sector(magic: int, log_id: int, sequence: int, payload: bytes) -> bytes:
@@ -65,6 +66,22 @@ def make_complete_log(log_id: int, payloads: list[bytes]) -> bytes:
     return b"".join(sectors)
 
 
+class PortWaitTests(unittest.TestCase):
+    def test_waits_until_serial_port_appears(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            port = Path(temporary_directory) / "cu.usbmodem-test"
+
+            def create_port(_delay: float) -> None:
+                port.touch()
+
+            with mock.patch(
+                "receive_logs.time.sleep", side_effect=create_port
+            ) as sleep_mock, mock.patch("builtins.print"):
+                wait_for_serial_port(str(port))
+
+            sleep_mock.assert_called_once_with(0.1)
+
+
 class FramingTests(unittest.TestCase):
     def test_round_trip_zero_heavy_sector_frame(self) -> None:
         payload = bytes(range(256)) * 16
@@ -97,6 +114,35 @@ class FramingTests(unittest.TestCase):
         )
 
         self.assertEqual(frames, [valid])
+
+
+class BufferedSerial:
+    def __init__(self, wire: bytes) -> None:
+        self.output = bytearray(wire)
+        self.read_sizes: list[int] = []
+
+    @property
+    def in_waiting(self) -> int:
+        return len(self.output)
+
+    def read(self, size: int) -> bytes:
+        self.read_sizes.append(size)
+        result = bytes(self.output[:size])
+        del self.output[:size]
+        return result
+
+
+class SerialProtocolTests(unittest.TestCase):
+    def test_receive_reads_only_buffered_tail_bytes(self) -> None:
+        expected = Frame(Message.SECTOR, 0x12345678, b"\xff" * SECTOR_BYTES)
+        serial = BufferedSerial(encode_frame(expected))
+
+        actual = SerialProtocol(serial).receive(1.0)
+
+        self.assertEqual(actual, expected)
+        self.assertEqual(serial.read_sizes[:-1], [512] * 8)
+        self.assertGreater(serial.read_sizes[-1], 0)
+        self.assertLess(serial.read_sizes[-1], 512)
 
 
 class ClassificationTests(unittest.TestCase):
@@ -146,6 +192,7 @@ class FakeDeviceSerial:
         self.next_ordinal = 0
         self.disposition: Disposition | None = None
         self.disposition_values: tuple[int, ...] | None = None
+        self.erase_complete_count = 0
         self.session_done = False
 
     @property
@@ -154,6 +201,10 @@ class FakeDeviceSerial:
             self.raw_log[offset : offset + SECTOR_BYTES]
             for offset in range(0, len(self.raw_log), SECTOR_BYTES)
         ]
+
+    @property
+    def in_waiting(self) -> int:
+        return len(self.output)
 
     def queue(self, frame: Frame) -> None:
         self.output.extend(encode_frame(frame))
@@ -204,6 +255,9 @@ class FakeDeviceSerial:
                 values = DISPOSITION_PAYLOAD.unpack(frame.payload)
                 self.disposition_values = values
                 self.disposition = Disposition(values[0])
+                if self.disposition is Disposition.ERASE:
+                    self.queue(Frame(Message.ERASE_COMPLETE, frame.token))
+                    self.erase_complete_count += 1
             elif frame.message is Message.SESSION_DONE:
                 self.session_done = True
         return len(data)
@@ -260,6 +314,7 @@ class ReceiverIntegrationTests(unittest.TestCase):
             ),
         )
         self.assertTrue(fake.session_done)
+        self.assertEqual(fake.erase_complete_count, 1)
 
 
 if __name__ == "__main__":

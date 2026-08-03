@@ -26,6 +26,19 @@ from sus_protocol import (
 FRAME_TIMEOUT_SECONDS = 12.0
 HANDSHAKE_TIMEOUT_SECONDS = 90.0
 HELLO_RETRY_SECONDS = 2.0
+ERASE_TIMEOUT_SECONDS = 60.0 * 60.0
+PORT_POLL_SECONDS = 0.1
+
+
+def wait_for_serial_port(port: str) -> None:
+    path = Path(port)
+    if path.exists():
+        return
+
+    print(f"waiting for serial port {port}; wake or connect the recorder...")
+    while not path.exists():
+        time.sleep(PORT_POLL_SECONDS)
+    print(f"serial port available: {port}")
 
 
 def wait_for_message(
@@ -123,6 +136,24 @@ def send_disposition(
             summary.raw_crc,
         ),
     )
+
+    if disposition is Disposition.ERASE:
+        print(f"  erasing {summary.sector_count} sectors on recorder...")
+        frame = wait_for_message(
+            protocol,
+            {Message.ERASE_COMPLETE, Message.ERROR},
+            timeout=ERASE_TIMEOUT_SECONDS,
+        )
+        if frame.message is Message.ERROR:
+            error_code = (
+                struct.unpack("<I", frame.payload)[0]
+                if len(frame.payload) == 4
+                else -1
+            )
+            raise RuntimeError(f"device reported flash erase error {error_code}")
+        if frame.token != token or frame.payload:
+            raise RuntimeError("device returned malformed ERASE_COMPLETE")
+        print("  erase complete")
 
 
 def receive_transfer(
@@ -250,7 +281,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Receive raw SUS flash logs over USB CDC serial."
     )
-    parser.add_argument("--port", required=True, help="serial device path")
+    parser.add_argument(
+        "--port",
+        required=True,
+        help="serial device path (waits until it appears)",
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -274,6 +309,7 @@ def main() -> int:
         return 2
 
     try:
+        wait_for_serial_port(args.port)
         with serial.Serial(
             args.port,
             baudrate=115200,
