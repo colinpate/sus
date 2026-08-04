@@ -146,11 +146,16 @@ class MagToTravelModelCore:
     def filter_chunk_minmag(self, chunk: MagToTravelChunk, min_mag: float):
         return chunk.metrics["mag_min"] >= min_mag
 
-    def get_filter_fns(self, min_mag: float):
-        filter_fns = [
+    def get_eligibility_filter_fns(self):
+        return [
             self.filter_chunk_badmask,
             self.filter_chunk_dm_dx,
             self.filter_chunk_dx,
+        ]
+
+    def get_filter_fns(self, min_mag: float):
+        filter_fns = [
+            *self.get_eligibility_filter_fns(),
             lambda x: self.filter_chunk_minmag(x, min_mag),
         ]
         return filter_fns
@@ -209,14 +214,16 @@ class MagToTravelModelCore:
                 chunks_filt.append(chunk)
         return chunks_filt
     
-    def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask, min_mag):
+    def get_eligible_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask):
         chunks = self.create_chunks(idxs_filt, mag, acc, t_s, mag_proj_bad_mask)
-        all_mags = [chunk.mag for chunk in chunks]
         self.prepare_chunks(chunks)
-        filters = self.get_filter_fns(min_mag=min_mag)
-        chunks_filt = self.filter_chunks(chunks, filters)
-        print("Training chunks:", len(chunks))
-        return chunks_filt, all_mags
+        eligible_chunks = self.filter_chunks(chunks, self.get_eligibility_filter_fns())
+        print("Candidate chunks:", len(chunks))
+        print("Eligible chunks:", len(eligible_chunks))
+        return eligible_chunks
+
+    def filter_chunks_by_min_mag(self, chunks: list[MagToTravelChunk], min_mag: float):
+        return [chunk for chunk in chunks if self.filter_chunk_minmag(chunk, min_mag)]
 
     def create_training_data(
             self, 
@@ -234,8 +241,9 @@ class MagToTravelModelCore:
             training_mask = np.zeros(mag.shape[0], dtype=bool)
 
         self.min_mag = baseline_min_mag
-        chunks, all_mags = self.get_chunks(idxs, mag, accel, t, training_mask, self.min_mag)
-        mag_mins = [np.min(mag_chunk) for mag_chunk in all_mags]
+        eligible_chunks = self.get_eligible_chunks(idxs, mag, accel, t, training_mask)
+        chunks = self.filter_chunks_by_min_mag(eligible_chunks, self.min_mag)
+        mag_mins = [chunk.metrics["mag_min"] for chunk in eligible_chunks]
         if mag_mins:
             relax_rank = min(len(mag_mins), self.min_mag_relax_min_chunks)
             relaxed_min_mag = np.sort(mag_mins)[-relax_rank]
@@ -256,7 +264,7 @@ class MagToTravelModelCore:
                 "initial chunks",
                 len(chunks),
             )
-            chunks, _ = self.get_chunks(idxs, mag, accel, t, training_mask, relaxed_min_mag)
+            chunks = self.filter_chunks_by_min_mag(eligible_chunks, relaxed_min_mag)
         else:
             print(
                 "Using raw min mag",
@@ -265,6 +273,7 @@ class MagToTravelModelCore:
                 len(chunks),
             )
         self.chunks = chunks
+        print("Training chunks:", len(self.chunks))
 
         return self.format_chunks_for_fit(chunks)
 
