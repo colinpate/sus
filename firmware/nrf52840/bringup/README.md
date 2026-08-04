@@ -6,10 +6,11 @@ nRF52840-based SUS board. It:
 - enables `V_periph`
 - initializes LSM6DSOX at `0x6A` and LSM6DSO32 at `0x6B`
 - initializes MMC5603 at `0x30` and LIS3MDL at `0x1C`
+- initializes AS5600 at `0x36`
 - wakes the external SPI flash and checks its JEDEC ID
 - reads all available sensors every 200 ms
 - prints acceleration in mg, angular velocity in 0.1 dps, magnetic field in
-  mG, and IMU temperature in degrees C over USB serial
+  mG, raw AS5600 angle, and IMU temperature in degrees C over USB serial
 
 This bring-up console remains intentionally simple. The separate
 [`../recorder`](../recorder/README.md) application adds 200 Hz flash recording,
@@ -18,9 +19,10 @@ button-controlled System OFF, and retained log IDs.
 Shared board support lives in [`../common`](../common/README.md).
 `../common/src/sensor_reader.c` owns sensor discovery, sampling, and unit
 conversion, while `../common/src/board_power.c` controls the switched
-peripheral rail. The bring-up app keeps only its own console entry point and
-`src/flash_smoke_test.c`, which reads the JEDEC ID through Zephyr's SPI NOR
-driver.
+peripheral rail. `../common/src/as5600.c` provides the raw-I2C angle-sensor
+driver shared with the recorder. The bring-up app keeps only its own console
+entry point and `src/flash_smoke_test.c`, which reads the JEDEC ID through
+Zephyr's SPI NOR driver.
 
 The shared flash journal in `../common/src/flash.c` uses one 4 KiB sector per
 data chunk and writes a separate commit sector when a log closes. A commit

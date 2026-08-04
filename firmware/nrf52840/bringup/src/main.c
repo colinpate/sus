@@ -3,6 +3,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
+#include "as5600.h"
 #include "board_power.h"
 #include "flash_smoke_test.h"
 #include "sensor_reader.h"
@@ -50,10 +51,24 @@ static void print_magnetometer(const char *name, enum sus_sensor sensor,
 	print_vector("field", field_mg, "mG");
 }
 
+static void print_angle(const struct sus_as5600 *sensor)
+{
+	uint16_t angle;
+
+	if (sus_as5600_read(sensor, &angle) != 0) {
+		printk("AS5600=ERR");
+		return;
+	}
+
+	printk("AS5600: angle=%u raw", angle);
+}
+
 int main(void)
 {
+	struct sus_as5600 angle_sensor;
 	struct flash_smoke_test_result flash_result;
 	struct sus_sensor_reader reader;
+	int angle_err;
 	int flash_err;
 
 	printk("\nSUS sensor console starting\n");
@@ -75,11 +90,17 @@ int main(void)
 	}
 
 	sus_sensor_reader_init(&reader);
-	printk("Detected sensors: IMU1=%s IMU2=%s MMC5603=%s LIS3MDL=%s\n",
+	angle_err = sus_as5600_init(&angle_sensor);
+	printk("Detected sensors: IMU1=%s IMU2=%s MMC5603=%s LIS3MDL=%s "
+	       "AS5600=%s\n",
 	       (reader.available & SUS_SENSOR_IMU1) != 0U ? "yes" : "no",
 	       (reader.available & SUS_SENSOR_IMU2) != 0U ? "yes" : "no",
 	       (reader.available & SUS_SENSOR_MMC5603) != 0U ? "yes" : "no",
-	       (reader.available & SUS_SENSOR_LIS3MDL) != 0U ? "yes" : "no");
+	       (reader.available & SUS_SENSOR_LIS3MDL) != 0U ? "yes" : "no",
+	       angle_err == 0 ? "yes" : "no");
+	if (angle_err != 0) {
+		printk("AS5600 initialization failed, err=%d\n", angle_err);
+	}
 	printk("Reading sensors every 200 ms\n");
 
 	while (true) {
@@ -97,6 +118,8 @@ int main(void)
 		printk(" | ");
 		print_magnetometer("LIS3MDL", SUS_SENSOR_LIS3MDL,
 				   sample.lis3mdl_mg, &sample);
+		printk(" | ");
+		print_angle(&angle_sensor);
 		printk("\n");
 
 		k_sleep(SAMPLE_INTERVAL);
