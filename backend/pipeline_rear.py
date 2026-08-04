@@ -2,6 +2,18 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 from argparse import ArgumentParser
 
+from accel_rotation import (
+    FilterChunkPairs, 
+    FilterColinearPairs, 
+    RotationFromPairs, 
+    ProjectAccel,
+    GetAccelError,
+    CorrectStaticOffset,
+    GetAccelTravelVectorRear,
+    GetRelativeAccel, 
+    GetAccelTravelVector, 
+)
+from accel_zv import CorrectAccelWithMagZV
 from classes.sensor_loader import (
     Workspace,
     SensorLoader,
@@ -12,26 +24,17 @@ from classes.sensor_loader import (
     GyroLoader,
 )
 from classes.step import Step, FilterStep, ChunkStep
-from accel_rotation import (
-    FilterChunkPairs, 
-    FilterColinearPairs, 
-    RotationFromPairs, 
-    GetRelativeAccel, 
-    GetAccelTravelVector, 
-    ProjectAccel,
-    GetAccelError,
-    CorrectStaticOffset
-)
 from angle import FindBoringRegions, LinkageAngleToTravel
-from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
-from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
-from travel_solver import TravelSolver
+from mag import ProjectMag, FindMagZVPoints, DiffMag, MagAngle
+from fusion import GetRearMagToTravelModel, GetErrorStats
+from travel_solver import RearTravelSolver, TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
 from classes.log_config import attach_log_config, get_log_config_path, get_signal_config, load_log_config
 
 DEC_FREQ = 200 # Hz, for decimating data to speed up optimization
 LP_FREQ = 40 # Hz, for lowpass filtering accel and gyro data
+ACCEL_HP_FREQ = 1 # Hz, for highpass filtering rear accel before projection
 MAG_LP_FREQ = 20 # Hz, for lowpass filtering magnetometer data
 
 def main() -> None:
@@ -57,6 +60,8 @@ def main() -> None:
             lag=int(angle_signal_config.get("lag", -1)),
             interpolate_bad=bool(angle_signal_config.get("interpolate_bad", False)),
             offset=int(angle_signal_config.get("offset", 2048)),
+            mark_bad_samples=bool(angle_signal_config.get("mark_bad_samples", False)),
+            allow_degenerate=True,
         ),
     ]
 
@@ -104,34 +109,100 @@ def main() -> None:
             dec_freq=DEC_FREQ,
         ),
 
-        # GetAccelTravelVector(
-        #     name="get_acc_trav_vec",
-        #     inputs=("accel/lpf/lis1",),
-        #     outputs=("accel_trav_vec", "mags_vs_means",),
-        #     plot_keys=(
-        #         PlotSpec(kind="scatter", key="mags_vs_means"),
-        #     )
+        # Align accelerometers
+        ChunkStep(
+            name="chunk_lis1",
+            inputs=("accel/lpf/lis1",),
+            outputs=("accel_chunks/lis1",),
+            chunk_t_s=0.25,
+        ),
+        ChunkStep(
+            name="chunk_lis2",
+            inputs=("accel/lpf/lis2",),
+            outputs=("accel_chunks/lis2",),
+            chunk_t_s=0.25,
+        ),
+        FilterChunkPairs(
+            name="filter_pairs",
+            inputs=("accel_chunks/lis1", "accel_chunks/lis2"),
+            outputs=("filtered_pairs",)
+        ),
+        FilterColinearPairs(
+            name="filter_colinear",
+            inputs=("filtered_pairs",),
+            outputs=("filtered_pairs_col", "lis1_chunks_filt", "lis2_chunks_filt")
+        ),
+        CorrectStaticOffset(
+            name="correct_lis1_offset",
+            inputs=("lis1_chunks_filt", "accel/lis1"),
+            outputs=("lis1_chunks_filt", "accel/lis1"),
+        ),
+        CorrectStaticOffset(
+            name="correct_lis2_offset",
+            inputs=("lis2_chunks_filt", "accel/lis2"),
+            outputs=("lis2_chunks_filt", "accel/lis2"),
+        ),
+        RotationFromPairs(
+            name="accel_rot_from_pairs",
+            inputs=("filtered_pairs_col",),
+            outputs=("rotation_matrix",)
+        ),
+        GetRelativeAccel(
+            name="get_rel_accel",
+            inputs=("accel/lis1", "accel/lis2", "rotation_matrix"),
+            outputs=("accel/lis2_in_lis1", "accel/relative"),
+            plot_keys=("accel/lis2_in_lis1", "accel/relative")
+        ),
+        FilterStep(
+            name="lowpass_accelrel",
+            inputs=("accel/relative",),
+            outputs=("accel/lpf/relative",),
+            fc_hz=LP_FREQ,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        # GetAccelTravelVectorRear(
+        #     name="get_acc_trav_vec_rear",
+        #     inputs=("accel/lpf/relative",),
+        #     outputs=("accel_trav_vec2",),
         # ),
         # ProjectAccel(
-        #     name="project_accel",
-        #     inputs=("accel_trav_vec", "accel/lpf/lis1",),
-        #     outputs=("accel/proj",),
-        #     plot_keys=("accel/proj",)
+        #     name="project_accel_rear",
+        #     inputs=("accel_trav_vec2", "accel/lpf/relative",),
+        #     outputs=("accel/lpf/proj2",),
+        #     plot_keys=("accel/lpf/proj2",)
         # ),
+
+        GetAccelTravelVector(
+            name="get_acc_trav_vec",
+            inputs=("accel/lpf/relative",),
+            outputs=("accel_trav_vec", "mags_vs_means",),
+            plot_keys=(
+                PlotSpec(kind="scatter", key="mags_vs_means"),
+            )
+        ),
+        ProjectAccel(
+            name="project_accel",
+            inputs=("accel_trav_vec", "accel/lpf/relative",),
+            outputs=("accel/lpf/proj",),
+            plot_keys=("accel/lpf/proj",)
+        ),
+        FilterStep(
+            name="highpass_accel",
+            inputs=("accel/lpf/proj",),
+            outputs=("accel/lphp/proj",),
+            fc_hz=ACCEL_HP_FREQ,
+            btype="high",
+            N=2,
+        ),
+
         # FilterStep(
-        #     name="lowpass_accelproj",
-        #     inputs=("accel/proj",),
-        #     outputs=("accel/lpf/proj",),
-        #     fc_hz=LP_FREQ,
-        #     btype="low",
-        #     dec_freq=DEC_FREQ,
-        # ),
-        # FilterStep(
-        #     name="highpass_accelproj",
-        #     inputs=("accel/lpf/proj",),
-        #     outputs=("accel/lpfhp/proj",),
-        #     fc_hz=1,
+        #     name="highpass_accel",
+        #     inputs=("accel/lpf/lis2",),
+        #     outputs=("accel/lphp/lis2",),
+        #     fc_hz=ACCEL_HP_FREQ,
         #     btype="high",
+        #     N=2,
         # ),
         
         # Angle data to travel
@@ -149,26 +220,24 @@ def main() -> None:
             inputs=("angle/lpf",),
             outputs=("travel",),
         ),
+        GetAccelError(
+            name="accel_proj_error",
+            inputs=("accel/lpf/proj", "travel"),
+            outputs=(),
+        ),
         # GetAccelError(
-        #     name="accel_proj_error",
-        #     inputs=("accel/lpf/proj", "travel"),
+        #     name="accel_proj_error_rear",
+        #     inputs=("accel/lpf/proj2", "travel"),
         #     outputs=(),
         # ),
-        # FindBoringRegions(
-        #     name="find_boring_regions",
-        #     inputs=("travel",),
-        #     outputs=("boring_regions", "boring_mask"),
-        #     read_cache=True
-        # ),
+        FindBoringRegions(
+            name="find_boring_regions",
+            inputs=("travel",),
+            outputs=("boring_regions", "boring_mask"),
+            read_cache=True
+        ),
 
         # Magnetometer processing
-        # ProjectMag(
-        #     name="project_mag",
-        #     inputs=("mag", "accel/proj"),
-        #     outputs=("mag/proj",),
-        #     plot_keys=("mag/proj",),
-        #     normalize=True,
-        # ),
         FilterStep(
             name="lowpass_mag",
             inputs=("mag",),
@@ -187,95 +256,122 @@ def main() -> None:
             btype="low",
             dec_freq=DEC_FREQ,
         ),
-        # FilterStep(
-        #     name="lowpass_mag/proj",
-        #     inputs=("mag/proj",),
-        #     outputs=("mag/proj/lpf",),
-        #     plot_keys=("mag/proj/lpf",),
-        #     fc_hz=LP_FREQ,
-        #     btype="low",
-        #     dec_freq=DEC_FREQ,
+        DiffMag(
+            name="diff_mag",
+            inputs=("mag", "mag_lis"),
+            outputs=("mag_diff",),
+        ),
+        FilterStep(
+            name="lowpass_mag_diff",
+            inputs=("mag_diff",),
+            outputs=("mag_diff/lpf",),
+            plot_keys=("mag_diff/lpf",),
+            fc_hz=MAG_LP_FREQ,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
+        # ProjectMag(
+        #     name="project_mag",
+        #     inputs=("mag_diff",),
+        #     outputs=("mag/proj",),
+        #     plot_keys=("mag/proj",),
+        #     normalize=True,
         # ),
+        MagAngle(
+            name="mag_angle",
+            inputs=("mag_diff",),
+            outputs=("mag/angle",)
+        ),
+
+        FilterStep(
+            name="lowpass_mag/angle",
+            inputs=("mag/angle",),
+            outputs=("mag/angle/lpf",),
+            plot_keys=("mag/angle/lpf",),
+            fc_hz=MAG_LP_FREQ,
+            btype="low",
+            dec_freq=DEC_FREQ,
+        ),
     #     CorrectBadMagProj(
     #         name="find_bad_mag_proj",
     #         inputs=("mag/lpf", "mag/proj/lpf"),
-    #         outputs=("mag/proj/corr/lpf", "mag/proj/bad_mask",)
+    #         outputs=("mag/proj/lpf", "mag/proj/bad_mask",)
     #     ),
-    #     FindMagZVPoints(
-    #         name="find_mag_zv_points",
-    #         inputs=("mag/proj/corr/lpf",),
-    #         outputs=("mag_zv_points",)
-    #     ),
-
-    #     # Fusion steps
-    #     GetMagBaseline(
-    #         name="get_mag_baseline",
-    #         inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj"),
-    #         outputs=("mag_baseline",)
-    #     ),
-    #     GetMagTravelRefPoint(
-    #         name="get_mag_travel_ref_point",
-    #         inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
-    #         outputs=("mag_travel_ref_point",)
-    #     ),
-    #     GetMagToTravelModel(
-    #         name="mag_to_travel_model",
-    #         inputs=(
-    #             "mag/proj/corr/lpf", 
-    #             "accel/lpfhp/proj", 
-    #             "travel", 
-    #             "mag/proj/bad_mask", 
-    #             "mag_zv_points",
-    #             "mag_travel_ref_point",
-    #             "mag_baseline"
-    #             ),
-    #         outputs=(
-    #             "travel/mag_model",
-    #             "travel/mag_model/adj",
-    #             "fusion_scatter_points",
-    #             "mag_model_coeffs"
-    #         ),
-    #         plot_keys=(
-    #             PlotSpec(kind="scatter", key="fusion_scatter_points"),
-    #         ),
-    #         train_with_mask=True,
-    #     ),
-    #     GetErrorStats(
-    #         name="x_preds_stats",
-    #         inputs=("travel/mag_model", "travel", "boring_mask"),
-    #         outputs=(),
-    #         gt_thresh=0
-    #     ),
-    #     GetErrorStats(
-    #         name="x_preds_adj_stats",
-    #         inputs=("travel/mag_model/adj", "travel", "boring_mask"),
-    #         outputs=(),
-    #         gt_thresh=0
-    #     ),
-    #     TravelSolver(
-    #         name="travel_solver",
-    #         inputs=(
-    #             "accel/lpfhp/proj", 
-    #             "mag/proj/corr/lpf", 
-    #             "travel/mag_model/adj", 
-    #             "mag_zv_points", 
-    #             "mag_baseline",
-    #         ),
-    #         outputs=("travel/solved",),
-    #         plot_keys=("travel/solved",)
-    #     ),
-    #     GetErrorStats(
-    #         name="x_preds_solver",
-    #         inputs=("travel/solved", "travel", "boring_mask"),
-    #         outputs=(),
-    #         gt_thresh=0
-    #     ),
-    #     GetErrorStats(
-    #         name="x_preds_solver",
-    #         inputs=("travel/solved", "travel", "boring_mask"),
-    #         outputs=(),
-    #         gt_thresh=30
-    #     ),
+        FindMagZVPoints(
+            name="find_mag_zv_points",
+            inputs=("mag/angle/lpf",),
+            outputs=("mag_zv_points",),
+            min_dt=0,
+            min_dm=0
+        ),
+        CorrectAccelWithMagZV(
+            name="correct_accel_with_mag_zv",
+            inputs=("accel/lphp/proj", "mag/angle/lpf", "mag_zv_points"),
+            outputs=("accel/lphp/proj/zv", "mag_zv_points/accel_corr"),
+            plot_keys=("accel/lphp/proj/zv",),
+            mode="smoothed_bias",
+            min_prominence_mg=0.0,
+            min_separation_s=0.0,
+            smooth_bias_s=0.05,
+        ),
+        GetAccelError(
+            name="accel_proj_error",
+            inputs=("accel/lphp/proj/zv", "travel"),
+            outputs=(),
+        ),
+        GetRearMagToTravelModel(
+            name="mag_to_travel_model",
+            inputs=(
+                "mag/angle/lpf", 
+                "accel/lphp/proj/zv",
+                "mag_zv_points/accel_corr",
+                ),
+            outputs=(
+                "travel/mag_model",
+                "travel/mag_model/adj",
+                "fusion_scatter_points",
+                "mag_model_coeffs"
+            ),
+            plot_keys=(
+                PlotSpec(kind="scatter", key="fusion_scatter_points"),
+            ),
+            train_with_mask=False,
+            x0_weight=0.0,
+        ),
+        GetErrorStats(
+            name="x_preds_stats",
+            inputs=("travel/mag_model", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=None
+        ),
+        GetErrorStats(
+            name="x_preds_adj_stats",
+            inputs=("travel/mag_model/adj", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=None
+        ),
+        RearTravelSolver(
+            name="travel_solver",
+            inputs=(
+                "accel/lphp/proj/zv",
+                "travel/mag_model/adj", 
+                "mag_zv_points/accel_corr",
+            ),
+            outputs=("travel/solved",),
+            plot_keys=("travel/solved",)
+        ),
+        GetErrorStats(
+            name="x_preds_solver",
+            inputs=("travel/solved", "travel", "boring_mask"),
+            outputs=(),
+            gt_thresh=None
+        ),
+        # GetErrorStats(
+        #     name="x_preds_solver",
+        #     inputs=("travel/solved", "travel", "boring_mask"),
+        #     outputs=(),
+        #     gt_thresh=30
+        # ),
     ]
 
     runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False)

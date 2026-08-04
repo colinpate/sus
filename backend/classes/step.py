@@ -36,12 +36,13 @@ class FilterStep(Step):
     fc_hz: float
     btype: str = "low"
     dec_freq: Optional[float] = None
+    N: int = 4
 
     def run(self, ws: Workspace) -> None:
         ts: TimeSeries = ws[self.inputs[0]]
         fs_hz = ts.meta["fs_hz"]
 
-        sos = butter(N=4, Wn=self.fc_hz, btype=self.btype, fs=fs_hz, output="sos")
+        sos = butter(N=self.N, Wn=self.fc_hz, btype=self.btype, fs=fs_hz, output="sos")
 
         xf = sosfiltfilt(sos, ts.x, axis=0)
         t = ts.t

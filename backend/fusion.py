@@ -6,6 +6,7 @@ from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
 from mag_to_travel_model_core import MagToTravelModelCore
+from rear_mag_model import RearMagModel
 
 import matplotlib.pyplot as plt
 
@@ -130,45 +131,66 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
 
         return x_preds_ref
 
-    def get_fit_chunk_weights(self, input_arr):
-        if input_arr.shape[0] == 0:
-            return np.array([])
 
-        if self.fit_balance_mode == "max_mag":
-            rep_mag = np.max(input_arr[:, 0, :], axis=1)
-        elif self.fit_balance_mode == "mean_mag":
-            rep_mag = np.mean(input_arr[:, 0, :], axis=1)
-        else:
-            rep_mag = input_arr[:, 0, 0]
+@dataclass
+class GetRearMagToTravelModel(Step, RearMagModel):
+    min_chunk_dt: float = RearMagModel.min_chunk_dt
+    max_chunk_dt: float = RearMagModel.max_chunk_dt
+    min_chunk_db: float = RearMagModel.min_chunk_db
+    pair_mode: str = RearMagModel.pair_mode
+    default_chunk_max_dx: float = RearMagModel.default_chunk_max_dx
+    max_b_x_corr: float | None = RearMagModel.max_b_x_corr
+    min_abs_b_x_corr: float | None = RearMagModel.min_abs_b_x_corr
+    min_db_per_dx: float | None = RearMagModel.min_db_per_dx
+    zero_travel_percentile: float = 8
 
-        rep_mag = np.asarray(rep_mag, dtype=float)
-        n_bins = int(np.clip(self.fit_balance_bins, 1, len(rep_mag)))
-        if n_bins <= 1 or np.allclose(rep_mag, rep_mag[0]):
-            return np.ones_like(rep_mag)
+    def run(self, ws: Workspace) -> None:
+        mag_ts: TimeSeries = ws[self.inputs[0]]
+        accel_ts: TimeSeries = ws[self.inputs[1]]
+        idxs: np.ndarray = ws[self.inputs[2]]
 
-        edges = np.linspace(np.min(rep_mag), np.max(rep_mag), n_bins + 1)
-        bin_idx = np.digitize(rep_mag, edges[1:-1], right=False)
-        counts = np.bincount(bin_idx, minlength=n_bins).astype(float)
-        weights = 1.0 / np.maximum(counts[bin_idx], 100)
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+        t = mag_ts.t
 
-        # Normalize so the average chunk keeps about unit weight.
-        weights *= len(weights) / np.sum(weights)
-
-        print(
-            "Balanced fit chunk counts by mag bin:",
-            counts.astype(int),
-            "rep mag percentiles:",
-            np.percentile(rep_mag, [0, 25, 50, 75, 100]),
-            "edges:",
-            edges,
+        training_data = self.create_training_data(
+            mag=mag,
+            accel=accel,
+            t=t,
+            idxs=idxs
         )
-        return weights
+
+        result = self.train(training_data, guess_vec=[0.1, 250, 1 / 3])
+        x0, y_scale, power = result.x[0], result.x[1], result.x[2]
+        print(f"Mag to travel model coefficients: {x0:.2f}, {y_scale:.2f}, {power:.3f}")
+
+        x_preds = self.model.pred_x(mag)
+
+        x_preds_adj = x_preds - np.percentile(x_preds, self.zero_travel_percentile)
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=accel_ts.t,
+            x=x_preds,
+            units="mm",
+            frame=accel_ts.frame,
+            meta={**accel_ts.meta},
+        )
+        ws[self.outputs[1]] = TimeSeries(
+            t=accel_ts.t,
+            x=x_preds_adj,
+            units="mm",
+            frame=accel_ts.frame,
+            meta={**accel_ts.meta},
+        )
+        scatter_points = np.array([mag, x_preds_adj]).T
+        ws[self.outputs[2]] = scatter_points
+        ws[self.outputs[3]] = np.array([x0, y_scale, power])
 
 
 @dataclass
 class GetErrorStats(Step):
     """ Get error stats for mag to travel model """
-    gt_thresh: float = 0
+    gt_thresh: float | None = None
 
     def run(self, ws: Workspace) -> None:
         preds_ts: TimeSeries = ws[self.inputs[0]]
@@ -180,15 +202,20 @@ class GetErrorStats(Step):
         preds = preds_ts.x[:, 0]
         gt = gt_ts.x[:, 0]
 
-        mask = gt > self.gt_thresh
+        if self.gt_thresh is not None:
+            mask = gt > self.gt_thresh
+            mask_text = "Thresh (> {self.gt_thresh:.1f} mm)"
+        else:
+            mask = np.ones_like(gt).astype(np.bool)
+            mask_text = ""
         if mask_in is not None:
             mask *= mask_in.flatten()
             print(f"Calculating error stats with mask, using {np.sum(mask_in)/len(mask)*100:.1f}% samples")
         preds_masked = preds[mask]
         gt_masked = gt[mask]
 
-        print_err_stats(preds_masked, gt_masked, prefix=f"Thresh (> {self.gt_thresh:.1f} mm) (centered)", center=True)
-        print_err_stats(preds_masked, gt_masked, prefix=f"Thresh (> {self.gt_thresh:.1f} mm)")
+        print_err_stats(preds_masked, gt_masked, prefix=f"{mask_text} (centered)", center=True)
+        print_err_stats(preds_masked, gt_masked, prefix=mask_text)
     
 
 @dataclass

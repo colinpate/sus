@@ -8,7 +8,7 @@ from scipy.optimize import least_squares
 from scipy.stats import spearmanr
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from tools.stats_aggregator import DEFAULT_LOGS
 #DEFAULT_LOGS = ["log022", "log029", "log030", "log031", "log038", "log056_ccdh", "log078", "log079", "log080", "log085", "log086", "log088", "log091", '']
@@ -495,7 +495,7 @@ def summarize_log(data: LogData, args: argparse.Namespace) -> dict[str, MethodEv
 def print_summary(all_results: dict[str, dict[str, MethodEval]], methods: list[str]) -> None:
     if not all_results:
         return
-    
+
     print(
         "  note:"
         " sign is allowed to flip during evaluation so abs correlation reflects vector quality,"

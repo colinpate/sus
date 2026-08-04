@@ -14,16 +14,11 @@ class ProjectMag(Step):
     """Project magnet data onto mean vector"""
     mag_threshold: int = 3000  # mG
     normalize: bool = False
-    still_a_max: float = 1000 # mm/s^2
-    still_len_s: float = 0.1
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]]
-        accel_ts: TimeSeries = ws[self.inputs[1]]
 
         x = a.x
-        accel = accel_ts.x
-        still_len = int(self.still_len_s * a.meta["fs_hz"])
         
         # Threshold magnet data and project along the direction of travel
         mag_filtered_thresh = x[np.linalg.norm(x, axis=1) > self.mag_threshold]
@@ -43,34 +38,69 @@ class ProjectMag(Step):
             frame=a.frame,
             meta={**a.meta},
         )
-    
-    def get_mag_baseline(self, mag, accel, still_len):
-        a_mms = accel * 1000
-        still_mags = []
-        mag_mag = np.linalg.norm(mag, axis=1)
-        for i in range(0, mag.shape[0] - still_len, still_len):
-            mag_chunk = mag_mag[i:i+still_len]
-            a_chunk = a_mms[i:i+still_len]
-            if max(abs(a_chunk)) < self.still_a_max:
-                still_mags.append(mag_chunk)
-
-        mag_baseline = np.median(still_mags) + np.std(still_mags)
-        print("Raw mag baseline", mag_baseline, "std", np.std(still_mags))
-        return mag_baseline
 
 
+@dataclass
+class MagAngle(Step):
+    """Get the angle of the magnet signal from an arbitrary source"""
+    x_axis: int = 0
+    y_axis: int = 2
+
+    def run(self, ws: Workspace) -> None:
+        b: TimeSeries = ws[self.inputs[0]]
+
+        norm = np.maximum(np.linalg.norm(b.x, axis=1), 1e-12)
+        b_diff_normed = (b.x.T / norm).T
+        b_angle = np.unwrap(np.atan2(b_diff_normed[:, self.x_axis], b_diff_normed[:, self.y_axis]))
+        b_angle -= np.min(b_angle)
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=b.t,
+            x=b_angle,
+            units="radians",
+            frame=b.frame,
+            meta={**b.meta},
+        )
+
+
+@dataclass
 class DiffMag(Step):
-    rot = [[0, 1, 0],
-           [-1, 0, 0],
-           [0, 0, 1]]
-    
+    # Legacy per-step alignment. New sensor mounting geometry should be represented
+    # by signals.*.sensor_to_pod_matrix and applied by MagLoader.
+    z_rotation_deg: float = 0
+
+    @staticmethod
+    def rotation_matrix_from_z_deg(z_rotation_deg: float) -> np.ndarray:
+        theta = np.deg2rad(z_rotation_deg)
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
+        return np.array([
+            [cos_theta, -sin_theta, 0.0],
+            [sin_theta, cos_theta, 0.0],
+            [0.0, 0.0, 1.0],
+        ])
+
     def run(self, ws: Workspace) -> None:
         b_mmc_ts: TimeSeries = ws[self.inputs[0]]
         b_lis_ts: TimeSeries = ws[self.inputs[1]]
         b_mmc = b_mmc_ts.x
         b_lis = b_lis_ts.x
-        rot_mat = np.asarray(self.rot)
+        z_rotation_deg = float(self.param(ws, "z_rotation_deg"))
+        rot_mat = self.rotation_matrix_from_z_deg(z_rotation_deg)
         b_lis_rot = (rot_mat @ b_lis.T).T
+        b_net = b_mmc - b_lis_rot
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=b_mmc_ts.t,
+            x=b_net,
+            units=b_mmc_ts.units,
+            frame=b_mmc_ts.frame,
+            meta={
+                **b_mmc_ts.meta,
+                "diff_mag_z_rotation_deg": z_rotation_deg,
+                "diff_mag_rotation_matrix": rot_mat.tolist(),
+            },
+        )
 
 
 class FindBadMagProj(Step): 
@@ -135,10 +165,11 @@ class CorrectBadMagProj(Step):
         )
 
 
+@dataclass
 class FindMagZVPoints(Step):
     """Find zero-velocity points in magnetometer data"""
-    min_dt = 5
-    min_dm = 50
+    min_dt: int = 5
+    min_dm: float = 50
 
     def run(self, ws: Workspace) -> None:
         mag_proj_series: TimeSeries = ws[self.inputs[0]]

@@ -1,19 +1,29 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import ClassVar, Literal
+
 import numpy as np
 import scipy
 from scipy.optimize import least_squares
 
 
+CoreChunkingMethod = Literal["centered_zv", "debiased_centered_zv"]
+
+
 @dataclass
 class MagToTravelChunk:
-    v: np.ndarray
-    x: np.ndarray
+    a: np.ndarray
+    t: np.ndarray
     mag: np.ndarray
-    idx: int
-    chunk_len: int
+    slice_i: slice
+    zv_idx: int
+    badmask: np.ndarray | None = None
+    v: np.ndarray | None = None
+    x: np.ndarray | None = None
+    metrics: dict[str, float] = field(default_factory=dict)
+    errors: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.slice = slice(self.idx-self.chunk_len, self.idx+self.chunk_len)
+        self.chunk_len = self.slice_i.stop - self.slice_i.start
 
 
 @dataclass
@@ -40,20 +50,180 @@ class MagToTravelModelCore:
     """ Train a model using least squares  """
     chunk_min_dx: float = 10
     chunk_max_dx: float = 1500
-    chunk_len: int = 20
+    chunk_rad: int = 20
     train_with_mask: bool = False
     bad_thresh: float = 0.5
+    dm_dx_thresh: float | None = 0.05
     pred_soft_mg: float = 50.0
     power_weight: float = 1000.0
+    x0_weight: float = 0
     min_mag_relax_min_chunks: int = 50
     retrain_drop_worst_chunk_frac: float = 0.0
     retrain_drop_worst_chunk_min_count: int = 1
     retrain_drop_worst_chunk_min_remaining: int = 25
     model: MagToTravelModel | None = None
+    chunking_method: CoreChunkingMethod = "centered_zv"
+
+    allowed_chunking_methods: ClassVar[tuple[str, ...]] = (
+        "centered_zv",
+        "debiased_centered_zv",
+    )
 
     def __post_init__(self):
+        self.validate_chunking_method()
         self.chunks: list[MagToTravelChunk] = []
         self.stats: dict = {}
+
+    def validate_chunking_method(self):
+        if self.chunking_method not in self.allowed_chunking_methods:
+            allowed = ", ".join(self.allowed_chunking_methods)
+            raise ValueError(
+                f"Invalid chunking method: {self.chunking_method}. "
+                f"Expected one of: {allowed}"
+            )
+
+    def integrate_chunk(self, chunk: MagToTravelChunk):
+        v_chunk = scipy.integrate.cumulative_trapezoid(chunk.a, chunk.t, initial=0)
+        v_chunk -= v_chunk[chunk.zv_idx]
+        x_chunk = scipy.integrate.cumulative_trapezoid(v_chunk, chunk.t, initial=0)
+        x_chunk -= x_chunk[chunk.zv_idx]
+        chunk.v = v_chunk
+        chunk.x = x_chunk
+
+    def calc_chunk_metrics(self, chunk: MagToTravelChunk):
+        dx = max(chunk.x) - min(chunk.x)
+        db = chunk.mag[-1] - chunk.mag[0]
+        b_x_corr = scipy.stats.spearmanr(chunk.mag, chunk.x).correlation
+
+        chunk.metrics["dx"] = dx
+        chunk.metrics["dt"] = chunk.t[-1] - chunk.t[0]
+        chunk.metrics["mag_min"] = min(chunk.mag)
+        chunk.metrics["abs_db"] = abs(db)
+        chunk.metrics["db_per_dx"] = abs(db) / max(dx, 1e-6)
+        chunk.metrics["dm/dx"] = np.diff(chunk.mag, prepend=chunk.mag[0]) / (chunk.v + 1e-6)
+        chunk.metrics["dm/dx_median"] = np.median(chunk.metrics["dm/dx"])
+        chunk.metrics["b_x_corr"] = b_x_corr
+        chunk.metrics["abs_b_x_corr"] = abs(b_x_corr) if np.isfinite(b_x_corr) else 0.0
+        if chunk.badmask is not None:
+            chunk.metrics["badmask_mean"] = np.mean(chunk.badmask)
+
+    def calc_chunk_errors(
+        self, 
+        chunk: MagToTravelChunk, 
+        travel_gt: np.ndarray, 
+        v_gt: np.ndarray | None,
+        a_gt: np.ndarray | None
+    ):
+        trav_rel = travel_gt[chunk.slice_i].copy()
+        trav_rel -= trav_rel[chunk.zv_idx]
+        chunk.errors["x"] = chunk.x - trav_rel
+        if v_gt is not None:
+            chunk.errors["v"] = chunk.v - v_gt[chunk.slice_i]
+        if a_gt is not None:
+            chunk.errors["a"] = chunk.a - a_gt[chunk.slice_i]
+
+    def calc_chunks_errors(
+        self, 
+        chunks: list[MagToTravelChunk],
+        travel_gt: np.ndarray, 
+        v_gt: np.ndarray | None,
+        a_gt: np.ndarray | None
+    ):
+        for chunk in chunks:
+            self.calc_chunk_errors(chunk, travel_gt, v_gt, a_gt)
+
+    def filter_chunk_dx(self, chunk: MagToTravelChunk):
+        return self.chunk_min_dx <= chunk.metrics["dx"] <= self.chunk_max_dx
+    
+    def filter_chunk_dm_dx(self, chunk: MagToTravelChunk):
+        if self.dm_dx_thresh is None:
+            return True
+        return chunk.metrics["dm/dx_median"] >= self.dm_dx_thresh
+    
+    def filter_chunk_badmask(self, chunk: MagToTravelChunk):
+        return chunk.metrics["badmask_mean"] <= self.bad_thresh
+    
+    def filter_chunk_minmag(self, chunk: MagToTravelChunk, min_mag: float):
+        return chunk.metrics["mag_min"] >= min_mag
+
+    def get_eligibility_filter_fns(self):
+        return [
+            self.filter_chunk_badmask,
+            self.filter_chunk_dm_dx,
+            self.filter_chunk_dx,
+        ]
+
+    def get_filter_fns(self, min_mag: float):
+        filter_fns = [
+            *self.get_eligibility_filter_fns(),
+            lambda x: self.filter_chunk_minmag(x, min_mag),
+        ]
+        return filter_fns
+
+    def create_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask: np.ndarray | None = None):
+        self.validate_chunking_method()
+        chunks = []
+        chunk_rad = self.chunk_rad
+        for i, idx in enumerate(idxs_filt):
+            if idx < chunk_rad or idx + chunk_rad >= len(mag):
+                continue
+            slice_i = slice(idx - chunk_rad, idx + chunk_rad)
+            if mag_proj_bad_mask is not None:
+                mask_i = mag_proj_bad_mask[slice_i]
+            else:
+                mask_i = None
+            if self.chunking_method == "centered_zv":
+                acc_i = acc[slice_i]
+            elif self.chunking_method == "debiased_centered_zv":
+                if i > 0:
+                    start_bias = np.mean(acc[idxs_filt[i-1]:idx])
+                else:
+                    start_bias = 0
+                if i < len(idxs_filt) - 1:
+                    end_bias = np.mean(acc[idx:idxs_filt[i+1]])
+                else:
+                    end_bias = 0
+                start_acc = acc[idx-chunk_rad:idx].copy()
+                end_acc = acc[idx:idx+chunk_rad].copy()
+                acc_i = np.concatenate([start_acc-start_bias, end_acc-end_bias], axis=0)
+            else:
+                raise ValueError(f"Invalid chunking method: {self.chunking_method}")
+            chunk = MagToTravelChunk(
+                a=acc_i * 1000,
+                t=t_s[slice_i],
+                mag=mag[slice_i],
+                badmask=mask_i,
+                slice_i=slice_i,
+                zv_idx=chunk_rad
+            )
+            chunks.append(chunk)
+        return chunks
+    
+    def prepare_chunks(self, chunks: list[MagToTravelChunk]):
+        for chunk in chunks:
+            self.integrate_chunk(chunk)
+            self.calc_chunk_metrics(chunk)
+    
+    def filter_chunks(self, chunks: list[MagToTravelChunk], filters: list[callable]):
+        chunks_filt = []
+        for chunk in chunks:
+            for filter in filters:
+                if not filter(chunk):
+                    break
+            else:
+                chunks_filt.append(chunk)
+        return chunks_filt
+    
+    def get_eligible_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask):
+        chunks = self.create_chunks(idxs_filt, mag, acc, t_s, mag_proj_bad_mask)
+        self.prepare_chunks(chunks)
+        eligible_chunks = self.filter_chunks(chunks, self.get_eligibility_filter_fns())
+        print("Candidate chunks:", len(chunks))
+        print("Eligible chunks:", len(eligible_chunks))
+        return eligible_chunks
+
+    def filter_chunks_by_min_mag(self, chunks: list[MagToTravelChunk], min_mag: float):
+        return [chunk for chunk in chunks if self.filter_chunk_minmag(chunk, min_mag)]
 
     def create_training_data(
             self, 
@@ -71,8 +241,9 @@ class MagToTravelModelCore:
             training_mask = np.zeros(mag.shape[0], dtype=bool)
 
         self.min_mag = baseline_min_mag
-        chunks, all_mags = self.get_chunks(idxs, mag, accel, t, training_mask, self.min_mag)
-        mag_mins = [np.min(mag_chunk) for mag_chunk in all_mags]
+        eligible_chunks = self.get_eligible_chunks(idxs, mag, accel, t, training_mask)
+        chunks = self.filter_chunks_by_min_mag(eligible_chunks, self.min_mag)
+        mag_mins = [chunk.metrics["mag_min"] for chunk in eligible_chunks]
         if mag_mins:
             relax_rank = min(len(mag_mins), self.min_mag_relax_min_chunks)
             relaxed_min_mag = np.sort(mag_mins)[-relax_rank]
@@ -93,7 +264,7 @@ class MagToTravelModelCore:
                 "initial chunks",
                 len(chunks),
             )
-            chunks, _ = self.get_chunks(idxs, mag, accel, t, training_mask, relaxed_min_mag)
+            chunks = self.filter_chunks_by_min_mag(eligible_chunks, relaxed_min_mag)
         else:
             print(
                 "Using raw min mag",
@@ -102,76 +273,29 @@ class MagToTravelModelCore:
                 len(chunks),
             )
         self.chunks = chunks
+        print("Training chunks:", len(self.chunks))
 
         return self.format_chunks_for_fit(chunks)
-
-    def get_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask, min_mag):
-        chunk_len = self.chunk_len
-        min_dx = self.chunk_min_dx
-        max_dx = self.chunk_max_dx
-        filt_stats = {"mask": 0, "dx": 0, "dm/dx": 0, "mag": 0}
-
-        chunks = []
-        all_mags = []
-        for idx in idxs_filt:
-            if idx < chunk_len or idx + chunk_len >= len(mag):
-                continue
-            t_chunk = t_s[idx - chunk_len:idx + chunk_len]
-            a_chunk = acc[idx - chunk_len:idx + chunk_len] * 1000
-            badmask_chunk = mag_proj_bad_mask[idx - chunk_len:idx + chunk_len]
-            if np.mean(badmask_chunk) > self.bad_thresh:
-                filt_stats["mask"] += 1
-                continue
-            v_chunk = scipy.integrate.cumulative_trapezoid(a_chunk, t_chunk, initial=0)
-            v_chunk -= v_chunk[chunk_len]
-            x_chunk = scipy.integrate.cumulative_trapezoid(v_chunk, t_chunk, initial=0)
-            x_chunk -= x_chunk[chunk_len]
-            chunk_dx = max(x_chunk) - min(x_chunk)
-            if chunk_dx < min_dx or chunk_dx > max_dx:
-                filt_stats["dx"] += 1
-                continue
-            mag_chunk = mag[idx - chunk_len:idx + chunk_len]
-            dm_chunk = np.diff(mag_chunk, prepend=mag_chunk[0])
-            dm_dx = dm_chunk / (v_chunk + 1e-6)
-            if np.median(dm_dx) < 0.05:
-                filt_stats["dm/dx"] += 1
-                continue
-            all_mags.append(mag_chunk)
-            if min(mag_chunk) < min_mag:
-                filt_stats["mag"] += 1
-                continue
-            chunk_i = MagToTravelChunk(
-                v=v_chunk,
-                x=x_chunk,
-                mag=mag_chunk,
-                idx=idx,
-                chunk_len=chunk_len
-            )
-            chunks.append(chunk_i)
-
-        self.stats["chunks_filtered"] = filt_stats
-
-        print("Training chunks:", len(chunks))
-
-        return chunks, all_mags
 
     def format_chunks_for_fit(self, chunks: list[MagToTravelChunk]):
         # Formulate input data and residuals and threshold by min mag
         # Axis 0: chunk: n_chunks
         # Axis 1: point index: n_points
         # Axis 2: mag (absolute), x (relative to point at index 0): 
-        chunk_len = self.chunk_len
+        if not chunks:
+            return np.empty((0, 3, 0), dtype=float)
+        max_chunk_len = max([chunk.chunk_len for chunk in chunks])
 
-        pt_idxes = [chunk_len] + list(range(0, chunk_len)) + list(range(chunk_len + 1, 2 * chunk_len))
+        input_arr = np.zeros((len(chunks), 3, max_chunk_len))
 
-        input_list = []
-        for chunk_i in chunks:
-            input_list.append([chunk_i.mag[pt_idxes], chunk_i.x[pt_idxes]])
+        for i, chunk in enumerate(chunks):
+            all_idxes = np.arange(chunk.chunk_len)
+            pt_idxes = [chunk.zv_idx] + all_idxes[all_idxes != chunk.zv_idx].tolist()
 
-        if not input_list:
-            return np.empty((0, 2, 2 * chunk_len), dtype=float)
+            input_arr[i, 0, :chunk.chunk_len] = chunk.mag[pt_idxes]
+            input_arr[i, 1, :chunk.chunk_len] = chunk.x[pt_idxes]
+            input_arr[i, 2, :chunk.chunk_len] = 1
 
-        input_arr = np.array(input_list, dtype=float)
         print("Min mag at indices:", np.min(input_arr[:, 0, :]), "mean", np.mean(input_arr[:, 0, :]), "max", np.max(input_arr[:, 0, :]))
         print(input_arr.shape)
         return input_arr
@@ -179,19 +303,20 @@ class MagToTravelModelCore:
     def make_residual_fn(self, model: MagToTravelModel, input_arr, power_prior: float):
         def calculate_res(vec):
             x0, y_scale, power = vec[0], vec[1], vec[2]
-
+            
             zero_x_mags = input_arr[:, 0, 0]
             zero_x_preds = model.pred_x(zero_x_mags, np.array([x0, y_scale, power]))
             x_acc_preds = input_arr[:, 1, 1:] + zero_x_preds[:, np.newaxis]
 
             mag_pts = input_arr[:, 0, 1:]
             x_mag_preds = model.pred_x(mag_pts, np.array([x0, y_scale, power]))
-            res = x_acc_preds - x_mag_preds
+            mask = input_arr[:, 2, 1:]
+            res = (x_acc_preds - x_mag_preds) * mask
             #res *= np.sqrt(chunk_weights)[:, np.newaxis]
 
             power_res = power - power_prior
 
-            return np.concatenate([res.flatten(), np.array([power_res]) * self.power_weight])
+            return np.concatenate([res.flatten(), np.array([power_res]) * self.power_weight, np.array([x0]) * self.x0_weight])
 
         return calculate_res
 
@@ -251,7 +376,7 @@ class MagToTravelModelCore:
         keep_mask = np.ones(n_chunks, dtype=bool)
         keep_mask[worst_chunks] = False
 
-        chunk_centers = [int(self.chunks[i].idx) for i in worst_chunks]
+        chunk_centers = [int(self.chunks[i].slice_i.start) for i in worst_chunks]
         print(
             "Retraining after pruning",
             remove_count,
@@ -273,11 +398,11 @@ class MagToTravelModelCore:
         filtered_chunks = [chunk for i, chunk in enumerate(self.chunks) if keep_mask[i]]
         return input_arr[keep_mask], filtered_chunks, True
 
-    def train(self, input_arr, power_prior = 1/3):
+    def train(self, input_arr, power_prior = 1/3, guess_vec=None):
         if input_arr.shape[0] == 0:
             raise ValueError("No training chunks available for mag-to-travel fit")
 
-        result = self.fit_model(input_arr, power_prior=power_prior)
+        result = self.fit_model(input_arr, power_prior=power_prior, guess_vec=guess_vec)
 
         filtered_input_arr, filtered_chunks, filtered = self.maybe_filter_worst_chunks(input_arr, result)
         if filtered:

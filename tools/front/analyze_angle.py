@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.signal import butter, sosfiltfilt
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from backend.angle_corruption import (
     ANGLE_ERROR_HALO_S,

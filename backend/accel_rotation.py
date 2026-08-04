@@ -315,6 +315,30 @@ class GetAccelTravelVector(Step):
         scatter_points = np.concat((np.reshape(chunk_mags, (-1, 1)), chunk_means), axis=1)
         ws[self.outputs[1]] = scatter_points
 
+
+@dataclass
+class GetAccelTravelVectorRear(Step):
+    accel_threshold = 10 # m/s^2
+    """Get the primary travel vector"""
+
+    def run(self, ws: Workspace) -> None:
+        a: TimeSeries = ws[self.inputs[0]].x
+
+        a_norm = np.linalg.norm(a, axis=1)
+
+        mask = (a_norm > self.accel_threshold)
+        # dilate mask
+        mask = np.convolve(mask, np.ones(200), mode="same") > 0
+
+        # Find main axis of acceleration
+        a_m = a[mask]
+        accel_axis = np.mean(a_m[a_m[:, 1] < 0], axis=0)
+        accel_axis /= np.linalg.norm(accel_axis)
+        print("Accel travel vector:", accel_axis)
+
+        ws[self.outputs[0]] = accel_axis
+
+
 @dataclass
 class ProjectAccel(Step):
     """Project accel onto the travel vector"""
@@ -399,9 +423,10 @@ class GetAccelError(Step):
         v = np.gradient(travel, t, edge_order = 2)
         a_gt = np.gradient(v, t, edge_order = 2) / 1000.0
 
-        error = a_proj - a_gt
-        ratio_error = error / (a_gt + 1e-6)
         mask = abs(a_gt) > self.threshold
+        error = a_proj - a_gt
+        sign_error = np.mean(np.abs(np.sign(a_proj) - np.sign(a_gt))[mask]) / 2
+        ratio_error = error / (a_gt + 1e-6)
         if isinstance(angle_bad_mask_ts, TimeSeries):
             bad_mask = project_mask_to_timeline(
                 angle_bad_mask_ts.t,
@@ -419,6 +444,8 @@ class GetAccelError(Step):
         error = error[mask]  # Only evaluate on parts where we have significant travel acceleration
         ratio_error = ratio_error[mask]
 
+        print(f"Accel mask: {np.mean(mask)*100:.2f}%")
         print("Accel STD (m/s^2):", np.std(a_gt[mask]), " mean abs:", np.mean(np.abs(a_gt[mask])))
-        print(f"RMSE error (m/s^2): {np.sqrt(np.mean(error**2)):.2f}, MAE error (m/s^2): {np.mean(np.abs(error)):.2f}, Mean error (m/s^2): {np.mean(error):.2f}")
-        print(f"RMSE ratio error: {np.sqrt(np.mean(ratio_error**2)):.2f}, MAE ratio error: {np.mean(np.abs(ratio_error)):.2f}, Mean ratio error: {np.mean(ratio_error):.2f}")
+        print(f"Accel RMSE error (m/s^2): {np.sqrt(np.mean(error**2)):.2f}, MAE error (m/s^2): {np.mean(np.abs(error)):.2f}, Mean error (m/s^2): {np.mean(error):.2f}")
+        print(f"Accel Sign error: {sign_error*100:.2f}%")
+        print(f"Accel RMSE ratio error: {np.sqrt(np.mean(ratio_error**2)):.2f}, MAE ratio error: {np.mean(np.abs(ratio_error)):.2f}, Mean ratio error: {np.mean(ratio_error):.2f}")

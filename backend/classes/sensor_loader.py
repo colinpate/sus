@@ -5,8 +5,13 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 import numpy as np
 import pandas as pd
 
-from angle_corruption import find_corrupt_angle_samples, interpolate_masked_signal
+from angle_corruption import (
+    ANGLE_RAW_PAD_SAMPLES,
+    find_corrupt_angle_samples,
+    interpolate_masked_signal,
+)
 from classes.time_series import TimeSeries
+from sensor_orientation import resolve_signal_orientation
 
 Workspace = Dict[str, Any]
 
@@ -110,13 +115,34 @@ class MagLoader:
             x = x - offset_vec
             print(f"Applying {self.data_name} offset {offset_vec}")
 
+        orientation_config = resolve_signal_orientation(signal_config)
+        orientation_matrix = None
+        if orientation_config is not None:
+            orientation_matrix = np.asarray(orientation_config, dtype=float)
+            if orientation_matrix.shape != (3, 3):
+                raise ValueError(
+                    f"{self.data_name} sensor_to_pod_matrix must be 3x3, got shape {orientation_matrix.shape}"
+                )
+            x = (orientation_matrix @ x.T).T
+            print(f"Applying {self.data_name} sensor-to-pod orientation {orientation_matrix.tolist()}")
+
+        frame = "pod" if orientation_matrix is not None else "sensor"
+        meta = {"fs_hz": fs_hz, "offset": offset, "lag": lag}
+        if orientation_matrix is not None:
+            meta.update(
+                {
+                    "orientation_preset": signal_config.get("orientation_preset"),
+                    "sensor_to_pod_matrix": orientation_matrix.tolist(),
+                }
+            )
+
         return {
             self.data_name: TimeSeries(
                 t=t,
                 x=x,
                 units="milli-Gauss",
-                frame="sensor",
-                meta={"fs_hz": fs_hz, "offset": offset, "lag": lag},
+                frame=frame,
+                meta=meta,
             )
         }
 
@@ -135,18 +161,36 @@ class AngleLoader:
     lag: int = 0
     interpolate_bad: bool = True
     offset: int = 0
+    mark_bad_samples: bool = True
+    bad_mask_pad_samples: int = ANGLE_RAW_PAD_SAMPLES
+    allow_degenerate: bool = False
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
         angle_raw = df["angle_raw"].to_numpy()
         t = np.array(df["t_s"].values)
         fs_hz = 1 / np.median(np.diff(t))
-        bad_mask = find_corrupt_angle_samples(angle_raw)
+        if self.mark_bad_samples:
+            bad_mask = find_corrupt_angle_samples(angle_raw, pad_samples=self.bad_mask_pad_samples)
+        else:
+            bad_mask = np.zeros_like(angle_raw, dtype=bool)
 
         x_raw = ((angle_raw + self.offset) % 4096) * np.pi * 2 / 4096
         if self.interpolate_bad:
-            x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
-            if np.any(bad_mask):
+            interpolated_bad_samples = False
+            good_samples = int(np.sum(~bad_mask))
+            if np.any(bad_mask) and good_samples < 2:
+                if not self.allow_degenerate:
+                    raise ValueError("Need at least two good angle samples to interpolate corrupted regions")
+                print(
+                    f"Warning: only {good_samples} good angle samples found in {self.path}; "
+                    "using un-interpolated angle data"
+                )
+                x = x_raw.copy()
+            else:
+                x = interpolate_masked_signal(x_raw, bad_mask, sample_pos=t)
+                interpolated_bad_samples = np.any(bad_mask)
+            if interpolated_bad_samples:
                 print(
                     f"Interpolated {np.sum(bad_mask)} corrupted angle samples "
                     f"({np.mean(bad_mask) * 100:.2f}%) from {self.path}"

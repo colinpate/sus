@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import io
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -44,6 +43,21 @@ DEFAULT_LOGS = [
     "log109",
     "log110",
     "log112",
+]
+DEFAULT_LOGS_REAR = [
+    "log140_rear",
+    "log141_rear",
+    "log142_rear",
+    "log143_rear",
+    "log144_rear",
+    "log145_rear",
+    "log148_rear",
+    "log149_rear",
+    "log150_rear",
+    "log151_rear",
+    "log152_rear",
+    "log153_rear",
+    "log154_rear",
 ]
 NEW_LOGS = [
     "log103",
@@ -186,6 +200,31 @@ def load_cache(log_name: str, cache_root: Path) -> NpzFile:
     if not cache_path.exists():
         raise FileNotFoundError(cache_path)
     return np.load(cache_path)
+
+
+def cache_series_exists(cache: NpzFile, key: str) -> bool:
+    return f"{key}__x" in cache and f"{key}__t" in cache
+
+
+def resolve_cache_series_key(cache: NpzFile, *candidates: str) -> str:
+    for key in candidates:
+        if cache_series_exists(cache, key):
+            return key
+    raise KeyError(f"None of the cache series keys were found: {', '.join(candidates)}")
+
+
+def resolve_optional_cache_series_key(cache: NpzFile, *candidates: str) -> str | None:
+    for key in candidates:
+        if cache_series_exists(cache, key):
+            return key
+    return None
+
+
+def resolve_optional_cache_scalar_key(cache: NpzFile, *candidates: str) -> str | None:
+    for key in candidates:
+        if key in cache:
+            return key
+    return None
 
 
 def bool_1d(arr: np.ndarray) -> np.ndarray:
@@ -482,6 +521,13 @@ def build_travel_bin_masks(travel: np.ndarray) -> list[np.ndarray]:
     return [bin_spec.mask(travel) for bin_spec in make_travel_bins()]
 
 
+def infer_mag_anchor_threshold(cache: NpzFile) -> float | None:
+    mag_baseline_key = resolve_optional_cache_scalar_key(cache, "mag_baseline")
+    if mag_baseline_key is not None:
+        return max(MIN_MAG_ANCHOR_MG, float(flatten_1d(cache[mag_baseline_key])[0]))
+    return None
+
+
 def summarize_binned_rmse(err: np.ndarray, gt: np.ndarray) -> dict[str, float]:
     err = flatten_1d(err)
     gt = flatten_1d(gt)
@@ -539,12 +585,19 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
 
     boring_mask = bool_1d(cache["boring_mask"])
     travel = flatten_1d(cache["travel__x"])
-    mag = flatten_1d(cache["mag/proj/corr/lpf__x"])
-    accel_hp_abs = np.abs(flatten_1d(cache["accel/lpfhp/proj__x"]))
-    bad_mag_mask = bool_1d(cache["mag/proj/bad_mask__x"])
-    zv_mask = dense_index_mask(len(travel), cache["mag_zv_points"])
-    mag_baseline = float(flatten_1d(cache["mag_baseline"])[0])
-    mag_anchor_thresh = max(MIN_MAG_ANCHOR_MG, mag_baseline)
+    mag_key = resolve_cache_series_key(cache, "mag/proj/corr/lpf", "mag/proj/lpf")
+    accel_hp_key = resolve_cache_series_key(cache, "accel/lphp/proj/zv", "accel/lpfhp/proj", "accel/lphp/proj")
+    bad_mag_key = resolve_optional_cache_series_key(cache, "mag/proj/bad_mask")
+    mag = flatten_1d(cache[f"{mag_key}__x"])
+    accel_hp_abs = np.abs(flatten_1d(cache[f"{accel_hp_key}__x"]))
+    bad_mag_mask = (
+        bool_1d(cache[f"{bad_mag_key}__x"])
+        if bad_mag_key is not None
+        else np.zeros(len(travel), dtype=bool)
+    )
+    zv_key = resolve_optional_cache_scalar_key(cache, "mag_zv_points/accel_corr", "mag_zv_points")
+    zv_mask = dense_index_mask(len(travel), cache[zv_key])
+    mag_anchor_thresh = infer_mag_anchor_threshold(cache)
 
     require_same_shape(
         f"{log_name}: diagnostic arrays",
@@ -593,15 +646,22 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
         "mag_adj_rmse": mag_adj_rmse,
         "solved_rmse": solved_rmse,
         "solver_delta": solved_rmse - mag_adj_rmse,
-        "mag_anchor_pct": masked_ratio_pct(conditions["anchor_on"]),
-        "mag_abs_anchor_pct": masked_ratio_pct(conditions["anchor_abs"]),
+        "mag_anchor_pct": masked_ratio_pct(conditions["anchor_on"]) if mag_anchor_thresh is not None else float("nan"),
+        "mag_abs_anchor_pct": masked_ratio_pct(conditions["anchor_abs"]) if mag_anchor_thresh is not None else float("nan"),
         "bad_mag_pct": masked_ratio_pct(masked_bad_mag),
         "zvs_per_1k": 1000.0 * float(np.mean(masked_zv)),
     }
 
     condition_row = condition_metric_row(log_name, solved_err, conditions)
     condition_ratio_row = condition_occurrence_row(log_name, conditions)
-    solver_delta_row = solver_delta_metric_row(log_name, solved_err, mag_adj_err, conditions, stage_row["solver_delta"])
+    solver_delta_row = solver_delta_metric_row(
+        log_name,
+        solved_err,
+        mag_adj_err,
+        conditions,
+        stage_row["solver_delta"],
+        include_anchor_metrics=mag_anchor_thresh is not None,
+    )
 
     pooled = {
         "travel": masked_travel,
@@ -646,8 +706,17 @@ def build_diagnostic_conditions(
     accel_hp_abs: np.ndarray,
     bad_mag: np.ndarray,
     zv: np.ndarray,
-    mag_anchor_thresh: float,
+    mag_anchor_thresh: float | None,
 ) -> dict[str, np.ndarray]:
+    if mag_anchor_thresh is None:
+        anchor_on = np.zeros_like(mag, dtype=bool)
+        anchor_off = np.zeros_like(mag, dtype=bool)
+        anchor_abs = np.zeros_like(mag, dtype=bool)
+    else:
+        anchor_on = mag > mag_anchor_thresh
+        anchor_off = mag <= mag_anchor_thresh
+        anchor_abs = np.abs(mag) > mag_anchor_thresh
+
     return {
         "low_trav": travel < LOW_TRAVEL_MAX_MM,
         "high_trav": travel > HIGH_TRAVEL_MIN_MM,
@@ -657,9 +726,9 @@ def build_diagnostic_conditions(
         "high_mag": mag > HIGH_MAG_THRESH,
         "bad_mag": bad_mag,
         "zv": zv,
-        "anchor_on": mag > mag_anchor_thresh,
-        "anchor_off": mag <= mag_anchor_thresh,
-        "anchor_abs": np.abs(mag) > mag_anchor_thresh,
+        "anchor_on": anchor_on,
+        "anchor_off": anchor_off,
+        "anchor_abs": anchor_abs,
     }
 
 
@@ -695,14 +764,16 @@ def solver_delta_metric_row(
     mag_adj_err: np.ndarray,
     conditions: dict[str, np.ndarray],
     all_delta: object,
+    *,
+    include_anchor_metrics: bool,
 ) -> Row:
     return {
         "log": log_name,
         "all_d": all_delta,
         "low_trav_d": rmse_delta(solved_err, mag_adj_err, conditions["low_trav"]),
         "high_trav_d": rmse_delta(solved_err, mag_adj_err, conditions["high_trav"]),
-        "anchor_off_d": rmse_delta(solved_err, mag_adj_err, conditions["anchor_off"]),
-        "anchor_on_d": rmse_delta(solved_err, mag_adj_err, conditions["anchor_on"]),
+        "anchor_off_d": rmse_delta(solved_err, mag_adj_err, conditions["anchor_off"]) if include_anchor_metrics else float("nan"),
+        "anchor_on_d": rmse_delta(solved_err, mag_adj_err, conditions["anchor_on"]) if include_anchor_metrics else float("nan"),
         "bad_mag_d": rmse_delta(solved_err, mag_adj_err, conditions["bad_mag"]),
         "zv_d": rmse_delta(solved_err, mag_adj_err, conditions["zv"]),
     }
@@ -1440,17 +1511,41 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def pipeline_script_for_log(log_name: str) -> Path:
+    if log_name.endswith("_rear"):
+        return Path("backend/pipeline_rear.py")
+    return Path("backend/pipeline.py")
+
+
+def pipeline_python_executable() -> str:
+    venv_python = Path("venv/bin/python3")
+    if venv_python.exists():
+        return str(venv_python)
+    return sys.executable
+
+
+def run_pipeline_for_log(log_name: str) -> None:
+    script = pipeline_script_for_log(log_name)
+    subprocess.run(
+        [pipeline_python_executable(), str(script), log_name],
+        check=True,
+    )
+
+
 def main() -> None:
     args = parse_args()
+    if args.logs == ["rear"]:
+        args.logs = DEFAULT_LOGS_REAR
     if args.compare is not None:
         comparison_text = compare_saved_runs(args.compare[0], args.compare[1], top_n=args.compare_top, item=args.compare_item, compare_metric=args.compare_metric)
         print(comparison_text, end="")
         return
-    
+
     if args.run_pipeline:
         for log_filename in args.logs:
-            print(f"Running pipeline for {log_filename}...")
-            os.system("venv/bin/python3 backend/pipeline.py " + log_filename)
+            script = pipeline_script_for_log(log_filename)
+            print(f"Running {script} for {log_filename}...")
+            run_pipeline_for_log(log_filename)
 
     report = collect_report(
         args.logs,

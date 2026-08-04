@@ -49,7 +49,7 @@ def main() -> None:
         GyroLoader(sensor_id="gyro2", path=log_path),
         MagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag")),
         LISMagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag_lis")),
-        AngleLoader(path=log_path, lag=-1),
+        AngleLoader(path=log_path, lag=-1, allow_degenerate=True),
     ]
 
     ws: Workspace = {}

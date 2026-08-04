@@ -97,33 +97,62 @@ class FindBoringRegions(Step):
 
     def run(self, ws: Workspace) -> None:
         trav_ts: TimeSeries = ws[self.inputs[0]]
-        trav = trav_ts.x[:, 0]
+        trav = np.asarray(trav_ts.x[:, 0], dtype=float)
         print(trav.shape)
 
-        chunk_start = 0
-
         chunks = []
-        i = 1
-        while i < len(trav):
-            i += 1
-            # Find end of boring region
-            cond_1 = np.abs(max(trav[chunk_start:i]) - min(trav[chunk_start:i])) > self.travel_delta_threshold
-            cond_2 = np.max(trav[chunk_start:i]) > self.max_travel
-            if cond_1 or cond_2:
-                chunk_end = i
+        mask = np.ones(len(trav), dtype=bool)
 
-                # Only keep boring regions that are long enough
-                if (chunk_end - chunk_start) >= self.min_region_len_samp:
-                    chunks.append((max(0, chunk_start + self.padding), min(len(trav), chunk_end - self.padding)))
+        finite_trav = trav[np.isfinite(trav)]
+        if len(trav) == 0:
+            print("No travel samples; skipping boring region detection")
+        elif len(finite_trav) == 0:
+            print("No finite travel samples; skipping boring region detection")
+        elif np.ptp(finite_trav) <= self.travel_delta_threshold:
+            print(
+                "Travel range",
+                f"{np.ptp(finite_trav):.3f}",
+                "is below boring-region threshold; skipping boring region detection",
+            )
+        else:
+            chunk_start = 0
+            chunk_min = np.inf
+            chunk_max = -np.inf
+            chunk_has_finite = False
 
-                chunk_start = i
+            for i, value in enumerate(trav):
+                if np.isfinite(value):
+                    chunk_min = min(chunk_min, value)
+                    chunk_max = max(chunk_max, value)
+                    chunk_has_finite = True
+
+                if i <= chunk_start or not chunk_has_finite:
+                    continue
+
+                # Find end of boring region
+                cond_1 = (chunk_max - chunk_min) > self.travel_delta_threshold
+                cond_2 = chunk_max > self.max_travel
+                if cond_1 or cond_2:
+                    chunk_end = i + 1
+
+                    # Only keep boring regions that are long enough
+                    if (chunk_end - chunk_start) >= self.min_region_len_samp:
+                        chunks.append((max(0, chunk_start + self.padding), min(len(trav), chunk_end - self.padding)))
+
+                    chunk_start = chunk_end
+                    chunk_min = np.inf
+                    chunk_max = -np.inf
+                    chunk_has_finite = False
 
         print(len(chunks), "boring regions found")
 
         # Create mask for boring regions
-        mask = np.ones(len(trav), dtype=bool)
         for start, end in chunks:
             mask[start:end] = False
 
+        boring_percentage = 100 * (1 - np.sum(mask) / len(mask))
+        print("Interesting %:", boring_percentage)
+
         ws[self.outputs[0]] = chunks
-        ws[self.outputs[1]] = mask
+        if len(self.outputs) > 1:
+            ws[self.outputs[1]] = mask
