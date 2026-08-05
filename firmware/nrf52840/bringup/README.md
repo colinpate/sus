@@ -10,7 +10,8 @@ nRF52840-based SUS board. It:
 - wakes the external SPI flash and checks its JEDEC ID
 - reads all available sensors every 200 ms
 - prints acceleration in mg, angular velocity in 0.1 dps, magnetic field in
-  mG, raw AS5600 angle, and IMU temperature in degrees C over USB serial
+  mG, raw AS5600 angle, IMU temperature in degrees C, and battery voltage in
+  mV over USB serial
 
 This bring-up console remains intentionally simple. The separate
 [`../recorder`](../recorder/README.md) application adds 200 Hz flash recording,
@@ -95,6 +96,8 @@ The shared hardware and operating-point assumptions live in
 - `D7`: flash `CS#`
 - `D4/D5`: I2C
 - `D8/D9/D10`: SPI clock/MISO/MOSI
+- `P0.14`: active-low, open-drain battery-divider enable (held low)
+- `P0.31/AIN7`: battery-divider ADC input
 - external flash: MX25L25645GM2I-08G through Zephyr `jedec,spi-nor`
 - SPI flash runs in mode 3 at 8 MHz and discovers geometry through runtime SFDP
 - I2C runs at 400 kHz

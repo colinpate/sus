@@ -7,3 +7,28 @@ properties:
     type: phandle-array
     required: true
     description: GPIO that enables the switched peripheral rail.
+
+  io-channels:
+    type: phandle-array
+    required: true
+    description: ADC channel connected to the XIAO battery divider.
+
+  battery-enable-gpios:
+    type: phandle-array
+    required: true
+    description: Active-low, sink-only enable for the XIAO battery divider.
+
+  battery-output-ohms:
+    type: int
+    required: true
+    description: Resistance of the lower leg of the battery divider.
+
+  battery-full-ohms:
+    type: int
+    required: true
+    description: Total resistance of both legs of the battery divider.
+
+  battery-enable-delay-us:
+    type: int
+    required: true
+    description: Settling time after the battery divider is enabled.

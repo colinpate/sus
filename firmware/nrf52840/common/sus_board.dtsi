@@ -5,6 +5,16 @@
 		/* XIAO D6 = nRF P1.11. Use <&gpio0 29 GPIO_ACTIVE_HIGH> for D3. */
 		vperiph-en-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
 
+		/*
+		 * P0.14 is an active-low, sink-only enable for the XIAO's
+		 * 1 MOhm / 510 kOhm divider feeding P0.31 (AIN7).
+		 */
+		io-channels = <&adc 7>;
+		battery-enable-gpios = <&gpio0 14
+					(GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+		battery-output-ohms = <510000>;
+		battery-full-ohms = <1510000>;
+		battery-enable-delay-us = <100>;
 	};
 
 	aliases {
@@ -12,6 +22,21 @@
 		imu2 = &imu2;
 		mmc = &mmc;
 		lis3mdl = &lis3mdl;
+	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@7 {
+		reg = <7>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_AIN7>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
 	};
 };
 

@@ -4,6 +4,7 @@
 #include <zephyr/sys/printk.h>
 
 #include "as5600.h"
+#include "battery.h"
 #include "board_power.h"
 #include "flash_smoke_test.h"
 #include "sensor_reader.h"
@@ -63,15 +64,33 @@ static void print_angle(const struct sus_as5600 *sensor)
 	printk("AS5600: angle=%u raw", angle);
 }
 
+static void print_battery(void)
+{
+	int32_t battery_mv;
+
+	if (sus_battery_read_mv(&battery_mv) != 0) {
+		printk("Battery=ERR");
+		return;
+	}
+
+	printk("Battery=%d mV", battery_mv);
+}
+
 int main(void)
 {
 	struct sus_as5600 angle_sensor;
 	struct flash_smoke_test_result flash_result;
 	struct sus_sensor_reader reader;
 	int angle_err;
+	int battery_err;
 	int flash_err;
 
 	printk("\nSUS sensor console starting\n");
+	battery_err = sus_battery_init();
+	if (battery_err != 0) {
+		printk("Battery monitor initialization failed, err=%d\n",
+		       battery_err);
+	}
 
 	if (!board_peripheral_power_is_ready()) {
 		printk("Peripheral power rail failed to initialize\n");
@@ -120,6 +139,8 @@ int main(void)
 				   sample.lis3mdl_mg, &sample);
 		printk(" | ");
 		print_angle(&angle_sensor);
+		printk(" | ");
+		print_battery();
 		printk("\n");
 
 		k_sleep(SAMPLE_INTERVAL);

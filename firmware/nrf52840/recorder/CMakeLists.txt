@@ -13,6 +13,7 @@ target_include_directories(app PRIVATE
 
 target_sources(app PRIVATE
 	${COMMON_DIR}/src/as5600.c
+	${COMMON_DIR}/src/battery.c
 	${COMMON_DIR}/src/board_power.c
 	${COMMON_DIR}/src/flash.c
 	${COMMON_DIR}/src/flash_zephyr.c

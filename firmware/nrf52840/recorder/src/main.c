@@ -16,6 +16,7 @@
 #include <zephyr/sys/util.h>
 
 #include "as5600.h"
+#include "battery.h"
 #include "board_power.h"
 #include "flash.h"
 #include "flash_serial.h"
@@ -396,9 +397,21 @@ int main(void)
 	bool retained_state_available = false;
 	bool checkpoint_restored = false;
 	bool recording_error = false;
+	int32_t battery_mv;
 	int err;
 
 	printk("\nSUS 200 Hz recorder starting\n");
+	err = sus_battery_init();
+	if (err != 0) {
+		printk("Battery monitor initialization failed: %d\n", err);
+	} else {
+		err = sus_battery_read_mv(&battery_mv);
+		if (err != 0) {
+			printk("Battery voltage read failed: %d\n", err);
+		} else {
+			printk("Battery: %d mV\n", battery_mv);
+		}
+	}
 	err = status_led_init();
 	if (err != 0) {
 		printk("Status LED unavailable: %d\n", err);

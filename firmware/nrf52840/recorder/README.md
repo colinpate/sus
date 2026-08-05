@@ -14,6 +14,7 @@ This directory contains only recorder-specific behavior and configuration.
   System OFF.
 - After boot and flash recovery, the recorder waits five seconds for the USB
   receiver. Recording starts automatically if no receiver connects.
+- The battery voltage is printed once over USB serial at startup.
 - Hold `D3` for 0.8 seconds to stop.
 - The recorder drains queued samples, writes the final partial sector, writes
   the log commit marker, powers down the sensor rail and SPI NOR, then enters
@@ -24,6 +25,11 @@ the button has first been released. `D3` (`P0.29`) is selected in
 `app.overlay` as an active-low input with an internal pull-up; change the
 `record_button` GPIO there if the production board routes the button to a
 different pin.
+
+The battery monitor drives the XIAO's `READ_BAT_ENABLE` (`P0.14`) only as an
+active-low, open-drain output and leaves it asserted. It is never driven high,
+including while USB charging is active. Battery voltage is sampled from
+`P0.31/AIN7` through the onboard 1 MOhm / 510 kOhm divider.
 
 ## Status LED
 
