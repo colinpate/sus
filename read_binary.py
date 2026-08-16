@@ -95,22 +95,33 @@ def write_metadata(
     top_adjacent: float | None = None,
     linkage_file: str | None = None,
     mag_layout: str | None = None,
+    angle_sign: float | None = None,
 ) -> Path | None:
-    if hypotenuse is None and top_adjacent is None and linkage_file is None and mag_layout is None:
+    if all(
+        value is None
+        for value in (hypotenuse, top_adjacent, angle_sign, linkage_file, mag_layout)
+    ):
         return None
 
     metadata_path = get_metadata_path(log_path)
     metadata = load_metadata(metadata_path)
 
-    if hypotenuse is not None or top_adjacent is not None or linkage_file is not None:
+    if (
+        hypotenuse is not None
+        or top_adjacent is not None
+        or angle_sign is not None
+        or linkage_file is not None
+    ):
         steps = get_or_create_mapping(metadata, "steps")
 
-        if hypotenuse is not None or top_adjacent is not None:
+        if hypotenuse is not None or top_adjacent is not None or angle_sign is not None:
             angle_to_travel = get_or_create_mapping(steps, "angle_to_travel")
             if hypotenuse is not None:
                 angle_to_travel["hypotenuse"] = hypotenuse
             if top_adjacent is not None:
                 angle_to_travel["top_adjacent"] = top_adjacent
+            if angle_sign is not None:
+                angle_to_travel["angle_sign"] = angle_sign
 
         if linkage_file is not None:
             linkage_angle_to_travel = get_or_create_mapping(steps, "linkage_angle_to_travel")
@@ -128,6 +139,7 @@ def write_metadata(
 
     return metadata_path
 
+
 def detect_format(path: str) -> str:
     size = os.path.getsize(path)
     for fmt in ("dual_mag", "imu_gyro", "legacy"):
@@ -137,6 +149,7 @@ def detect_format(path: str) -> str:
         f"Could not determine record format for {path}: size {size} is not a multiple "
         f"of {LEGACY_STRUCT.size}, {IMU_GYRO_STRUCT.size}, or {DUAL_MAG_STRUCT.size} bytes"
     )
+
 
 def iter_records(path: str, fmt: str) -> Iterator[Tuple]:
     record_size = FORMATS[fmt]["size"]
@@ -153,6 +166,7 @@ def iter_records(path: str, fmt: str) -> Iterator[Tuple]:
                 )
             idx += 1
             yield struct_def.unpack(chunk)
+
 
 def convert(bin_path: str, csv_path: str, add_seconds: bool = True, fmt: str | None = None) -> None:
     fmt = fmt or detect_format(bin_path)
@@ -244,6 +258,7 @@ def convert(bin_path: str, csv_path: str, add_seconds: bool = True, fmt: str | N
 
             w.writerow(row)
 
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Convert ESP32 binary LogRecord file to CSV")
     p.add_argument("input", help="Input .bin file (logNNN.bin)")
@@ -258,6 +273,11 @@ def main() -> None:
         "--top-adjacent",
         type=float,
         help="Write steps.angle_to_travel.top_adjacent to the output CSV's .meta.json file",
+    )
+    p.add_argument(
+        "--angle-sign",
+        type=float,
+        help="Write steps.angle_to_travel.angle_sign to the output CSV's .meta.json file",
     )
     p.add_argument(
         "--format",
@@ -290,11 +310,13 @@ def main() -> None:
         csv_path,
         hypotenuse=args.hypotenuse,
         top_adjacent=args.top_adjacent,
+        angle_sign=args.angle_sign,
         linkage_file=args.linkage_file,
         mag_layout=args.mag_layout,
     )
     if metadata_path is not None:
         print(f"Wrote: {metadata_path}")
+
 
 if __name__ == "__main__":
     main()

@@ -204,7 +204,7 @@ class GetErrorStats(Step):
 
         if self.gt_thresh is not None:
             mask = gt > self.gt_thresh
-            mask_text = "Thresh (> {self.gt_thresh:.1f} mm)"
+            mask_text = f"Thresh (> {self.gt_thresh:.1f} mm)"
         else:
             mask = np.ones_like(gt).astype(np.bool)
             mask_text = ""
