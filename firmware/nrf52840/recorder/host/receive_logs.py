@@ -105,7 +105,8 @@ def persist_transfer(
 
     os.replace(partial_path, raw_path)
     if classification.status != "corrupt":
-        payload_path = output_directory / f"{stem}.bin"
+        short_stem = f"log-{summary.log_id:04d}"
+        payload_path = output_directory / f"{short_stem}.bin"
         with tempfile.NamedTemporaryFile(
             mode="wb", dir=output_directory, prefix=f".{stem}-", delete=False
         ) as payload_file:

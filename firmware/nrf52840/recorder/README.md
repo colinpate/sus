@@ -16,15 +16,17 @@ This directory contains only recorder-specific behavior and configuration.
   receiver. Recording starts automatically if no receiver connects.
 - The battery voltage is printed once over USB serial at startup.
 - Hold `D3` for 0.8 seconds to stop.
+- Reaching the long-press threshold turns the status LED off immediately.
 - The recorder drains queued samples, writes the final partial sector, writes
-  the log commit marker, powers down the sensor rail and SPI NOR, then enters
-  System OFF.
+  the log commit marker, powers down the sensor rail and SPI NOR, then waits
+  for button release and enters System OFF.
 
 The press that wakes the device is ignored by the long-press detector until
 the button has first been released. `D3` (`P0.29`) is selected in
 `app.overlay` as an active-low input with an internal pull-up; change the
 `record_button` GPIO there if the production board routes the button to a
-different pin.
+different pin. On shutdown, `V_periph` is disabled after the recording and
+retained checkpoint are finalized but before waiting for `D3` to be released.
 
 The battery monitor drives the XIAO's `READ_BAT_ENABLE` (`P0.14`) only as an
 active-low, open-drain output and leaves it asserted. It is never driven high,

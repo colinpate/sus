@@ -222,8 +222,9 @@ static void button_thread(void *unused1, void *unused2, void *unused3)
 				pressed_at = k_uptime_get();
 			} else if (k_uptime_get() - pressed_at >=
 				   BUTTON_LONG_PRESS_MS) {
-				printk("Long press: stopping recording\n");
 				atomic_set(&stop_requested, 1);
+				status_led_set(STATUS_LED_OFF);
+				printk("Long press: stopping recording\n");
 				break;
 			}
 		} else {
@@ -290,7 +291,6 @@ static void enter_system_off(struct flash_zephyr_storage *storage)
 		printk("Cannot enter System OFF without a configured wake button\n");
 		return;
 	}
-	wait_for_button_release();
 
 	if (storage != NULL && storage->device != NULL) {
 		err = pm_device_action_run(storage->device,
@@ -305,6 +305,9 @@ static void enter_system_off(struct flash_zephyr_storage *storage)
 	if (err != 0) {
 		printk("Peripheral rail shutdown failed: %d\n", err);
 	}
+
+	/* Hardware is quiescent; only now wait for a clean wake-button edge. */
+	wait_for_button_release();
 
 	err = gpio_pin_interrupt_configure_dt(&record_button,
 					      GPIO_INT_LEVEL_ACTIVE);
