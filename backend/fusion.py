@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from angle_corruption import project_mask_to_timeline
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
@@ -195,22 +196,45 @@ class GetErrorStats(Step):
     def run(self, ws: Workspace) -> None:
         preds_ts: TimeSeries = ws[self.inputs[0]]
         gt_ts: TimeSeries = ws[self.inputs[1]]
+        angle_bad_mask_ts = ws.get("angle/bad_mask")
         mask_in: np.ndarray | None = None
         if len(self.inputs) > 2:
             mask_in = ws[self.inputs[2]]
 
         preds = preds_ts.x[:, 0]
         gt = gt_ts.x[:, 0]
+        if preds.shape != gt.shape:
+            raise ValueError(f"Prediction and ground-truth shapes differ: {preds.shape} vs {gt.shape}")
 
+        mask = np.isfinite(preds) & np.isfinite(gt)
         if self.gt_thresh is not None:
-            mask = gt > self.gt_thresh
+            mask &= gt > self.gt_thresh
             mask_text = f"Thresh (> {self.gt_thresh:.1f} mm)"
         else:
-            mask = np.ones_like(gt).astype(np.bool)
             mask_text = ""
         if mask_in is not None:
-            mask *= mask_in.flatten()
-            print(f"Calculating error stats with mask, using {np.sum(mask_in)/len(mask)*100:.1f}% samples")
+            input_mask = np.asarray(mask_in, dtype=bool).reshape(-1)
+            if input_mask.shape != mask.shape:
+                raise ValueError(f"Error-stat mask shape differs from ground truth: {input_mask.shape} vs {mask.shape}")
+            mask &= input_mask
+
+        if isinstance(angle_bad_mask_ts, TimeSeries):
+            angle_bad_mask = project_mask_to_timeline(
+                angle_bad_mask_ts.t,
+                angle_bad_mask_ts.x[:, 0].astype(bool),
+                gt_ts.t,
+            )
+            excluded_count = int(np.sum(mask & angle_bad_mask))
+            if excluded_count:
+                candidate_count = int(np.sum(mask))
+                mask &= ~angle_bad_mask
+                print(
+                    "Excluding",
+                    f"{excluded_count / candidate_count * 100:.2f}%",
+                    "of candidate error samples due to corrupted angle data",
+                )
+
+        print(f"Calculating error stats with mask, using {np.mean(mask) * 100:.1f}% samples")
         preds_masked = preds[mask]
         gt_masked = gt[mask]
 
