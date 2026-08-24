@@ -45,26 +45,6 @@ DEFAULT_LOGS = [
     "log112",
 ]
 DEFAULT_LOGS_REAR = [
-    # "log140_rear",
-    # "log141_rear",
-    # "log142_rear",
-    # "log143_rear",
-    # "log144_rear",
-    # "log145_rear",
-    # "log148_rear",
-    # "log149_rear",
-    # "log150_rear",
-    # "log151_rear",
-    # "log152_rear",
-    # "log153_rear",
-    # "log154_rear",
-    # "log157_rear",
-    # "log158_rear",
-    # "log159_rear",
-    # "log160_rear",
-    # "log161_rear",
-    # "log162_rear",
-    # "log163_rear",
     "log168_rear_1",
     "log168_rear_2",
     "log169_rear_1",
@@ -443,7 +423,7 @@ def summarize_log_cache(
         )
         comparison_rows[pred_key] = {
             "log": log_name,
-            "t": int(len(masked_pred) / 100),
+            "t": int(len(masked_pred) * dt_s),
             "rmse": stats.rmse,
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
@@ -1487,7 +1467,7 @@ def parse_args() -> argparse.Namespace:
         "logs",
         nargs="*",
         default=DEFAULT_LOGS,
-        help="Log names to summarize. Defaults to the logs used by refine_mag_proj.py.",
+        help="Log names to summarize. You can also specify a .csv file and filters. Defaults to the logs used by refine_mag_proj.py.",
     )
     parser.add_argument(
         "--cache-root",
@@ -1573,6 +1553,24 @@ def run_pipeline_for_log(log_name: str) -> None:
     )
 
 
+def read_log_csv_list(csv_file, filters=[]):
+    filter_dict = {}
+    for filter_str in filters:
+        splits = filter_str.split("=")
+        filter_dict[splits[0]] = splits[1]
+
+    logs = []
+    with open(csv_file, "r", newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            log_name = row["log"]
+            for key, val in filter_dict.items():
+                if row.get(key, "") != val:
+                    break
+            else:
+                logs.append(log_name)
+    return logs
+
+
 def main() -> None:
     args = parse_args()
     if args.logs == ["rear"]:
@@ -1582,14 +1580,19 @@ def main() -> None:
         print(comparison_text, end="")
         return
 
+    if args.logs[0].endswith(".csv"):
+        logs = read_log_csv_list(args.logs[0], filters=args.logs[1:])
+    else:
+        logs = args.logs
+
     if args.run_pipeline:
-        for log_filename in args.logs:
+        for log_filename in logs:
             script = pipeline_script_for_log(log_filename)
             print(f"Running {script} for {log_filename}...")
             run_pipeline_for_log(log_filename)
 
     report = collect_report(
-        args.logs,
+        logs,
         args.cache_root,
         center_errors=args.center_errors,
         error_threshold=args.error_threshold,
