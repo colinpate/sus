@@ -12,7 +12,7 @@ from classes.step import Step
 @dataclass
 class ProjectMag(Step):
     """Project magnet data onto mean vector"""
-    mag_threshold: int = 3000  # mG
+    mag_threshold: int = 1000  # mG
     normalize: bool = False
 
     def run(self, ws: Workspace) -> None:
@@ -129,8 +129,8 @@ class FindBadMagProj(Step):
 
 
 class CorrectBadMagProj(Step): 
-    raw_norm_maxdiff: int = 2000  # mG
-    min_corr_mg: int = 5000  # mG
+    raw_norm_maxdiff: int = 500  # mG
+    min_corr_mg: int = 1000  # mG
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]] # Raw mag data
