@@ -34,9 +34,8 @@
 #define RECORD_QUEUE_DEPTH 128U
 #define FLASH_SCAN_STATUS_INTERVAL_SECTORS 256U
 #define FLASH_SCAN_STATUS_INTERVAL_MS 5000U
-#define EXPECTED_SENSOR_MASK \
-	(SUS_SENSOR_IMU1 | SUS_SENSOR_IMU2 | SUS_SENSOR_MMC5603 | \
-	 SUS_SENSOR_LIS3MDL)
+#define REQUIRED_SENSOR_MASK \
+	(SUS_SENSOR_IMU1 | SUS_SENSOR_IMU2 | SUS_SENSOR_MMC5603)
 #define RECORDS_PER_SECTOR \
 	(FLASH_LOG_PAYLOAD_BYTES / sizeof(struct sus_log_record))
 
@@ -136,7 +135,7 @@ static void make_record(struct sus_log_record *record)
 	uint16_t angle;
 
 	sus_sensor_reader_read(&sensor_reader, &sample);
-	if ((sample.valid & EXPECTED_SENSOR_MASK) != EXPECTED_SENSOR_MASK) {
+	if ((sample.valid & REQUIRED_SENSOR_MASK) != REQUIRED_SENSOR_MASK) {
 		atomic_set(&sensor_fault_detected, 1);
 	}
 	memset(record, 0, sizeof(*record));
@@ -561,8 +560,8 @@ int main(void)
 
 	printk("Recording log %u at 200 Hz; hold D3 for 0.8 s to stop\n",
 	       active_log_id);
-	if ((sensor_reader.available & EXPECTED_SENSOR_MASK) ==
-			EXPECTED_SENSOR_MASK && angle_sensor.available) {
+	if ((sensor_reader.available & REQUIRED_SENSOR_MASK) ==
+			REQUIRED_SENSOR_MASK && angle_sensor.available) {
 		status_led_set(STATUS_LED_GREEN);
 	} else {
 		atomic_set(&sensor_fault_detected, 1);

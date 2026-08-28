@@ -41,6 +41,8 @@
 };
 
 &xiao_i2c {
+	/* Use EasyDMA so sensor traffic does not require an interrupt per byte. */
+	compatible = "nordic,nrf-twim";
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
 
@@ -85,6 +87,8 @@
 };
 
 &xiao_spi {
+	/* Use EasyDMA so a 4 KiB flash write cannot starve the sampler. */
+	compatible = "nordic,nrf-spim";
 	status = "okay";
 	cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
 

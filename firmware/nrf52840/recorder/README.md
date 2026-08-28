@@ -40,9 +40,10 @@ The XIAO's RGB LED reports recorder state:
 - White: hardware initialization or retained-checkpoint validation.
 - Purple: full external-flash recovery scan.
 - Blue: waiting for a USB receiver or serving an upload session.
-- Green: recording with all configured sensors responding.
-- Yellow: recording with an unavailable/failed sensor, dropped sample, or
-  missed sampling deadline.
+- Green: recording with both IMUs, the MMC5603, and the AS5600 responding.
+- Yellow: recording with an unavailable/failed required sensor, dropped
+  sample, or missed sampling deadline. The LIS3MDL is optional and does not
+  affect the status LED.
 - Red: fatal flash, retention, upload, or recording error.
 
 Sensor failure indication is sticky for the current recording. Fatal errors
@@ -64,10 +65,12 @@ transfer summary with permission to erase those flash sectors. See
 
 ## Record and flash layout
 
-Sampling runs at 200 Hz. A high-priority sampler places records in a 128-entry
-queue so flash page-program latency does not move the sampling schedule. The
-writer packs 81 records (4050 bytes) into each 4078-byte flash-log payload.
-Sequence gaps expose queue drops to the host.
+Sampling runs at 200 Hz. The sensor and flash buses use EasyDMA-backed TWIM
+and SPIM drivers. A high-priority sampler places records in a 128-entry queue
+so flash page-program latency does not move the sampling schedule. The writer
+packs 81 records (4050 bytes) into each 4078-byte flash-log payload. Sequence
+gaps expose queue drops to the host, while timestamp steps larger than 5 ms
+expose missed sampling deadlines.
 
 The binary record is compatible with `read_binary.py --format dual_mag`:
 
