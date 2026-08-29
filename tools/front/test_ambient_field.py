@@ -36,12 +36,15 @@ from scipy.spatial import cKDTree
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Empirical pod-v1 mapping between the recorded MMC and gyro1 channels:
+# Empirical pod-v1/v2 mapping between the recorded MMC and gyro1 channels.
+# The two pod revisions produced the same signed-axis mapping in their separate
+# strong-magnet rotation recordings:
 #   magnetometer +X -> gyro +Z
 #   magnetometer +Y -> gyro -Y
 #   magnetometer +Z -> gyro +X
 PRIMARY_MAG_ORIENTATIONS = {
     "pod_v1": np.array([[0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0]]),
+    "pod_v2": np.array([[0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0]]),
     "identity": np.eye(3),
 }
 
@@ -64,7 +67,7 @@ def parse_args() -> argparse.Namespace:
         choices=tuple(PRIMARY_MAG_ORIENTATIONS),
         default="pod_v1",
         help=(
-            "Primary-mag to its local gyro frame. pod_v1 means "
+            "Primary-mag to its local gyro frame. pod_v1 and pod_v2 mean "
             "gyro=(mag_z, -mag_y, mag_x)."
         ),
     )
