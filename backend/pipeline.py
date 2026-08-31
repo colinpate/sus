@@ -23,7 +23,7 @@ from accel_rotation import (
     CorrectStaticOffset
 )
 from angle import AngleToTravel, FindBoringRegions
-from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj
+from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj, MagMagnitude
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
@@ -207,12 +207,11 @@ def main() -> None:
         ),
 
         # Magnetometer processing
-        ProjectMag(
-            name="project_mag",
+        MagMagnitude(
+            name="mag_magnitude",
             inputs=("mag", "accel/proj"),
             outputs=("mag/proj",),
             plot_keys=("mag/proj",),
-            normalize=True,
         ),
         FilterStep(
             name="lowpass_mag",
@@ -283,7 +282,7 @@ def main() -> None:
             plot_keys=(
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),
-            train_with_mask=True,
+            train_with_mask=False,
         ),
         GetErrorStats(
             name="x_preds_stats",

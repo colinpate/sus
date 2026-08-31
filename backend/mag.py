@@ -41,6 +41,25 @@ class ProjectMag(Step):
 
 
 @dataclass
+class MagMagnitude(Step):
+    """Just get the magnitude of the magnetometer"""
+    def run(self, ws: Workspace) -> None:
+        a: TimeSeries = ws[self.inputs[0]]
+
+        x = a.x
+        
+        mag_normed = np.linalg.norm(x, axis=1)
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=a.t,
+            x=mag_normed,
+            units=a.units,
+            frame=a.frame,
+            meta={**a.meta},
+        )
+
+
+@dataclass
 class MagAngle(Step):
     """Get the angle of the magnet signal from an arbitrary source"""
     x_axis: int = 0

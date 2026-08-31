@@ -21,6 +21,7 @@ Use the pipeline first if a log has no cache.
 | `tools/front/experiment_mag_nuisance_observability.py` | Encoder-free nuisance-field experiment using strong-region propagation, curve-normal residuals, and accelerometer-derived XYZ tangents. |
 | `tools/front/joint_mag_accel_solver.py` | Sparse joint latent-travel/body-field/world-field solver with gyro transport, strong-region anchors, and optional relative acceleration factors. |
 | `tools/front/experiment_joint_mag_accel.py` | Encoder-free step-3 experiment and ablation for the joint magnetic/acceleration solver; encoder travel is used only for final metrics. |
+| `tools/front/analyze_low_end_curve_error.py` | Encoder-supervised diagnostic that compares the learned scalar curve with encoder-binned magnitude and decomposes low-travel error into curve bias, slow drift, and within-bin scatter. |
 | `tools/rear/analyze_rear_chunking_tradeoffs.py` | Current rear mag-model chunking/training tradeoff analysis, including the mag-gated blend follow-up. |
 | `tools/rear/analyze_rear_zv_accel_correction.py` | Current rear ZV acceleration correction sweep and selected-variant analysis. |
 | `tools/linkage/export_horst_linkage_curve.py` | Generate sampled rocker-angle to wheel-travel linkage curves for the rear pipeline. |
