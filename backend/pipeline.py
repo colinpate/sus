@@ -210,8 +210,8 @@ def main() -> None:
         MagMagnitude(
             name="mag_magnitude",
             inputs=("mag", "accel/proj"),
-            outputs=("mag/proj",),
-            plot_keys=("mag/proj",),
+            outputs=("mag/norm",),
+            plot_keys=("mag/norm",),
         ),
         FilterStep(
             name="lowpass_mag",
@@ -232,43 +232,43 @@ def main() -> None:
             dec_freq=DEC_FREQ,
         ),
         FilterStep(
-            name="lowpass_mag/proj",
-            inputs=("mag/proj",),
-            outputs=("mag/proj/lpf",),
-            plot_keys=("mag/proj/lpf",),
+            name="lowpass_mag/norm",
+            inputs=("mag/norm",),
+            outputs=("mag/norm/lpf",),
+            plot_keys=("mag/norm/lpf",),
             fc_hz=20,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
         CorrectBadMagProj(
             name="find_bad_mag_proj",
-            inputs=("mag/lpf", "mag/proj/lpf"),
-            outputs=("mag/proj/corr/lpf", "mag/proj/bad_mask",)
+            inputs=("mag/lpf", "mag/norm/lpf"),
+            outputs=("mag/norm/corr/lpf", "mag/norm/bad_mask",)
         ),
         FindMagZVPoints(
             name="find_mag_zv_points",
-            inputs=("mag/proj/corr/lpf",),
+            inputs=("mag/norm/corr/lpf",),
             outputs=("mag_zv_points",)
         ),
 
         # Fusion steps
         GetMagBaseline(
             name="get_mag_baseline",
-            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj"),
+            inputs=("mag/norm/corr/lpf", "accel/lpfhp/proj"),
             outputs=("mag_baseline",)
         ),
         GetMagTravelRefPoint(
             name="get_mag_travel_ref_point",
-            inputs=("mag/proj/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
+            inputs=("mag/norm/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
             outputs=("mag_travel_ref_point",)
         ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
             inputs=(
-                "mag/proj/corr/lpf", 
+                "mag/norm/corr/lpf",
                 "accel/lpfhp/proj", 
                 "travel", 
-                "mag/proj/bad_mask", 
+                "mag/norm/bad_mask",
                 "mag_zv_points",
                 "mag_travel_ref_point",
                 "mag_baseline"
@@ -300,7 +300,7 @@ def main() -> None:
             name="travel_solver",
             inputs=(
                 "accel/lpfhp/proj", 
-                "mag/proj/corr/lpf", 
+                "mag/norm/corr/lpf",
                 "travel/mag_model/adj", 
                 "mag_zv_points", 
                 "mag_baseline",
