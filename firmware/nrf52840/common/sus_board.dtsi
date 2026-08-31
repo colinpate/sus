@@ -1,0 +1,116 @@
+/ {
+	sus_board: sus-board {
+		compatible = "zephyr,user";
+
+		/* XIAO D6 = nRF P1.11. Use <&gpio0 29 GPIO_ACTIVE_HIGH> for D3. */
+		vperiph-en-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+
+		/*
+		 * P0.14 is an active-low, sink-only enable for the XIAO's
+		 * 1 MOhm / 510 kOhm divider feeding P0.31 (AIN7).
+		 */
+		io-channels = <&adc 7>;
+		battery-enable-gpios = <&gpio0 14
+					(GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+		battery-output-ohms = <510000>;
+		battery-full-ohms = <1510000>;
+		battery-enable-delay-us = <100>;
+	};
+
+	aliases {
+		imu1 = &imu1;
+		imu2 = &imu2;
+		mmc = &mmc;
+		lis3mdl = &lis3mdl;
+	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@7 {
+		reg = <7>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_AIN7>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
+	};
+};
+
+&xiao_i2c {
+	/* Use EasyDMA so sensor traffic does not require an interrupt per byte. */
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	/*
+	 * LSM6DSOX uses the LSM6DSO driver for its common accelerometer,
+	 * gyroscope, and temperature register set.
+	 */
+	imu1: lsm6dso32@6a {
+		compatible = "st,lsm6dso32";
+		reg = <0x6a>;
+		accel-range = <1>; /* +/-32 g on LSM6DSO32 */
+		accel-odr = <5>;   /* 208 Hz */
+		gyro-range = <6>;  /* +/-2000 dps */
+		gyro-odr = <5>;    /* 208 Hz */
+		status = "okay";
+	};
+
+	imu2: lsm6dso32@6b {
+		compatible = "st,lsm6dso32";
+		reg = <0x6b>;
+		accel-range = <1>; /* +/-32 g on LSM6DSO32 */
+		accel-odr = <5>;   /* 208 Hz */
+		gyro-range = <6>;  /* +/-2000 dps */
+		gyro-odr = <5>;    /* 208 Hz */
+		status = "okay";
+	};
+
+	mmc: magnetometer@30 {
+		compatible = "memsic,mmc56x3";
+		reg = <0x30>;
+		magn-odr = <100>;
+		bandwidth-selection-bits-0;
+		auto-self-reset;
+		status = "okay";
+	};
+
+	lis3mdl: magnetometer@1c {
+		compatible = "st,lis3mdl-magn";
+		reg = <0x1c>;
+		status = "okay";
+	};
+};
+
+&xiao_spi {
+	/* Use EasyDMA so a 4 KiB flash write cannot starve the sampler. */
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+	cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+
+	mx25l25645g: flash@0 {
+		compatible = "jedec,spi-nor";
+		status = "okay";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+		spi-cpol;
+		spi-cpha;
+		jedec-id = [c2 20 19];
+		size = <268435456>;
+		has-dpd;
+		t-enter-dpd = <10000>;
+		t-exit-dpd = <30000>;
+	};
+};
+
+/*
+ * The stock XIAO board definition maps UART0 to D6/D7. This board uses those
+ * pins for board functions, while the console runs over USB CDC.
+ */
+&uart0 {
+	status = "disabled";
+};

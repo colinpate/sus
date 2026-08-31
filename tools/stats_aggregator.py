@@ -45,19 +45,13 @@ DEFAULT_LOGS = [
     "log112",
 ]
 DEFAULT_LOGS_REAR = [
-    "log140_rear",
-    "log141_rear",
-    "log142_rear",
-    "log143_rear",
-    "log144_rear",
-    "log145_rear",
-    "log148_rear",
-    "log149_rear",
-    "log150_rear",
-    "log151_rear",
-    "log152_rear",
-    "log153_rear",
-    "log154_rear",
+    "log168_rear_1",
+    "log168_rear_2",
+    "log169_rear_1",
+    "log169_rear_2",
+    "log169_rear_3",
+    "log180_rear",
+    "log181_rear"
 ]
 NEW_LOGS = [
     "log103",
@@ -429,7 +423,7 @@ def summarize_log_cache(
         )
         comparison_rows[pred_key] = {
             "log": log_name,
-            "t": int(len(masked_pred) / 100),
+            "t": int(len(masked_pred) * dt_s),
             "rmse": stats.rmse,
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
@@ -838,6 +832,7 @@ def print_table(
     sort_key: str = "n",
     *,
     reverse: bool = False,
+    agg_rows: Iterable[Row] | None = None,
 ) -> None:
     rows = list(rows)
     sort_key = resolve_sort_key(columns, rows, sort_key)
@@ -855,7 +850,12 @@ def print_table(
     for row in formatted_rows:
         print(format_table_line(columns, widths, row=row))
     print()
-
+    if agg_rows is not None:
+        formatted_rows = [{key: format_value(row.get(key, "")) for key, _ in columns} for row in agg_rows]
+        for row in formatted_rows:
+            print(format_table_line(columns, widths, row=row))
+        print()
+        
 
 def format_table_line(
     columns: Columns,
@@ -924,22 +924,43 @@ def print_cache_summary(report: AggregatedReport) -> None:
     )
 
 
+def create_agg_rows(columns, rows):
+    median_row = Row()
+    mean_row = Row()
+    std_row = Row()
+    median_row["log"] = "Median"
+    mean_row["log"] = "Mean"
+    std_row["log"] = "Std Dev"
+    for col_key, _ in columns:
+        col_vals = [row[col_key] for row in rows]
+        if any([not is_numeric_metric(x) for x in col_vals]):
+            continue
+        median_row[col_key] = np.median(col_vals)
+        mean_row[col_key] = np.mean(col_vals)
+        std_row[col_key] = np.std(col_vals)
+    return [median_row, mean_row, std_row]
+
+
 def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort_key: str) -> None:
     center_label = "centered" if center_errors else "raw"
+    columns=[
+        ("log", "log"),
+        ("t", "t"),
+        ("rmse", "rmse"),
+        ("bin_rmse", "bin_rmse"),
+        ("mae", "mae"),
+        ("me", "me"),
+        ("rms_travel", "rms_trav"),
+    ]
     for pred_key, gt_key in COMPARISONS:
+        rows=report.error_rows[pred_key]
+        agg_rows = create_agg_rows(columns, rows)
         print_table(
             title=f"Error stats on boring_mask ({center_label}): {pred_key} vs {gt_key}",
-            columns=[
-                ("log", "log"),
-                ("t", "t"),
-                ("rmse", "rmse"),
-                ("bin_rmse", "bin_rmse"),
-                ("mae", "mae"),
-                ("me", "me"),
-                ("rms_travel", "rms_trav"),
-            ],
-            rows=report.error_rows[pred_key],
+            columns=columns,
+            rows=rows,
             sort_key=sort_key,
+            agg_rows=agg_rows,
         )
 
 
@@ -1446,7 +1467,7 @@ def parse_args() -> argparse.Namespace:
         "logs",
         nargs="*",
         default=DEFAULT_LOGS,
-        help="Log names to summarize. Defaults to the logs used by refine_mag_proj.py.",
+        help="Log names to summarize. You can also specify a .csv file and filters. Defaults to the logs used by refine_mag_proj.py.",
     )
     parser.add_argument(
         "--cache-root",
@@ -1512,7 +1533,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def pipeline_script_for_log(log_name: str) -> Path:
-    if log_name.endswith("_rear"):
+    if "rear" in log_name:
         return Path("backend/pipeline_rear.py")
     return Path("backend/pipeline.py")
 
@@ -1532,6 +1553,24 @@ def run_pipeline_for_log(log_name: str) -> None:
     )
 
 
+def read_log_csv_list(csv_file, filters=[]):
+    filter_dict = {}
+    for filter_str in filters:
+        splits = filter_str.split("=")
+        filter_dict[splits[0]] = splits[1]
+
+    logs = []
+    with open(csv_file, "r", newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            log_name = row["log"]
+            for key, val in filter_dict.items():
+                if row.get(key, "") != val:
+                    break
+            else:
+                logs.append(log_name)
+    return logs
+
+
 def main() -> None:
     args = parse_args()
     if args.logs == ["rear"]:
@@ -1541,14 +1580,19 @@ def main() -> None:
         print(comparison_text, end="")
         return
 
+    if args.logs[0].endswith(".csv"):
+        logs = read_log_csv_list(args.logs[0], filters=args.logs[1:])
+    else:
+        logs = args.logs
+
     if args.run_pipeline:
-        for log_filename in args.logs:
+        for log_filename in logs:
             script = pipeline_script_for_log(log_filename)
             print(f"Running {script} for {log_filename}...")
             run_pipeline_for_log(log_filename)
 
     report = collect_report(
-        args.logs,
+        logs,
         args.cache_root,
         center_errors=args.center_errors,
         error_threshold=args.error_threshold,

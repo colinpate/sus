@@ -13,6 +13,7 @@ class AngleToTravel(Step):
     hypotenuse: float = 120
     top_adjacent: float = 239 / 2#237.5 / 2
     top_zeroangle_percentile: float = 99.5
+    angle_sign: float = 1.0
 
     def run(self, ws: Workspace) -> None:
         a: TimeSeries = ws[self.inputs[0]]
@@ -20,15 +21,17 @@ class AngleToTravel(Step):
         top_adjacent = self.param(ws, "top_adjacent", self.top_adjacent)
         top_zeroangle = self.param(ws, "top_zeroangle")
         top_zeroangle_percentile = self.param(ws, "top_zeroangle_percentile", self.top_zeroangle_percentile)
+        angle_sign = float(self.param(ws, "angle_sign", self.angle_sign))
         
         # Get corrected angle
         top_angle = np.arccos(top_adjacent / hypotenuse)
+        angle_raw = a.x[:, 0] * angle_sign
         if top_zeroangle is None:
-            top_zeroangle = np.percentile(a.x, top_zeroangle_percentile)
-        net_angle = -1 * (a.x - top_zeroangle) + top_angle
+            top_zeroangle = np.percentile(angle_raw, top_zeroangle_percentile)
+        net_angle = -1 * (angle_raw - top_zeroangle) + top_angle
 
         travel = 2 * (top_adjacent - (hypotenuse * np.cos(net_angle)))
-        print("Travel min, max:", np.min(travel), np.max(travel))
+        print("Travel min, max, median:", np.min(travel), np.max(travel), np.median(travel))
         print("Travel top zero angle:", top_zeroangle)
 
         ws[self.outputs[0]] = TimeSeries(
@@ -150,7 +153,7 @@ class FindBoringRegions(Step):
         for start, end in chunks:
             mask[start:end] = False
 
-        boring_percentage = 100 * (1 - np.sum(mask) / len(mask))
+        boring_percentage = 100 * (np.sum(mask) / len(mask))
         print("Interesting %:", boring_percentage)
 
         ws[self.outputs[0]] = chunks
