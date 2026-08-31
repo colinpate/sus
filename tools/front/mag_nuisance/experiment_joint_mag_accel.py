@@ -20,9 +20,9 @@ import numpy as np
 import pandas as pd
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.front.experiment_mag_nuisance_observability import (  # noqa: E402
+from tools.front.mag_nuisance.experiment_mag_nuisance_observability import (  # noqa: E402
     AccelWindow,
     anisotropic_covariances,
     build_accel_windows,
@@ -33,25 +33,25 @@ from tools.front.experiment_mag_nuisance_observability import (  # noqa: E402
     path_derivative,
     unit_rows,
 )
-from tools.front.experiment_unsupervised_mag_xyz import (  # noqa: E402
+from tools.front.mag_nuisance.experiment_unsupervised_mag_xyz import (  # noqa: E402
     DEFAULT_LOGS,
     FORK,
     aligned,
     flatten,
 )
-from tools.front.joint_mag_accel_solver import (  # noqa: E402
+from tools.front.mag_nuisance.joint_mag_accel_solver import (  # noqa: E402
     JointSolverWeights,
     RelativeTravelFactor,
     solve_joint_mag_accel,
 )
-from tools.front.mag_correction_solver import (  # noqa: E402
+from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
     MagSolverWeights,
     smooth_body_world_fields,
     solve_iterative_correction,
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def blend_tangent_fn(signals: object, accel_fit: object, blend: float):
@@ -379,7 +379,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=REPO_ROOT / "reports/mag_joint_latent",
+        default=REPO_ROOT / "reports/front_mag_nuisance/joint_latent",
     )
     parser.add_argument("--state-hz", type=float, default=10.0)
     parser.add_argument("--degree", type=int, choices=(1, 2), default=2)

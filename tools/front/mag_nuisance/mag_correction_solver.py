@@ -394,6 +394,110 @@ def smooth_body_world_fields(
     return smoothed_state[:, :3], smoothed_state[:, 3:]
 
 
+def curve_tangent_covariances(
+    xyz_model: object,
+    travel: np.ndarray,
+    normal_sigma_mg: float,
+    tangent_sigma_ratio: float,
+) -> np.ndarray:
+    """Build XYZ measurement covariances elongated along the model tangent."""
+
+    if normal_sigma_mg <= 0.0:
+        raise ValueError("normal_sigma_mg must be positive")
+    if tangent_sigma_ratio < 1.0 or not np.isfinite(tangent_sigma_ratio):
+        raise ValueError("tangent_sigma_ratio must be finite and at least one")
+
+    travel = np.asarray(travel, dtype=float).reshape(-1)
+    if hasattr(xyz_model, "slope"):
+        tangents = np.broadcast_to(
+            np.asarray(xyz_model.slope, dtype=float), (len(travel), 3)
+        ).copy()
+    else:
+        grid = np.asarray(xyz_model.travel_grid, dtype=float)
+        xyz_grid = np.asarray(xyz_model.xyz_grid, dtype=float)
+        derivative_grid = np.gradient(xyz_grid, grid, axis=0)
+        tangents = np.column_stack(
+            [
+                np.interp(travel, grid, derivative_grid[:, axis])
+                for axis in range(3)
+            ]
+        )
+
+    norms = np.linalg.norm(tangents, axis=1)
+    usable = norms > 1e-12
+    tangent_unit = np.zeros_like(tangents)
+    tangent_unit[usable] = tangents[usable] / norms[usable, np.newaxis]
+    tangent_unit[~usable] = np.array([1.0, 0.0, 0.0])
+
+    normal_variance = normal_sigma_mg**2
+    extra_tangent_variance = normal_variance * (tangent_sigma_ratio**2 - 1.0)
+    return (
+        normal_variance * np.eye(3)[np.newaxis, :, :]
+        + extra_tangent_variance
+        * tangent_unit[:, :, np.newaxis]
+        * tangent_unit[:, np.newaxis, :]
+    )
+
+
+def curve_slope_covariances(
+    xyz_model: object,
+    travel: np.ndarray,
+    mag_sigma_mg: float,
+    travel_sigma_mm: float,
+    *,
+    normal_slope_fraction: float = 0.0,
+) -> np.ndarray:
+    """Propagate travel uncertainty through a travel-to-XYZ curve.
+
+    ``normal_slope_fraction=0`` is the first-order covariance
+    ``R_mag + J sigma_t^2 J.T``. Positive values additionally inflate the two
+    curve-normal directions as a heuristic for tangent-direction and model
+    error that grows with local curve slope. A value of one is isotropic.
+    """
+
+    if mag_sigma_mg <= 0.0:
+        raise ValueError("mag_sigma_mg must be positive")
+    if travel_sigma_mm < 0.0 or not np.isfinite(travel_sigma_mm):
+        raise ValueError("travel_sigma_mm must be finite and nonnegative")
+    if not 0.0 <= normal_slope_fraction <= 1.0:
+        raise ValueError("normal_slope_fraction must be between zero and one")
+
+    travel = np.asarray(travel, dtype=float).reshape(-1)
+    if hasattr(xyz_model, "slope"):
+        tangents = np.broadcast_to(
+            np.asarray(xyz_model.slope, dtype=float), (len(travel), 3)
+        ).copy()
+    else:
+        grid = np.asarray(xyz_model.travel_grid, dtype=float)
+        xyz_grid = np.asarray(xyz_model.xyz_grid, dtype=float)
+        derivative_grid = np.gradient(xyz_grid, grid, axis=0)
+        tangents = np.column_stack(
+            [
+                np.interp(travel, grid, derivative_grid[:, axis])
+                for axis in range(3)
+            ]
+        )
+
+    slopes = np.linalg.norm(tangents, axis=1)
+    usable = slopes > 1e-12
+    tangent_unit = np.zeros_like(tangents)
+    tangent_unit[usable] = tangents[usable] / slopes[usable, np.newaxis]
+    tangent_unit[~usable] = np.array([1.0, 0.0, 0.0])
+
+    travel_induced_sigma = slopes * travel_sigma_mm
+    tangent_variance = mag_sigma_mg**2 + travel_induced_sigma**2
+    normal_variance = mag_sigma_mg**2 + (
+        normal_slope_fraction * travel_induced_sigma
+    ) ** 2
+    return (
+        normal_variance[:, np.newaxis, np.newaxis]
+        * np.eye(3)[np.newaxis, :, :]
+        + (tangent_variance - normal_variance)[:, np.newaxis, np.newaxis]
+        * tangent_unit[:, :, np.newaxis]
+        * tangent_unit[:, np.newaxis, :]
+    )
+
+
 def solve_iterative_correction(
     time_s: np.ndarray,
     gyro_dps: np.ndarray,
@@ -403,11 +507,33 @@ def solve_iterative_correction(
     weights: MagSolverWeights | None = None,
     *,
     iterations: int = 4,
+    tangent_sigma_ratio: float = 1.0,
+    travel_sigma_mm: float | None = None,
+    normal_slope_fraction: float = 0.0,
 ) -> MagCorrectionResult:
-    """Alternate field smoothing and low-field XYZ-to-travel inversion."""
+    """Alternate field smoothing and low-field XYZ-to-travel inversion.
+
+    ``tangent_sigma_ratio=1`` retains the original isotropic full-vector
+    observation. Larger values progressively downweight residuals parallel to
+    the current travel-to-XYZ curve. Alternatively, ``travel_sigma_mm``
+    propagates an assumed travel uncertainty through the local curve slope.
+    """
 
     if iterations < 1:
         raise ValueError("iterations must be at least one")
+    if tangent_sigma_ratio < 1.0 or not np.isfinite(tangent_sigma_ratio):
+        raise ValueError("tangent_sigma_ratio must be finite and at least one")
+    if travel_sigma_mm is not None:
+        if travel_sigma_mm < 0.0 or not np.isfinite(travel_sigma_mm):
+            raise ValueError("travel_sigma_mm must be finite and nonnegative")
+        if tangent_sigma_ratio != 1.0:
+            raise ValueError(
+                "Use either tangent_sigma_ratio or travel_sigma_mm, not both"
+            )
+    if not 0.0 <= normal_slope_fraction <= 1.0:
+        raise ValueError("normal_slope_fraction must be between zero and one")
+    if travel_sigma_mm is None and normal_slope_fraction != 0.0:
+        raise ValueError("normal_slope_fraction requires travel_sigma_mm")
     weights = weights or MagSolverWeights()
     time_s, gyro_dps, mag_xyz, initial_travel = _validate_series(
         time_s, gyro_dps, mag_xyz, initial_travel
@@ -421,6 +547,23 @@ def solve_iterative_correction(
     for _ in range(iterations):
         expected = xyz_model.predict(travel)
         fit_mask = xyz_model.weak(travel, weights.mag_update_threshold)
+        if travel_sigma_mm is not None and travel_sigma_mm > 0.0:
+            measurement_covariances = curve_slope_covariances(
+                xyz_model,
+                travel,
+                weights.mag_sigma,
+                travel_sigma_mm,
+                normal_slope_fraction=normal_slope_fraction,
+            )
+        elif tangent_sigma_ratio != 1.0:
+            measurement_covariances = curve_tangent_covariances(
+                xyz_model,
+                travel,
+                weights.mag_sigma,
+                tangent_sigma_ratio,
+            )
+        else:
+            measurement_covariances = None
         body, world = smooth_body_world_fields(
             time_s,
             gyro_dps,
@@ -428,6 +571,7 @@ def solve_iterative_correction(
             expected,
             fit_mask,
             weights,
+            measurement_covariances=measurement_covariances,
         )
         corrected = mag_xyz - body - world
         inferred = xyz_model.infer(corrected)

@@ -30,16 +30,16 @@ from scipy.spatial import cKDTree
 from scipy.stats import spearmanr
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.front.experiment_unsupervised_mag_xyz import (  # noqa: E402
+from tools.front.mag_nuisance.experiment_unsupervised_mag_xyz import (  # noqa: E402
     DEFAULT_LOGS,
     FORK,
     aligned,
     fit_scalar_parameterized_xyz,
     flatten,
 )
-from tools.front.mag_correction_solver import (  # noqa: E402
+from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
     PRIMARY_MAG_TO_GYRO,
     MagSolverWeights,
     smooth_body_world_fields,
@@ -47,7 +47,17 @@ from tools.front.mag_correction_solver import (  # noqa: E402
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def cache_values(cache: np.lib.npyio.NpzFile, *keys: str) -> np.ndarray:
+    """Read the first available cache series, preferring current key names."""
+
+    for key in keys:
+        cache_key = f"{key}__x"
+        if cache_key in cache:
+            return np.asarray(cache[cache_key])
+    raise KeyError(f"None of the cache series are present: {', '.join(keys)}")
 
 
 @dataclass(frozen=True)
@@ -138,7 +148,9 @@ def load_signals(
     index = np.arange(0, len(source_time), stride)
 
     full_mag_xyz = np.asarray(cache["mag/lpf__x"], dtype=float) @ PRIMARY_MAG_TO_GYRO.T
-    full_scalar_mag = flatten(cache["mag/proj/corr/lpf__x"])
+    full_scalar_mag = flatten(
+        cache_values(cache, "mag/norm/corr/lpf", "mag/proj/corr/lpf")
+    )
     full_raw_scalar_travel = flatten(cache["travel/mag_model__x"])
     full_scalar_travel = flatten(cache["travel/mag_model/adj__x"])
     scalar_offset = float(np.median(full_scalar_travel - full_raw_scalar_travel))
@@ -782,7 +794,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=REPO_ROOT / "reports/mag_nuisance_observability",
+        default=REPO_ROOT / "reports/front_mag_nuisance/observability",
     )
     parser.add_argument("--state-hz", type=float, default=10.0)
     parser.add_argument("--degree", type=int, choices=(1, 2), default=2)

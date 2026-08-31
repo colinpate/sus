@@ -12,7 +12,7 @@ The script reads raw samples from logs/<name>.csv and travel plus the static
 LIS2-to-LIS1 alignment from the existing pipeline cache.
 
 Example:
-    ./venv/bin/python tools/front/test_ambient_field.py log085
+    ./venv/bin/python tools/front/mag_nuisance/archive/test_ambient_field_hack.py log085
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import butter, sosfiltfilt
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 # Pod-v1 constraints supplied by the hardware layout:
 #   magnetometer +X -> gyro +Y
@@ -91,7 +91,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        help="Output directory (default: reports/ambient_field_test/<log>).",
+        help=(
+            "Output directory (legacy default: "
+            "reports/front_mag_nuisance/ambient_field_stationarity/<log>)."
+        ),
     )
     parser.add_argument(
         "--window-s",
@@ -390,7 +393,14 @@ def main() -> None:
     args = parse_args()
     log_path = resolve_log_path(args.log)
     log_name = log_path.stem
-    output_dir = args.output_dir or REPO_ROOT / "reports" / "ambient_field_test" / log_name
+    output_dir = (
+        args.output_dir
+        or REPO_ROOT
+        / "reports"
+        / "front_mag_nuisance"
+        / "ambient_field_stationarity"
+        / log_name
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
     df = pd.read_csv(log_path)

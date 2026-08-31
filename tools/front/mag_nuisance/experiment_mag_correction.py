@@ -30,9 +30,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.front.mag_correction_solver import (  # noqa: E402
+from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
     PRIMARY_MAG_TO_GYRO,
     MagSolverWeights,
     fit_linear_xyz_model,
@@ -40,7 +40,7 @@ from tools.front.mag_correction_solver import (  # noqa: E402
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LOGS = (
     "log103",
     "log110",
@@ -497,7 +497,9 @@ def parse_args() -> argparse.Namespace:
         "--cache-root", type=Path, default=REPO_ROOT / "backend/run_artifacts"
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=REPO_ROOT / "reports/mag_correction"
+        "--output-dir",
+        type=Path,
+        default=REPO_ROOT / "reports/front_mag_nuisance/supervised_body_world",
     )
     parser.add_argument("--state-hz", type=float, default=10.0)
     parser.add_argument("--calibration-block-s", type=float, default=20.0)

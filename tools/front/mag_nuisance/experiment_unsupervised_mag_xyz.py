@@ -21,16 +21,16 @@ import pandas as pd
 from scipy.spatial import cKDTree
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.front.mag_correction_solver import (  # noqa: E402
+from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
     PRIMARY_MAG_TO_GYRO,
     MagSolverWeights,
     solve_iterative_correction,
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LOGS = (
     "log-0056",
     "log-0063",
@@ -210,6 +210,17 @@ def aligned(cache: np.lib.npyio.NpzFile, key: str, index: np.ndarray) -> np.ndar
     return values[index]
 
 
+def aligned_first(
+    cache: np.lib.npyio.NpzFile, index: np.ndarray, *keys: str
+) -> np.ndarray:
+    """Read the first available aligned series, preferring current cache keys."""
+
+    for key in keys:
+        if f"{key}__x" in cache:
+            return aligned(cache, key, index)
+    raise KeyError(f"None of the cache series are present: {', '.join(keys)}")
+
+
 def metric(
     log_name: str,
     fork: str,
@@ -253,8 +264,12 @@ def evaluate_log(
 
     mag_xyz = np.asarray(cache["mag/lpf__x"], dtype=float)[index] @ PRIMARY_MAG_TO_GYRO.T
     gyro_dps = np.asarray(cache["gyro/lpf/gyro1__x"], dtype=float)[index]
-    scalar_mag = flatten(aligned(cache, "mag/proj/corr/lpf", index))
-    projected_mag = flatten(aligned(cache, "mag/proj/lpf", index))
+    scalar_mag = flatten(
+        aligned_first(cache, index, "mag/norm/corr/lpf", "mag/proj/corr/lpf")
+    )
+    projected_mag = flatten(
+        aligned_first(cache, index, "mag/norm/lpf", "mag/proj/lpf")
+    )
     initial_travel = flatten(aligned(cache, "travel/solved", index))
     raw_scalar_travel = flatten(aligned(cache, "travel/mag_model", index))
     adjusted_scalar_travel = flatten(aligned(cache, "travel/mag_model/adj", index))
@@ -379,7 +394,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=REPO_ROOT / "reports/mag_correction_unsupervised",
+        default=REPO_ROOT / "reports/front_mag_nuisance/encoder_free_xyz",
     )
     parser.add_argument("--state-hz", type=float, default=10.0)
     parser.add_argument("--iterations", type=int, default=4)
