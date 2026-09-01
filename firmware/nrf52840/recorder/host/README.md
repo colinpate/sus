@@ -43,9 +43,16 @@ Each transfer produces:
 - `*.flash.bin`: all raw sectors exactly as received
 - `*.bin`: concatenated data payloads for valid or cleanly incomplete logs
 
-The extracted `.bin` file is directly compatible with the repository's
-`read_binary.py --format dual_mag` command. Corrupt logs retain only the raw
-file.
+The extracted `.bin` file is directly compatible with the repository's normal
+registry-backed import workflow:
+
+```bash
+venv/bin/python tools/logs.py ingest path/to/log-0082.bin \
+  --preset stumpjumper-front-v2
+```
+
+`read_binary.py --format dual_mag` remains available as a low-level conversion/debugging
+command. Corrupt logs retain only the raw file.
 
 ## MVP protocol
 

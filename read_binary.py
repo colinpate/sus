@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 import argparse
 import csv
-import json
+from dataclasses import dataclass
+import hashlib
 import os
 import struct
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple
-
-from backend.sensor_orientation import MAG_LAYOUTS, signal_configs_for_mag_layout
+from typing import Dict, Iterator, Tuple
 
 LEGACY_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "H" + "i")
 IMU_GYRO_STRUCT = struct.Struct("<II" + "hhh" + "hhh" + "hhh" + "hhh" + "hhh" + "H" + "i")
@@ -64,94 +63,46 @@ FORMATS: Dict[str, Dict[str, object]] = {
 }
 
 
-def get_metadata_path(log_path: str) -> Path:
-    return Path(log_path).with_suffix(".meta.json")
+@dataclass(frozen=True)
+class ConversionResult:
+    record_format: str
+    records: int
+    duration_s: float
+    sequence_gaps: int
+    source_sha256: str
+    output_sha256: str
 
 
-def load_metadata(metadata_path: Path) -> Dict[str, Any]:
-    if not metadata_path.exists():
-        return {}
-
-    with metadata_path.open("r", encoding="utf-8") as f:
-        metadata = json.load(f)
-
-    if not isinstance(metadata, dict):
-        raise ValueError(f"Expected top-level object in {metadata_path}")
-
-    return metadata
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
-def get_or_create_mapping(parent: Dict[str, Any], key: str) -> Dict[str, Any]:
-    value = parent.get(key)
-    if not isinstance(value, dict):
-        value = {}
-        parent[key] = value
-    return value
-
-
-def write_metadata(
-    log_path: str,
-    hypotenuse: float | None = None,
-    top_adjacent: float | None = None,
-    linkage_file: str | None = None,
-    mag_layout: str | None = None,
-    angle_sign: float | None = None,
-) -> Path | None:
-    if all(
-        value is None
-        for value in (hypotenuse, top_adjacent, angle_sign, linkage_file, mag_layout)
-    ):
-        return None
-
-    metadata_path = get_metadata_path(log_path)
-    metadata = load_metadata(metadata_path)
-
-    if (
-        hypotenuse is not None
-        or top_adjacent is not None
-        or angle_sign is not None
-        or linkage_file is not None
-    ):
-        steps = get_or_create_mapping(metadata, "steps")
-
-        if hypotenuse is not None or top_adjacent is not None or angle_sign is not None:
-            angle_to_travel = get_or_create_mapping(steps, "angle_to_travel")
-            if hypotenuse is not None:
-                angle_to_travel["hypotenuse"] = hypotenuse
-            if top_adjacent is not None:
-                angle_to_travel["top_adjacent"] = top_adjacent
-            if angle_sign is not None:
-                angle_to_travel["angle_sign"] = angle_sign
-
-        if linkage_file is not None:
-            linkage_angle_to_travel = get_or_create_mapping(steps, "linkage_angle_to_travel")
-            linkage_angle_to_travel["linkage_path"] = linkage_file
-
-    if mag_layout is not None:
-        signals = get_or_create_mapping(metadata, "signals")
-        for signal_name, signal_config in signal_configs_for_mag_layout(mag_layout).items():
-            existing_signal_config = get_or_create_mapping(signals, signal_name)
-            existing_signal_config.update(signal_config)
-
-    with metadata_path.open("w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
-        f.write("\n")
-
-    return metadata_path
-
-
-def detect_format(path: str) -> str:
+def detect_formats(path: str | Path) -> list[str]:
     size = os.path.getsize(path)
-    for fmt in ("dual_mag", "imu_gyro", "legacy"):
-        if size % FORMATS[fmt]["size"] == 0:
-            return fmt
+    return [fmt for fmt in ("dual_mag", "imu_gyro", "legacy") if size % FORMATS[fmt]["size"] == 0]
+
+
+def detect_format(path: str | Path) -> str:
+    matches = detect_formats(path)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(
+            f"Ambiguous record format for {path}: file size matches {', '.join(matches)}; "
+            "select a hardware profile or pass --format"
+        )
+    size = os.path.getsize(path)
     raise ValueError(
         f"Could not determine record format for {path}: size {size} is not a multiple "
         f"of {LEGACY_STRUCT.size}, {IMU_GYRO_STRUCT.size}, or {DUAL_MAG_STRUCT.size} bytes"
     )
 
 
-def iter_records(path: str, fmt: str) -> Iterator[Tuple]:
+def iter_records(path: str | Path, fmt: str) -> Iterator[Tuple]:
     record_size = FORMATS[fmt]["size"]
     struct_def = FORMATS[fmt]["struct"]
     with open(path, "rb") as f:
@@ -168,19 +119,44 @@ def iter_records(path: str, fmt: str) -> Iterator[Tuple]:
             yield struct_def.unpack(chunk)
 
 
-def convert(bin_path: str, csv_path: str, add_seconds: bool = True, fmt: str | None = None) -> None:
+def convert(
+    bin_path: str | Path,
+    csv_path: str | Path,
+    add_seconds: bool = True,
+    fmt: str | None = None,
+) -> ConversionResult:
     fmt = fmt or detect_format(bin_path)
+    if fmt not in FORMATS:
+        raise ValueError(f"Unknown record format {fmt!r}")
+    size = os.path.getsize(bin_path)
+    record_size = int(FORMATS[fmt]["size"])
+    if size % record_size != 0:
+        raise ValueError(f"{bin_path} size {size} is not a multiple of {fmt} record size {record_size}")
 
     # Optionally include t_s column computed from t_ms
     out_header = list(FORMATS[fmt]["header"])
     if add_seconds:
         out_header.insert(1, "t_s")
 
-    with open(csv_path, "w", newline="") as out_f:
+    record_count = 0
+    first_t_ms: int | None = None
+    last_t_ms: int | None = None
+    previous_seq: int | None = None
+    sequence_gaps = 0
+    with open(csv_path, "w", newline="", encoding="utf-8") as out_f:
         w = csv.writer(out_f)
         w.writerow(out_header)
 
         for rec in iter_records(bin_path, fmt):
+            t_ms = int(rec[0])
+            seq = int(rec[1])
+            if first_t_ms is None:
+                first_t_ms = t_ms
+            if previous_seq is not None and seq != ((previous_seq + 1) & 0xFFFFFFFF):
+                sequence_gaps += 1
+            previous_seq = seq
+            last_t_ms = t_ms
+            record_count += 1
             if fmt == "legacy":
                 (
                     t_ms, seq,
@@ -258,41 +234,28 @@ def convert(bin_path: str, csv_path: str, add_seconds: bool = True, fmt: str | N
 
             w.writerow(row)
 
+    duration_s = 0.0 if first_t_ms is None or last_t_ms is None else (last_t_ms - first_t_ms) / 1000.0
+    return ConversionResult(
+        record_format=fmt,
+        records=record_count,
+        duration_s=duration_s,
+        sequence_gaps=sequence_gaps,
+        source_sha256=sha256_file(bin_path),
+        output_sha256=sha256_file(csv_path),
+    )
+
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Convert ESP32 binary LogRecord file to CSV")
+    p = argparse.ArgumentParser(
+        description="Convert a binary LogRecord file to CSV. Use tools/logs.py ingest for normal imports."
+    )
     p.add_argument("input", help="Input .bin file (logNNN.bin)")
     p.add_argument("-o", "--output", help="Output .csv path (default: input name with .csv)")
     p.add_argument("--no-seconds", action="store_true", help="Do not add computed t_s column")
     p.add_argument(
-        "--hypotenuse",
-        type=float,
-        help="Write steps.angle_to_travel.hypotenuse to the output CSV's .meta.json file",
-    )
-    p.add_argument(
-        "--top-adjacent",
-        type=float,
-        help="Write steps.angle_to_travel.top_adjacent to the output CSV's .meta.json file",
-    )
-    p.add_argument(
-        "--angle-sign",
-        type=float,
-        help="Write steps.angle_to_travel.angle_sign to the output CSV's .meta.json file",
-    )
-    p.add_argument(
         "--format",
         choices=sorted(FORMATS.keys()),
         help="Override record format detection",
-    )
-    p.add_argument(
-        "--linkage-file",
-        type=str,
-        help="Linkage angle-to-travel file for rear suspension logs"
-    )
-    p.add_argument(
-        "--mag-layout",
-        choices=sorted(MAG_LAYOUTS.keys()),
-        help="Write magnetometer orientation metadata using a named hardware layout",
     )
     args = p.parse_args()
 
@@ -303,19 +266,11 @@ def main() -> None:
         base, _ = os.path.splitext(bin_path)
         csv_path = base + ".csv"
 
-    convert(bin_path, csv_path, add_seconds=not args.no_seconds, fmt=args.format)
-    print(f"Wrote: {csv_path}")
-
-    metadata_path = write_metadata(
-        csv_path,
-        hypotenuse=args.hypotenuse,
-        top_adjacent=args.top_adjacent,
-        angle_sign=args.angle_sign,
-        linkage_file=args.linkage_file,
-        mag_layout=args.mag_layout,
+    result = convert(bin_path, csv_path, add_seconds=not args.no_seconds, fmt=args.format)
+    print(
+        f"Wrote {csv_path}: format={result.record_format}, records={result.records}, "
+        f"duration={result.duration_s:.1f}s, sequence_gaps={result.sequence_gaps}"
     )
-    if metadata_path is not None:
-        print(f"Wrote: {metadata_path}")
 
 
 if __name__ == "__main__":

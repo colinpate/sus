@@ -16,6 +16,16 @@ def get_log_config_path(log_path: Path) -> Path:
 
 
 def load_log_config(log_path: Path) -> LogConfig:
+    try:
+        from log_registry import DEFAULT_REGISTRY_PATH, load_registry
+
+        registry = load_registry(DEFAULT_REGISTRY_PATH)
+        resolved = registry.resolve(log_path.stem)
+        if resolved.csv_path is not None and resolved.csv_path.resolve() == log_path.resolve():
+            return resolved.processing_config
+    except (FileNotFoundError, KeyError, ValueError):
+        pass
+
     config_path = get_log_config_path(log_path)
     if not config_path.exists():
         print(f"No log config found at {config_path}, using empty config")

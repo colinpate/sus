@@ -3,6 +3,7 @@
 Run tools from the repository root, preferably with the project environment:
 
 ```bash
+venv/bin/python tools/logs.py --help
 venv/bin/python tools/stats_aggregator.py --help
 ```
 
@@ -13,6 +14,7 @@ Use the pipeline first if a log has no cache.
 
 | Tool | Purpose |
 | --- | --- |
+| `tools/logs.py` | Import binary logs, reuse metadata presets, annotate/tag logs, validate the registry, and run the configured front/rear pipeline. |
 | `tools/stats_aggregator.py` | Main summary/report tool for pipeline cache metrics. Handles both front and rear cache key shapes. |
 | `tools/export_sst_csv.py` | Export solved and ground-truth travel into SST-compatible CSV files. |
 | `tools/rear/analyze_rear_chunking_tradeoffs.py` | Current rear mag-model chunking/training tradeoff analysis, including the mag-gated blend follow-up. |

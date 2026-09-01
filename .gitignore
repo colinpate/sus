@@ -214,6 +214,15 @@ __marimo__/
 *.csv
 *.json
 
+# Canonical log metadata and processing assets are source, not generated data.
+!logs/registry.toml
+!foo.json
+!foo_ss.json
+
+# Imported source data and deterministic conversions stay local/backed up separately.
+logs/raw/
+logs/converted/
+
 # Local firmware secrets
 firmware/esp32_thingplus/wifi_config.h
 
