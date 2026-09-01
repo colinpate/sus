@@ -24,6 +24,7 @@ from accel_rotation import (
 )
 from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj, MagMagnitude
+from mag_nuisance import MagNuisanceTravelCorrection
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
@@ -277,7 +278,8 @@ def main() -> None:
                 "travel/mag_model",
                 "travel/mag_model/adj",
                 "fusion_scatter_points",
-                "mag_model_coeffs"
+                "mag_model_coeffs",
+                "mag_model_offset_mm",
             ),
             plot_keys=(
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
@@ -307,6 +309,33 @@ def main() -> None:
             ),
             outputs=("travel/solved",),
             plot_keys=("travel/solved",)
+        ),
+        # Stage one: retain the original full-rate solution and expose the
+        # validated four-iteration correction on its 10 Hz state grid. A later
+        # stage can turn its proposal into a confidence-weighted fusion input.
+        MagNuisanceTravelCorrection(
+            name="mag_nuisance_correction",
+            inputs=(
+                "mag/lpf",
+                "gyro/lpf/gyro1",
+                "mag/norm/corr/lpf",
+                "mag_model_coeffs",
+                "mag_model_offset_mm",
+                "travel/solved",
+            ),
+            outputs=(
+                "travel/solved/mag_nuisance/10hz",
+                "travel/mag_nuisance/proposal/10hz",
+                "mag/nuisance/body/10hz",
+                "mag/nuisance/world/10hz",
+                "mag/nuisance/correction/10hz",
+                "mag/nuisance/corrected_xyz/10hz",
+                "mag/nuisance/update_mask/10hz",
+                "mag/nuisance/xyz_path",
+                "mag/nuisance/iteration_change_mm",
+                "mag/nuisance/summary",
+            ),
+            plot_keys=("travel/solved/mag_nuisance/10hz",),
         ),
         GetErrorStats(
             name="x_preds_solver",

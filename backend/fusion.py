@@ -89,6 +89,12 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
         scatter_points = np.array([mag, travel, x_preds_adj]).T
         ws[self.outputs[2]] = scatter_points
         ws[self.outputs[3]] = np.array([x0, y_scale, power])
+        if len(self.outputs) > 4:
+            # The reference adjustment is an additive constant. Expose it so
+            # downstream models do not have to reconstruct calibration state
+            # from two complete prediction arrays.
+            scalar_offset_mm = float(np.median(x_preds_adj - x_preds))
+            ws[self.outputs[4]] = np.array([scalar_offset_mm])
 
     def build_ref_fallback_mask(self, accel: np.ndarray, mag_proj_bad_mask: np.ndarray) -> np.ndarray:
         accel = np.asarray(accel, dtype=float).reshape(-1)

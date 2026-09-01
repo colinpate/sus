@@ -15,7 +15,7 @@ import numpy as np
 from scipy.sparse import coo_matrix, diags
 from scipy.sparse.linalg import lsmr
 
-from tools.front.mag_nuisance.mag_correction_solver import (
+from backend.mag_nuisance_core import (
     MagSolverWeights,
     integrate_gyro,
 )

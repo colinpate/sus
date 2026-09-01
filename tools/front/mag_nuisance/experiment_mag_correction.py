@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
+from backend.mag_nuisance_core import (  # noqa: E402
     PRIMARY_MAG_TO_GYRO,
     MagSolverWeights,
     fit_linear_xyz_model,

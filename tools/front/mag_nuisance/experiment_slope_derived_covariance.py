@@ -38,7 +38,7 @@ from tools.front.mag_nuisance.experiment_unsupervised_mag_xyz import (  # noqa: 
     aligned,
     flatten,
 )
-from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
+from backend.mag_nuisance_core import (  # noqa: E402
     MagSolverWeights,
     curve_slope_covariances,
     smooth_body_world_fields,

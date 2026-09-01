@@ -9,7 +9,9 @@ listed as a supervised diagnostic.
 
 | File | Purpose |
 | --- | --- |
-| `mag_correction_solver.py` | Gyro-aware Kalman/RTS smoother for slowly varying body-fixed and world-fixed magnetic fields, iterative corrected-XYZ inversion, and tangent/slope covariance helpers. |
+| `../../../backend/mag_nuisance_core.py` | Production gyro-aware Kalman/RTS smoother, encoder-blind XYZ-path fit, iterative corrected-XYZ inversion, and covariance helpers. |
+| `../../../backend/mag_nuisance.py` | Stage-one pipeline wrapper that emits the four-iteration correction and diagnostics on its validated 10 Hz state grid without replacing the original travel result. |
+| `mag_correction_solver.py` | Compatibility import for older notebooks and scripts; new code imports the production core directly. |
 | `joint_mag_accel_solver.py` | Sparse joint latent-travel/body-field/world-field optimizer used by the joint-solver experiment. |
 
 ## Current encoder-blind experiments

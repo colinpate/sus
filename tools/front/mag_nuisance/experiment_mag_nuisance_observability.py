@@ -39,7 +39,7 @@ from tools.front.mag_nuisance.experiment_unsupervised_mag_xyz import (  # noqa: 
     fit_scalar_parameterized_xyz,
     flatten,
 )
-from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
+from backend.mag_nuisance_core import (  # noqa: E402
     PRIMARY_MAG_TO_GYRO,
     MagSolverWeights,
     smooth_body_world_fields,

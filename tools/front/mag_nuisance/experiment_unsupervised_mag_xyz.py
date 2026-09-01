@@ -11,21 +11,22 @@ only afterward to calculate evaluation metrics.
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 import json
 from pathlib import Path
 import sys
 
 import numpy as np
 import pandas as pd
-from scipy.spatial import cKDTree
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
+from backend.mag_nuisance_core import (  # noqa: E402
     PRIMARY_MAG_TO_GYRO,
     MagSolverWeights,
+    fit_scalar_parameterized_xyz,
+    predict_scalar_travel,
     solve_iterative_correction,
 )
 
@@ -54,153 +55,8 @@ FORK = {
 }
 
 
-@dataclass(frozen=True)
-class ScalarParameterizedXYZModel:
-    """Dense travel-to-XYZ path with nearest-path inversion."""
-
-    travel_grid: np.ndarray
-    xyz_grid: np.ndarray
-    scalar_center: float
-    scalar_scale: float
-    coefficients: np.ndarray
-    bin_count: int
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "_tree", cKDTree(self.xyz_grid))
-
-    @property
-    def travel_min(self) -> float:
-        return float(self.travel_grid[0])
-
-    @property
-    def travel_max(self) -> float:
-        return float(self.travel_grid[-1])
-
-    def predict(self, travel: np.ndarray | float) -> np.ndarray:
-        travel = np.asarray(travel, dtype=float)
-        return np.column_stack(
-            [
-                np.interp(travel, self.travel_grid, self.xyz_grid[:, axis])
-                for axis in range(3)
-            ]
-        )
-
-    def infer(self, field_xyz: np.ndarray, clip: bool = True) -> np.ndarray:
-        del clip  # The dense path is already bounded by travel_grid.
-        return self.travel_grid[self._tree.query(np.asarray(field_xyz, dtype=float))[1]]
-
-    def covers(self, travel: np.ndarray) -> np.ndarray:
-        travel = np.asarray(travel, dtype=float)
-        return (travel >= self.travel_min) & (travel <= self.travel_max)
-
-    def weak(self, travel: np.ndarray, threshold_mg: float) -> np.ndarray:
-        travel = np.asarray(travel, dtype=float)
-        return self.covers(travel) & (
-            np.linalg.norm(self.predict(travel), axis=-1) <= threshold_mg
-        )
-
-
 def flatten(values: np.ndarray) -> np.ndarray:
     return np.asarray(values, dtype=float).reshape(-1)
-
-
-def invert_scalar_travel_model(
-    travel: np.ndarray,
-    coefficients: np.ndarray,
-    offset_mm: float,
-    *,
-    soft_mg: float = 50.0,
-) -> np.ndarray:
-    """Invert ``MagToTravelModel.pred_x`` including its absolute offset."""
-
-    x0, y_scale, power = np.asarray(coefficients, dtype=float)
-    if y_scale <= 0 or power <= 0:
-        raise ValueError(
-            f"Expected positive scalar-model scale/power, got {y_scale}, {power}"
-        )
-    normalized = (np.asarray(travel, dtype=float) - offset_mm) / y_scale
-    delta = np.sign(normalized) * (
-        (np.abs(normalized) + soft_mg**power) ** (1.0 / power) - soft_mg
-    )
-    return x0 + delta
-
-
-def predict_scalar_travel(
-    scalar_mag: np.ndarray,
-    coefficients: np.ndarray,
-    offset_mm: float,
-    *,
-    soft_mg: float = 50.0,
-) -> np.ndarray:
-    """Apply the existing encoder-free scalar model and its absolute offset."""
-
-    x0, y_scale, power = np.asarray(coefficients, dtype=float)
-    delta = np.asarray(scalar_mag, dtype=float) - x0
-    softened = (np.abs(delta) + soft_mg) ** power - soft_mg**power
-    return np.sign(delta) * softened * y_scale + offset_mm
-
-
-def fit_scalar_parameterized_xyz(
-    scalar_mag: np.ndarray,
-    mag_xyz: np.ndarray,
-    scalar_coefficients: np.ndarray,
-    scalar_offset_mm: float,
-    *,
-    scalar_bin_mg: float = 100.0,
-    degree: int = 2,
-    travel_max_mm: float = 210.0,
-    travel_step_mm: float = 0.25,
-    min_bin_samples: int = 5,
-) -> ScalarParameterizedXYZModel:
-    """Fit XYZ versus the independently calibrated scalar magnetic coordinate."""
-
-    scalar_mag = flatten(scalar_mag)
-    mag_xyz = np.asarray(mag_xyz, dtype=float)
-    if mag_xyz.shape != (len(scalar_mag), 3):
-        raise ValueError("scalar_mag and mag_xyz must have shapes (N,) and (N, 3)")
-    if degree not in (1, 2):
-        raise ValueError("degree must be one or two")
-
-    finite = np.isfinite(scalar_mag) & np.all(np.isfinite(mag_xyz), axis=1)
-    bin_id = np.floor(scalar_mag / scalar_bin_mg).astype(int)
-    scalar_centers: list[float] = []
-    xyz_medians: list[np.ndarray] = []
-    for value in np.unique(bin_id[finite]):
-        selected = finite & (bin_id == value)
-        if np.sum(selected) < min_bin_samples:
-            continue
-        scalar_centers.append(float(np.median(scalar_mag[selected])))
-        xyz_medians.append(np.median(mag_xyz[selected], axis=0))
-    if len(scalar_centers) < degree + 2:
-        raise ValueError("Not enough populated scalar-field bins for XYZ fit")
-
-    scalar_centers_array = np.asarray(scalar_centers)
-    xyz_medians_array = np.asarray(xyz_medians)
-    center = float(np.median(scalar_centers_array))
-    scale = max(float(np.std(scalar_centers_array)), scalar_bin_mg)
-    normalized = (scalar_centers_array - center) / scale
-    design = np.column_stack(
-        [normalized**order for order in range(degree + 1)]
-    )
-    coefficients = np.linalg.lstsq(design, xyz_medians_array, rcond=None)[0]
-
-    travel_grid = np.arange(0.0, travel_max_mm + 0.5 * travel_step_mm, travel_step_mm)
-    scalar_grid = invert_scalar_travel_model(
-        travel_grid, scalar_coefficients, scalar_offset_mm
-    )
-    normalized_grid = (scalar_grid - center) / scale
-    xyz_grid = sum(
-        normalized_grid[:, np.newaxis] ** order * coefficients[order]
-        for order in range(degree + 1)
-    )
-    return ScalarParameterizedXYZModel(
-        travel_grid=travel_grid,
-        xyz_grid=xyz_grid,
-        scalar_center=center,
-        scalar_scale=scale,
-        coefficients=coefficients,
-        bin_count=len(scalar_centers_array),
-    )
 
 
 def aligned(cache: np.lib.npyio.NpzFile, key: str, index: np.ndarray) -> np.ndarray:

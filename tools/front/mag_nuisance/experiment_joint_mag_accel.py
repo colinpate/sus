@@ -44,7 +44,7 @@ from tools.front.mag_nuisance.joint_mag_accel_solver import (  # noqa: E402
     RelativeTravelFactor,
     solve_joint_mag_accel,
 )
-from tools.front.mag_nuisance.mag_correction_solver import (  # noqa: E402
+from backend.mag_nuisance_core import (  # noqa: E402
     MagSolverWeights,
     smooth_body_world_fields,
     solve_iterative_correction,
