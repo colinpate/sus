@@ -24,7 +24,10 @@ from accel_rotation import (
 )
 from angle import AngleToTravel, FindBoringRegions
 from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj, MagMagnitude
-from mag_nuisance import MagNuisanceTravelCorrection
+from mag_nuisance import (
+    MagNuisanceFullRateCorrection,
+    MagNuisanceTravelCorrection,
+)
 from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
@@ -336,6 +339,63 @@ def main() -> None:
                 "mag/nuisance/summary",
             ),
             plot_keys=("travel/solved/mag_nuisance/10hz",),
+        ),
+        MagNuisanceFullRateCorrection(
+            name="mag_nuisance_full_rate",
+            inputs=(
+                "mag/lpf",
+                "gyro/lpf/gyro1",
+                "travel/solved",
+                "travel/mag_model/adj",
+                "travel/solved/mag_nuisance/10hz",
+                "mag/nuisance/body/10hz",
+                "mag/nuisance/world/10hz",
+                "mag/nuisance/xyz_path",
+            ),
+            outputs=(
+                "travel/solved/mag_nuisance/delta_lifted",
+                "travel/mag_nuisance/corrected",
+                "mag/nuisance/corrected_xyz",
+                "mag/nuisance/correction",
+                "mag/nuisance/confidence",
+                "mag/nuisance/full_rate_summary",
+            ),
+            plot_keys=(
+                "travel/solved/mag_nuisance/delta_lifted",
+                "travel/mag_nuisance/corrected",
+            ),
+        ),
+        TravelSolver(
+            name="travel_solver_mag_nuisance",
+            inputs=(
+                "accel/lpfhp/proj",
+                "mag/norm/corr/lpf",
+                "travel/mag_nuisance/corrected",
+                "mag_zv_points",
+                "mag_baseline",
+            ),
+            outputs=("travel/solved/mag_nuisance/fusion2",),
+            plot_keys=("travel/solved/mag_nuisance/fusion2",),
+        ),
+        GetErrorStats(
+            name="x_preds_solver_mag_nuisance_delta_lifted",
+            inputs=(
+                "travel/solved/mag_nuisance/delta_lifted",
+                "travel",
+                "boring_mask",
+            ),
+            outputs=(),
+            gt_thresh=0,
+        ),
+        GetErrorStats(
+            name="x_preds_solver_mag_nuisance_fusion2",
+            inputs=(
+                "travel/solved/mag_nuisance/fusion2",
+                "travel",
+                "boring_mask",
+            ),
+            outputs=(),
+            gt_thresh=0,
         ),
         GetErrorStats(
             name="x_preds_solver",

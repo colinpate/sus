@@ -10,7 +10,7 @@ listed as a supervised diagnostic.
 | File | Purpose |
 | --- | --- |
 | `../../../backend/mag_nuisance_core.py` | Production gyro-aware Kalman/RTS smoother, encoder-blind XYZ-path fit, iterative corrected-XYZ inversion, and covariance helpers. |
-| `../../../backend/mag_nuisance.py` | Stage-one pipeline wrapper that emits the four-iteration correction and diagnostics on its validated 10 Hz state grid without replacing the original travel result. |
+| `../../../backend/mag_nuisance.py` | Pipeline wrappers for the 10 Hz four-iteration state solve, full-rate field transport, delta lifting, and corrected magnetic travel observation. |
 | `mag_correction_solver.py` | Compatibility import for older notebooks and scripts; new code imports the production core directly. |
 | `joint_mag_accel_solver.py` | Sparse joint latent-travel/body-field/world-field optimizer used by the joint-solver experiment. |
 
@@ -22,7 +22,10 @@ listed as a supervised diagnostic.
 | `experiment_mag_nuisance_observability.py` | Compares anchors, curve-normal observations, and acceleration-derived tangents. |
 | `experiment_iterative_tangent_ablation.py` | Separates outer-iteration count from fixed tangent weighting. |
 | `experiment_slope_derived_covariance.py` | Propagates assumed travel uncertainty through local XYZ slope and tests high-slope normal inflation. |
+| `experiment_multirate_observations.py` | Separates source-rate gyro integration from point, low-pass, mean, and median residual observations on the 10 Hz nuisance-state grid. |
 | `experiment_joint_mag_accel.py` | Tests joint latent travel and nuisance fields, including direct acceleration-factor ablations. |
+| `evaluate_correction_standard_metrics.py` | Recomputes standard overall and travel-bin metrics on the validated 10 Hz state samples. |
+| `evaluate_full_rate_correction.py` | Compares the pipeline baseline, full-rate delta lift, corrected magnetic observation, and second fusion pass, including a high-frequency preservation check. |
 
 ## Supervised diagnostics
 

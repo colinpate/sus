@@ -353,6 +353,70 @@ def integrate_gyro(time_s: np.ndarray, gyro_dps: np.ndarray) -> np.ndarray:
     return rotations
 
 
+def interpolate_nuisance_fields(
+    full_time_s: np.ndarray,
+    state_time_s: np.ndarray,
+    full_rotations: np.ndarray,
+    state_rotations: np.ndarray,
+    state_body: np.ndarray,
+    state_world: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Interpolate slow nuisance fields onto a faster sensor timeline.
+
+    The body-fixed field is interpolated directly in body coordinates. The
+    world-fixed field is first expressed in the common reference frame,
+    interpolated there, and then transported back to the instantaneous body
+    frame with the full-rate gyro rotations. This preserves fast apparent
+    world-field motion caused by pod rotation even though the field-state
+    knots themselves are slow.
+    """
+
+    full_time_s = np.asarray(full_time_s, dtype=float).reshape(-1)
+    state_time_s = np.asarray(state_time_s, dtype=float).reshape(-1)
+    full_rotations = np.asarray(full_rotations, dtype=float)
+    state_rotations = np.asarray(state_rotations, dtype=float)
+    state_body = np.asarray(state_body, dtype=float)
+    state_world = np.asarray(state_world, dtype=float)
+    if len(state_time_s) < 2 or not np.all(np.diff(state_time_s) > 0):
+        raise ValueError("state_time_s must contain at least two increasing samples")
+    if len(full_time_s) < 2 or not np.all(np.diff(full_time_s) > 0):
+        raise ValueError("full_time_s must contain at least two increasing samples")
+    if full_rotations.shape != (len(full_time_s), 3, 3):
+        raise ValueError("full_rotations must have shape (len(full_time_s), 3, 3)")
+    state_shape = (len(state_time_s), 3)
+    if state_rotations.shape != (len(state_time_s), 3, 3):
+        raise ValueError("state_rotations must have shape (len(state_time_s), 3, 3)")
+    if state_body.shape != state_shape or state_world.shape != state_shape:
+        raise ValueError("state_body and state_world must have shape (len(state_time_s), 3)")
+
+    body_full = np.column_stack(
+        [
+            np.interp(full_time_s, state_time_s, state_body[:, axis])
+            for axis in range(3)
+        ]
+    )
+
+    # Row-vector convention: reference = body @ R_body_to_reference.T.
+    world_reference_state = np.einsum(
+        "ni,nji->nj", state_world, state_rotations
+    )
+    world_reference_full = np.column_stack(
+        [
+            np.interp(
+                full_time_s,
+                state_time_s,
+                world_reference_state[:, axis],
+            )
+            for axis in range(3)
+        ]
+    )
+    # Inverse row-vector transform: body = reference @ R_body_to_reference.
+    world_full = np.einsum(
+        "ni,nij->nj", world_reference_full, full_rotations
+    )
+    return body_full, world_full
+
+
 def fit_linear_xyz_model(
     travel: np.ndarray,
     mag_xyz: np.ndarray,
@@ -477,6 +541,7 @@ def smooth_body_world_fields(
     update_mask: np.ndarray,
     weights: MagSolverWeights,
     measurement_covariances: np.ndarray | None = None,
+    body_to_reference_rotations: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Kalman/RTS solution of the continuous body/world field model.
 
@@ -484,6 +549,9 @@ def smooth_body_world_fields(
     sample.  This is useful for curve-normal measurements: uncertainty can be
     kept small perpendicular to the expected magnet curve and made large along
     its tangent, where travel error and additive field are locally ambiguous.
+    ``body_to_reference_rotations`` can supply rotations integrated on a faster
+    gyro timeline and sampled at these state times, avoiding aliasing the gyro
+    merely because the nuisance state is low-rate.
     """
 
     weights.validate()
@@ -501,7 +569,19 @@ def smooth_body_world_fields(
         if not np.all(np.isfinite(measurement_covariances)):
             raise ValueError("measurement_covariances must be finite")
 
-    rotations = integrate_gyro(time_s, gyro_dps)
+    if body_to_reference_rotations is None:
+        rotations = integrate_gyro(time_s, gyro_dps)
+    else:
+        rotations = np.asarray(body_to_reference_rotations, dtype=float)
+        if rotations.shape != (n, 3, 3):
+            raise ValueError(
+                "body_to_reference_rotations must have shape (len(time_s), 3, 3)"
+            )
+        if not np.all(np.isfinite(rotations)):
+            raise ValueError("body_to_reference_rotations must be finite")
+        identity_error = rotations @ np.swapaxes(rotations, 1, 2) - np.eye(3)
+        if np.max(np.abs(identity_error)) > 1e-5:
+            raise ValueError("body_to_reference_rotations must be orthonormal")
     filtered_state = np.empty((n, 6), dtype=float)
     filtered_cov = np.empty((n, 6, 6), dtype=float)
     predicted_state = np.empty((n, 6), dtype=float)
@@ -691,6 +771,7 @@ def solve_iterative_correction(
     tangent_sigma_ratio: float = 1.0,
     travel_sigma_mm: float | None = None,
     normal_slope_fraction: float = 0.0,
+    body_to_reference_rotations: np.ndarray | None = None,
 ) -> MagCorrectionResult:
     """Alternate field smoothing and low-field XYZ-to-travel inversion.
 
@@ -698,6 +779,7 @@ def solve_iterative_correction(
     observation. Larger values progressively downweight residuals parallel to
     the current travel-to-XYZ curve. Alternatively, ``travel_sigma_mm``
     propagates an assumed travel uncertainty through the local curve slope.
+    Preintegrated body rotations may be supplied independently of state rate.
     """
 
     if iterations < 1:
@@ -753,6 +835,7 @@ def solve_iterative_correction(
             fit_mask,
             weights,
             measurement_covariances=measurement_covariances,
+            body_to_reference_rotations=body_to_reference_rotations,
         )
         corrected = mag_xyz - body - world
         inferred = xyz_model.infer(corrected)
