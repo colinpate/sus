@@ -216,8 +216,9 @@ __marimo__/
 
 # Canonical log metadata and processing assets are source, not generated data.
 !logs/registry.toml
-!foo.json
-!foo_ss.json
+!config/
+!config/linkages/
+!config/linkages/*.json
 
 # Imported source data and deterministic conversions stay local/backed up separately.
 logs/raw/

@@ -40,7 +40,7 @@ class RockerTravelCurve:
     
         
 def main():
-    curve = RockerTravelCurve("foo.json")
+    curve = RockerTravelCurve("config/linkages/stumpjumper-rear-original.json")
 
 if __name__ == "__main__":
     main()

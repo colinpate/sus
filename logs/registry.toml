@@ -68,10 +68,10 @@ top_adjacent = 136.0
 angle_sign = -1.0
 
 [profiles.rear-linkage-original.config.steps.linkage_angle_to_travel]
-linkage_path = "foo.json"
+linkage_path = "config/linkages/stumpjumper-rear-original.json"
 
 [profiles.rear-linkage-current.config.steps.linkage_angle_to_travel]
-linkage_path = "foo_ss.json"
+linkage_path = "config/linkages/stumpjumper-rear-current.json"
 
 [profiles.rear-mag-z-minus90.config.steps.diff_mag]
 z_rotation_deg = -90

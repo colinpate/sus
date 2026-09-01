@@ -386,9 +386,9 @@ def profiles_for_legacy(
     if position == "rear":
         profiles.extend([f"rear-pod-v{pod_version if pod_version is not None else 0}", "bike-stumpjumper", "rear-stumpjumper-150"])
         linkage = sidecar.get("steps", {}).get("linkage_angle_to_travel", {}).get("linkage_path")
-        if linkage == "foo.json":
+        if linkage in {"foo.json", "config/linkages/stumpjumper-rear-original.json"}:
             profiles.append("rear-linkage-original")
-        elif linkage == "foo_ss.json":
+        elif linkage in {"foo_ss.json", "config/linkages/stumpjumper-rear-current.json"}:
             profiles.append("rear-linkage-current")
         z_rotation = sidecar.get("steps", {}).get("diff_mag", {}).get("z_rotation_deg")
         if z_rotation == -90:
