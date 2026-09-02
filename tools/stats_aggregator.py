@@ -1,3 +1,5 @@
+"""Metric calculation engine retained behind the versioned ``tools/stats.py`` workflow."""
+
 from __future__ import annotations
 
 import argparse
@@ -1611,4 +1613,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(
+        "Direct stats_aggregator.py runs are disabled because they can silently consume stale caches. "
+        "Use `python tools/stats.py run NAME ...`; see `python tools/stats.py --help`."
+    )

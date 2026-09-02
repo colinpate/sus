@@ -65,3 +65,36 @@ venv/bin/python tools/logs.py process --where pod_version=2
 Each successful pipeline run writes `backend/run_artifacts/<log>/run.json` and embeds the
 same run fingerprint in its NPZ caches. The fingerprint includes uncommitted backend source
 changes because it hashes file contents rather than relying on Git commits or timestamps.
+
+## Stats experiments
+
+Use the stats experiment workflow instead of reading caches directly:
+
+```bash
+venv/bin/python tools/stats.py run solver-baseline --set front-default --process \
+  --notes "Baseline before changing the magnetic correction" --tag baseline
+
+venv/bin/python tools/stats.py run solver-candidate --set front-default --process \
+  --notes "Test lower magnetic correction threshold" --tag mag-correction \
+  --baseline solver-baseline
+```
+
+`--process` refreshes only missing or stale selected caches. Without it, experiment creation
+stops if any selected cache does not match the current log input, resolved processing config,
+pipeline source (including uncommitted edits), linkage assets, or runtime dependencies. Use
+`--allow-partial` only when intentionally excluding those logs; exclusions are recorded.
+
+Every experiment saves both centered and uncentered metrics under `experiments/stats/`, along
+with the exact group query, included log fingerprints, notes, tags, readable report, and CSV
+tables. These experiment directories should be tracked in Git; pipeline caches remain local.
+
+Browse and compare saved work by memorable name or experiment ID:
+
+```bash
+venv/bin/python tools/stats.py list --verbose
+venv/bin/python tools/stats.py show solver-candidate
+venv/bin/python tools/stats.py compare solver-baseline solver-candidate
+```
+
+Comparisons recompute summaries using only the logs present in both experiments, so differently
+sized groups can be compared without accidentally attributing group composition to a code change.
