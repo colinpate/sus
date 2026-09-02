@@ -12,6 +12,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from classes.time_series import TimeSeries
 from mag_nuisance import (
+    MAG_NUISANCE_SUMMARY_FIELDS,
     MagNuisanceFullRateCorrection,
     MagNuisanceTravelCorrection,
 )
@@ -24,24 +25,15 @@ from mag_nuisance_core import (
 
 OUTPUTS = (
     "travel/corrected",
-    "travel/proposal",
     "mag/body",
     "mag/world",
-    "mag/correction",
-    "mag/corrected_xyz",
-    "mag/update_mask",
     "mag/xyz_path",
-    "mag/iteration_change",
     "mag/summary",
 )
 
 FULL_RATE_OUTPUTS = (
     "travel/delta_lifted",
     "travel/mag_corrected",
-    "mag/corrected_full",
-    "mag/correction_full",
-    "mag/confidence_full",
-    "mag/full_summary",
 )
 
 
@@ -100,24 +92,22 @@ class MagNuisanceTravelCorrectionTests(unittest.TestCase):
         step.run(ws)
 
         self.assertEqual(ws["travel/corrected"].x.shape, (100, 1))
-        self.assertEqual(ws["mag/correction"].x.shape, (100, 3))
+        self.assertEqual(ws["mag/body"].x.shape, (100, 3))
+        self.assertEqual(ws["mag/world"].x.shape, (100, 3))
         self.assertEqual(ws["mag/xyz_path"].shape, (841, 4))
-        self.assertEqual(ws["mag/iteration_change"].shape, (4,))
+        self.assertEqual(
+            ws["mag/summary"].shape,
+            (len(MAG_NUISANCE_SUMMARY_FIELDS),),
+        )
+        self.assertTrue(np.all(np.isfinite(ws["mag/summary"])))
         self.assertTrue(np.all(np.isfinite(ws["travel/corrected"].x)))
         self.assertAlmostEqual(
             ws["travel/corrected"].meta["gyro_integration_hz"], 100.0
         )
         np.testing.assert_array_equal(ws["initial"].x, original_initial)
 
-        update_mask = ws["mag/update_mask"].x[:, 0].astype(bool)
         sampled_initial = initial_travel[::10]
-        proposal = ws["travel/proposal"].x[:, 0]
         blended = ws["travel/corrected"].x[:, 0]
-        np.testing.assert_allclose(
-            blended,
-            sampled_initial + 0.75 * (proposal - sampled_initial),
-        )
-        np.testing.assert_array_equal(proposal[~update_mask], sampled_initial[~update_mask])
 
         ws["scalar_travel"] = TimeSeries(
             time_s, initial_travel, "mm", "travel", series_meta
@@ -154,8 +144,6 @@ class MagNuisanceTravelCorrectionTests(unittest.TestCase):
             initial_travel + expected_delta,
         )
         self.assertEqual(ws["travel/mag_corrected"].x.shape, (sample_count, 1))
-        self.assertEqual(ws["mag/corrected_full"].x.shape, (sample_count, 3))
-        self.assertEqual(ws["mag/confidence_full"].x.shape, (sample_count, 1))
         self.assertTrue(np.all(np.isfinite(ws["travel/mag_corrected"].x)))
 
     def test_world_field_interpolation_uses_full_rate_rotation(self):

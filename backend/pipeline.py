@@ -313,9 +313,9 @@ def main() -> None:
             outputs=("travel/solved",),
             plot_keys=("travel/solved",)
         ),
-        # Stage one: retain the original full-rate solution and expose the
-        # validated four-iteration correction on its 10 Hz state grid. A later
-        # stage can turn its proposal into a confidence-weighted fusion input.
+        # Estimate slow nuisance states separately from their full-rate
+        # application. The low-rate travel output is retained only for the
+        # validated delta-lift comparison/fallback.
         MagNuisanceTravelCorrection(
             name="mag_nuisance_correction",
             inputs=(
@@ -328,14 +328,9 @@ def main() -> None:
             ),
             outputs=(
                 "travel/solved/mag_nuisance/10hz",
-                "travel/mag_nuisance/proposal/10hz",
                 "mag/nuisance/body/10hz",
                 "mag/nuisance/world/10hz",
-                "mag/nuisance/correction/10hz",
-                "mag/nuisance/corrected_xyz/10hz",
-                "mag/nuisance/update_mask/10hz",
                 "mag/nuisance/xyz_path",
-                "mag/nuisance/iteration_change_mm",
                 "mag/nuisance/summary",
             ),
             plot_keys=("travel/solved/mag_nuisance/10hz",),
@@ -355,10 +350,6 @@ def main() -> None:
             outputs=(
                 "travel/solved/mag_nuisance/delta_lifted",
                 "travel/mag_nuisance/corrected",
-                "mag/nuisance/corrected_xyz",
-                "mag/nuisance/correction",
-                "mag/nuisance/confidence",
-                "mag/nuisance/full_rate_summary",
             ),
             plot_keys=(
                 "travel/solved/mag_nuisance/delta_lifted",

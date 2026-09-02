@@ -25,8 +25,10 @@ MAG_NUISANCE_SUMMARY_FIELDS = (
     "source_stride",
     "xyz_bin_count",
     "update_fraction",
+    "correction_vector_rms_mg",
     "proposed_update_rms_mm",
     "applied_update_rms_mm",
+    "final_iteration_change_mm",
     "xyz_scalar_center_mg",
     "xyz_scalar_scale_mg",
 )
@@ -34,13 +36,11 @@ MAG_NUISANCE_SUMMARY_FIELDS = (
 
 @dataclass
 class MagNuisanceTravelCorrection(Step):
-    """Reproduce the validated four-iteration correction on a 10 Hz grid.
+    """Estimate the validated nuisance states on a 10 Hz grid.
 
-    This stage intentionally emits a separate low-rate travel result. It does
-    not replace the original solved travel or interpolate the correction onto
-    the full-rate pipeline timeline. Keeping that boundary explicit makes this
-    a parity checkpoint for the experiment before a second fusion pass is
-    introduced.
+    The low-rate corrected travel remains available for delta-lift validation.
+    Body and world fields stay separate because full-rate application must
+    interpolate the body field directly but gyro-transport the world field.
     """
 
     state_hz: float = 10.0
@@ -68,9 +68,10 @@ class MagNuisanceTravelCorrection(Step):
                 "MagNuisanceTravelCorrection expects mag XYZ, gyro1, scalar "
                 "mag, scalar coefficients, scalar offset, and initial travel"
             )
-        if len(self.outputs) != 10:
+        if len(self.outputs) != 5:
             raise ValueError(
-                "MagNuisanceTravelCorrection requires ten diagnostic outputs"
+                "MagNuisanceTravelCorrection requires corrected travel, body "
+                "field, world field, XYZ path, and health summary outputs"
             )
 
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -197,42 +198,37 @@ class MagNuisanceTravelCorrection(Step):
             )
 
         ws[self.outputs[0]] = state_series(blended_travel, "mm", "travel")
-        ws[self.outputs[1]] = state_series(correction.travel, "mm", "travel")
-        ws[self.outputs[2]] = state_series(
+        ws[self.outputs[1]] = state_series(
             correction.body_field, "milli-Gauss", "gyro1"
         )
-        ws[self.outputs[3]] = state_series(
+        ws[self.outputs[2]] = state_series(
             correction.world_field, "milli-Gauss", "gyro1"
         )
-        ws[self.outputs[4]] = state_series(
-            correction.correction, "milli-Gauss", "gyro1"
-        )
-        ws[self.outputs[5]] = state_series(
-            correction.corrected_mag_weak, "milli-Gauss", "gyro1"
-        )
-        ws[self.outputs[6]] = state_series(
-            correction.update_mask.astype(float), "boolean", ""
-        )
-        ws[self.outputs[7]] = np.column_stack(
+        ws[self.outputs[3]] = np.column_stack(
             (xyz_model.travel_grid, xyz_model.xyz_grid)
         )
-        ws[self.outputs[8]] = np.asarray(correction.iteration_change_mm)
 
         proposed_change = correction.travel - initial_travel
         applied_change = blended_travel - initial_travel
         updated = correction.update_mask
-        ws[self.outputs[9]] = np.array(
+        ws[self.outputs[4]] = np.array(
             [
                 source_hz / stride,
                 float(stride),
                 float(xyz_model.bin_count),
                 float(np.mean(updated)),
+                float(
+                    np.sqrt(
+                        np.mean(np.sum(correction.correction**2, axis=1))
+                    )
+                ),
                 float(np.sqrt(np.mean(proposed_change[updated] ** 2)))
                 if np.any(updated)
                 else 0.0,
                 float(np.sqrt(np.mean(applied_change[updated] ** 2)))
                 if np.any(updated)
                 else 0.0,
+                float(correction.iteration_change_mm[-1]),
                 xyz_model.scalar_center,
                 xyz_model.scalar_scale,
             ]
@@ -288,9 +284,10 @@ class MagNuisanceFullRateCorrection(Step):
                 "initial solved travel, scalar-mag travel, low-rate corrected "
                 "travel, body field, world field, and the learned XYZ path"
             )
-        if len(self.outputs) != 6:
+        if len(self.outputs) != 2:
             raise ValueError(
-                "MagNuisanceFullRateCorrection requires six outputs"
+                "MagNuisanceFullRateCorrection requires delta-lifted travel "
+                "and corrected magnetic-travel outputs"
             )
 
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -399,19 +396,4 @@ class MagNuisanceFullRateCorrection(Step):
         ws[self.outputs[0]] = full_series_out(delta_lifted, "mm", "travel")
         ws[self.outputs[1]] = full_series_out(
             corrected_mag_travel, "mm", "travel"
-        )
-        ws[self.outputs[2]] = full_series_out(
-            corrected_xyz, "milli-Gauss", "gyro1"
-        )
-        ws[self.outputs[3]] = full_series_out(
-            field_correction, "milli-Gauss", "gyro1"
-        )
-        ws[self.outputs[4]] = full_series_out(confidence, "ratio", "")
-        ws[self.outputs[5]] = np.array(
-            [
-                float(np.mean(confidence > 0.0)),
-                float(np.mean(confidence)),
-                float(np.sqrt(np.mean(full_delta**2))),
-                float(np.sqrt(np.mean((corrected_mag_travel - scalar_travel) ** 2))),
-            ]
         )
