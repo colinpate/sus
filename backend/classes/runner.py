@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple, Literal
 import json
+import os
+import tempfile
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +12,7 @@ from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
 from classes.log_config import EMPTY_LOG_CONFIG_HASH, get_log_config, get_log_config_hash
+from run_provenance import RunProvenance
 
 PlotKind = Literal["timeseries", "scatter", "hist"]
 
@@ -27,6 +30,7 @@ class Runner:
     write_cache: bool = True
     read_cache: bool = False
     make_plots: bool = True
+    provenance: RunProvenance | None = None
 
     def _cache_path(self, step_name: str) -> Path:
         return self.out_dir / "cache" / f"{step_name}.npz"
@@ -36,6 +40,8 @@ class Runner:
         payload = {
             "__log_config_hash": np.array(get_log_config_hash(get_log_config(ws))),
         }
+        if self.provenance is not None:
+            payload["__run_fingerprint"] = np.array(self.provenance.run_fingerprint)
         for k in keys:
             v = ws[k]
             if isinstance(v, TimeSeries):
@@ -43,26 +49,34 @@ class Runner:
                 payload[f"{k}__x"] = v.x
             elif isinstance(v, np.ndarray):
                 payload[k] = v
-        np.savez_compressed(self._cache_path(step_name), **payload)
+        cache_path = self._cache_path(step_name)
+        with tempfile.NamedTemporaryFile(dir=cache_path.parent, prefix=f".{cache_path.stem}-", suffix=".npz", delete=False) as handle:
+            temporary = Path(handle.name)
+            np.savez_compressed(handle, **payload)
+        os.replace(temporary, cache_path)
 
     def _load_cache(self, step_name: str, ws: Workspace, keys: Tuple[str, ...]) -> bool:
         p = self._cache_path(step_name)
         if not p.exists():
             return False
-        data = np.load(p, allow_pickle=False)
-        current_hash = get_log_config_hash(get_log_config(ws))
-        cached_hash = data["__log_config_hash"].item() if "__log_config_hash" in data else None
-        if cached_hash is None and current_hash != EMPTY_LOG_CONFIG_HASH:
-            return False
-        if cached_hash is not None and cached_hash != current_hash:
-            return False
-        for k in keys:
-            t_key = f"{k}__t"
-            x_key = f"{k}__x"
-            if t_key in data and x_key in data:
-                ws[k] = TimeSeries(t=data[t_key], x=data[x_key])
-            elif k in data:
-                ws[k] = data[k]
+        with np.load(p, allow_pickle=False) as data:
+            if self.provenance is not None:
+                cached_fingerprint = data["__run_fingerprint"].item() if "__run_fingerprint" in data else None
+                if cached_fingerprint != self.provenance.run_fingerprint:
+                    return False
+            current_hash = get_log_config_hash(get_log_config(ws))
+            cached_hash = data["__log_config_hash"].item() if "__log_config_hash" in data else None
+            if cached_hash is None and current_hash != EMPTY_LOG_CONFIG_HASH:
+                return False
+            if cached_hash is not None and cached_hash != current_hash:
+                return False
+            for k in keys:
+                t_key = f"{k}__t"
+                x_key = f"{k}__x"
+                if t_key in data and x_key in data:
+                    ws[k] = TimeSeries(t=data[t_key], x=data[x_key])
+                elif k in data:
+                    ws[k] = data[k]
         return True
 
     def _plot_timeseries(self, ts: TimeSeries, title: str, path: Path) -> None:
@@ -135,6 +149,10 @@ class Runner:
                             )
 
         # Save a cache with everything
-        self._save_cache("all", ws, keys=ws.keys())
+        if self.write_cache:
+            self._save_cache("all", ws, keys=ws.keys())
+
+        if self.provenance is not None:
+            self.provenance.write(self.out_dir)
 
         return ws
