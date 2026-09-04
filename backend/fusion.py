@@ -6,6 +6,7 @@ from angle_corruption import project_mask_to_timeline
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
+from mag_calibration import MagTravelCalibration
 from mag_to_travel_model_core import MagToTravelModelCore
 from rear_mag_model import RearMagModel
 
@@ -29,6 +30,7 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
     ref_neg_fallback_max_pct: float = 0.08
     ref_fallback_accel_quantile: float = 70.0
     apply_ref_point: bool = True
+    provided_calibration: MagTravelCalibration | None = None
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -46,17 +48,41 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
         t = mag_ts.t
         baseline_min_mag = mag_baseline[0]
 
-        training_data = self.create_training_data(
-            mag=mag,
-            accel=accel,
-            train_mask=mag_proj_bad_mask,
-            t=t,
-            baseline_min_mag=baseline_min_mag,
-            idxs=idxs
-        )
-
-        result = self.train(training_data)
-        x0, y_scale, power = result.x[0], result.x[1], result.x[2]
+        if self.provided_calibration is None:
+            training_data = self.create_training_data(
+                mag=mag,
+                accel=accel,
+                train_mask=mag_proj_bad_mask,
+                t=t,
+                baseline_min_mag=baseline_min_mag,
+                idxs=idxs
+            )
+            result = self.train(training_data)
+            coefficients = np.asarray(result.x, dtype=float)
+        else:
+            calibration = self.provided_calibration
+            if calibration.method != "self_supervised_power":
+                raise ValueError(
+                    f"Front pipeline injection requires a power calibration, got {calibration.method!r}"
+                )
+            if calibration.pipeline != "front":
+                raise ValueError(
+                    f"Front mag model cannot use a {calibration.pipeline!r} calibration"
+                )
+            if calibration.feature_key != self.inputs[0]:
+                raise ValueError(
+                    f"Calibration feature {calibration.feature_key!r} does not match "
+                    f"front model input {self.inputs[0]!r}"
+                )
+            self.model = calibration.make_model()
+            coefficients = np.asarray(calibration.coefficients, dtype=float)
+            print(
+                "Using provided front mag calibration from",
+                calibration.training_log,
+                calibration.training_start_s,
+                calibration.training_stop_s,
+            )
+        x0, y_scale, power = coefficients
 
         x_preds = self.model.pred_x(mag)
         
@@ -150,6 +176,7 @@ class GetRearMagToTravelModel(Step, RearMagModel):
     min_abs_b_x_corr: float | None = RearMagModel.min_abs_b_x_corr
     min_db_per_dx: float | None = RearMagModel.min_db_per_dx
     zero_travel_percentile: float = 8
+    provided_calibration: MagTravelCalibration | None = None
 
     def run(self, ws: Workspace) -> None:
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -160,15 +187,39 @@ class GetRearMagToTravelModel(Step, RearMagModel):
         accel = accel_ts.x[:, 0]
         t = mag_ts.t
 
-        training_data = self.create_training_data(
-            mag=mag,
-            accel=accel,
-            t=t,
-            idxs=idxs
-        )
-
-        result = self.train(training_data, guess_vec=[0.1, 250, 1 / 3])
-        x0, y_scale, power = result.x[0], result.x[1], result.x[2]
+        if self.provided_calibration is None:
+            training_data = self.create_training_data(
+                mag=mag,
+                accel=accel,
+                t=t,
+                idxs=idxs
+            )
+            result = self.train(training_data, guess_vec=[0.1, 250, 1 / 3])
+            coefficients = np.asarray(result.x, dtype=float)
+        else:
+            calibration = self.provided_calibration
+            if calibration.method != "self_supervised_power":
+                raise ValueError(
+                    f"Rear pipeline injection requires a power calibration, got {calibration.method!r}"
+                )
+            if calibration.pipeline != "rear":
+                raise ValueError(
+                    f"Rear mag model cannot use a {calibration.pipeline!r} calibration"
+                )
+            if calibration.feature_key != self.inputs[0]:
+                raise ValueError(
+                    f"Calibration feature {calibration.feature_key!r} does not match "
+                    f"rear model input {self.inputs[0]!r}"
+                )
+            self.model = calibration.make_model()
+            coefficients = np.asarray(calibration.coefficients, dtype=float)
+            print(
+                "Using provided rear mag calibration from",
+                calibration.training_log,
+                calibration.training_start_s,
+                calibration.training_stop_s,
+            )
+        x0, y_scale, power = coefficients
         print(f"Mag to travel model coefficients: {x0:.2f}, {y_scale:.2f}, {power:.3f}")
 
         x_preds = self.model.pred_x(mag)
