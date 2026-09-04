@@ -315,8 +315,8 @@ def main() -> None:
                 "mag_zv_points", 
                 "mag_baseline",
             ),
-            outputs=("travel/solved",),
-            plot_keys=("travel/solved",)
+            outputs=("travel/fusion1",),
+            plot_keys=("travel/fusion1",)
         ),
         # Estimate slow nuisance states separately from their full-rate
         # application. The low-rate travel output is retained only for the
@@ -329,7 +329,7 @@ def main() -> None:
                 "mag/norm/corr/lpf",
                 "mag_model_coeffs",
                 "mag_model_offset_mm",
-                "travel/solved",
+                "travel/fusion1",
             ),
             outputs=(
                 "travel/solved/mag_nuisance/10hz",
@@ -345,7 +345,7 @@ def main() -> None:
             inputs=(
                 "mag/lpf",
                 "gyro/lpf/gyro1",
-                "travel/solved",
+                "travel/fusion1",
                 "travel/mag_model/adj",
                 "travel/solved/mag_nuisance/10hz",
                 "mag/nuisance/body/10hz",
@@ -370,8 +370,8 @@ def main() -> None:
                 "mag_zv_points",
                 "mag_baseline",
             ),
-            outputs=("travel/solved/mag_nuisance/fusion2",),
-            plot_keys=("travel/solved/mag_nuisance/fusion2",),
+            outputs=("travel/solved",),
+            plot_keys=("travel/solved",),
         ),
         GetErrorStats(
             name="x_preds_solver_mag_nuisance_delta_lifted",
@@ -386,7 +386,7 @@ def main() -> None:
         GetErrorStats(
             name="x_preds_solver_mag_nuisance_fusion2",
             inputs=(
-                "travel/solved/mag_nuisance/fusion2",
+                "travel/solved",
                 "travel",
                 "boring_mask",
             ),
@@ -395,13 +395,13 @@ def main() -> None:
         ),
         GetErrorStats(
             name="x_preds_solver",
-            inputs=("travel/solved", "travel", "boring_mask"),
+            inputs=("travel/fusion1", "travel", "boring_mask"),
             outputs=(),
             gt_thresh=0
         ),
         GetErrorStats(
             name="x_preds_solver",
-            inputs=("travel/solved", "travel", "boring_mask"),
+            inputs=("travel/fusion1", "travel", "boring_mask"),
             outputs=(),
             gt_thresh=30
         ),
