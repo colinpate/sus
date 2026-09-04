@@ -14,9 +14,10 @@ from pathlib import Path
 import sys
 from typing import Any, Iterable
 
-os.environ.setdefault("MPLCONFIGDIR", "/private/tmp")
+os.environ["MPLCONFIGDIR"] = "/private/tmp"
 
 import numpy as np
+import scipy.optimize
 from sklearn.isotonic import IsotonicRegression
 
 
@@ -31,8 +32,9 @@ from mag_calibration import (  # noqa: E402
     ResolvedWindow,
     TimeRange,
     resolve_window,
+    sample_durations,
 )
-from mag_to_travel_model_core import MagToTravelModelCore  # noqa: E402
+from mag_to_travel_model_core import MagToTravelModel, MagToTravelModelCore  # noqa: E402
 from rear_mag_model import RearMagModel  # noqa: E402
 
 
@@ -278,6 +280,42 @@ def fit_oracle_calibration(
     correlation = float(np.corrcoef(mag, travel)[0, 1])
     increasing = bool(correlation >= 0)
 
+    if trainer == "oracle-power":
+        pred_soft_mg = (
+            MagToTravelModelCore.pred_soft_mg
+            if data.pipeline == "front"
+            else RearMagModel.pred_soft_mg
+        )
+        coefficients, offset, fit_rmse = fit_supervised_power_oracle(
+            mag,
+            travel,
+            pred_soft_mg=float(pred_soft_mg),
+        )
+        return MagTravelCalibration(
+            pipeline=data.pipeline,
+            method="oracle_power",
+            coefficients=tuple(float(item) for item in coefficients),
+            pred_soft_mg=float(pred_soft_mg),
+            travel_offset_mm=float(offset),
+            feature_key=data.feature_key,
+            training_log=data.log_name,
+            training_time_basis=window.time_basis,
+            training_start_s=window.time_range.start_s,
+            training_stop_s=window.time_range.stop_s,
+            training_sample_start=resolved.sample_start,
+            training_sample_stop=resolved.sample_stop,
+            training_chunk_count=0,
+            model_config={"supervised_offset": True},
+            training_diagnostics={
+                "training_samples": int(len(mag)),
+                "fit_points": int(len(mag)),
+                "mag_travel_correlation": correlation,
+                "increasing": increasing,
+                "training_rmse": fit_rmse,
+            },
+            source_fingerprint=data.source_fingerprint,
+            format_version=2,
+        )
     if trainer == "oracle-isotonic":
         fit_mag = mag
         fit_travel = travel
@@ -339,6 +377,50 @@ def fit_oracle_calibration(
         source_fingerprint=data.source_fingerprint,
         format_version=2,
     )
+
+
+def fit_supervised_power_oracle(
+    mag: np.ndarray,
+    travel: np.ndarray,
+    *,
+    pred_soft_mg: float,
+) -> tuple[np.ndarray, float, float]:
+    """Fit the production power curve family plus its otherwise-free offset."""
+    mag = np.asarray(mag, dtype=float)
+    travel = np.asarray(travel, dtype=float)
+    mag_min = float(np.min(mag))
+    mag_max = float(np.max(mag))
+    mag_span = max(mag_max - mag_min, 1e-6)
+    curve = MagToTravelModel(pred_soft_mg=pred_soft_mg)
+
+    lower = np.array([mag_min - 2.0 * mag_span, -np.inf, 0.05, -np.inf])
+    upper = np.array([mag_max + 2.0 * mag_span, np.inf, 1.5, np.inf])
+    best_result: scipy.optimize.OptimizeResult | None = None
+    for x0 in np.quantile(mag, [0.05, 0.5, 0.95]):
+        for power in (0.2, 1.0 / 3.0, 0.5):
+            unit_feature = curve.pred_x(mag, np.array([x0, 1.0, power]))
+            design = np.column_stack([unit_feature, np.ones_like(unit_feature)])
+            linear, *_ = np.linalg.lstsq(design, travel, rcond=None)
+            initial = np.array([x0, linear[0], power, linear[1]], dtype=float)
+
+            def residual(parameters: np.ndarray) -> np.ndarray:
+                coefficients = parameters[:3]
+                return curve.pred_x(mag, coefficients) + parameters[3] - travel
+
+            result = scipy.optimize.least_squares(
+                residual,
+                x0=initial,
+                bounds=(lower, upper),
+                method="trf",
+                max_nfev=500,
+            )
+            if best_result is None or np.mean(result.fun**2) < np.mean(best_result.fun**2):
+                best_result = result
+
+    if best_result is None:
+        raise RuntimeError("Supervised power oracle fit produced no optimization result")
+    rmse = float(np.sqrt(np.mean(best_result.fun**2)))
+    return best_result.x[:3].copy(), float(best_result.x[3]), rmse
 
 
 def training_diagnostic_columns(calibration: MagTravelCalibration) -> dict[str, Any]:
@@ -441,8 +523,21 @@ def score_prediction(
     prediction: np.ndarray,
     target: CachedCalibrationData,
     resolved: ResolvedWindow,
+    *,
+    include_mask: np.ndarray | None = None,
+    exclude_mask: np.ndarray | None = None,
 ) -> dict[str, Any]:
     window_mask = resolved.sample_mask(len(target.time_s))
+    if include_mask is not None:
+        include = np.asarray(include_mask, dtype=bool).reshape(-1)
+        if include.shape != window_mask.shape:
+            raise ValueError("Evaluation include mask has the wrong shape")
+        window_mask &= include
+    if exclude_mask is not None:
+        exclude = np.asarray(exclude_mask, dtype=bool).reshape(-1)
+        if exclude.shape != window_mask.shape:
+            raise ValueError("Evaluation exclude mask has the wrong shape")
+        window_mask &= ~exclude
     mask = (
         window_mask
         & target.activity_mask
@@ -460,7 +555,7 @@ def score_prediction(
     error = raw_error + aligned_offset
     row: dict[str, Any] = {
         "eval_samples": count,
-        "eval_active_s": resolved.active_duration_s,
+        "eval_active_s": float(np.sum(sample_durations(target.time_s)[mask])),
         "anchored_rmse": float(np.sqrt(np.mean(raw_error**2))),
         "anchored_mae": float(np.mean(np.abs(raw_error))),
         "aligned_offset_mm": aligned_offset,
@@ -738,7 +833,12 @@ def add_window_arguments(parser: argparse.ArgumentParser, prefix: str) -> None:
 def add_trainer_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--trainer",
-        choices=("self-supervised", "oracle-isotonic", "oracle-binned-median"),
+        choices=(
+            "self-supervised",
+            "oracle-power",
+            "oracle-isotonic",
+            "oracle-binned-median",
+        ),
         default="self-supervised",
         help="Calibration learner (oracle methods use reference travel only in the training window)",
     )

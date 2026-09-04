@@ -10,7 +10,7 @@ from unittest.mock import patch
 import numpy as np
 
 
-os.environ.setdefault("MPLCONFIGDIR", "/private/tmp")
+os.environ["MPLCONFIGDIR"] = "/private/tmp"
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]

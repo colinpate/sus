@@ -297,6 +297,9 @@ def command_list(args: argparse.Namespace) -> int:
             f"{str(log.metadata.get('bike_model', '')):<28} {log.metadata.get('trail', '')}"
         )
     print(f"{len(logs)} log(s)")
+    if args.experiment_set:
+        for log in logs:
+            print(f'  "{log.log_id}",')
     return 0
 
 
@@ -574,6 +577,7 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument("--set", dest="set_name")
     list_parser.add_argument("--where", action="append", default=[], metavar="KEY=VALUE")
     list_parser.add_argument("--all-statuses", action="store_true")
+    list_parser.add_argument("--experiment-set", action="store_true")
     list_parser.set_defaults(func=command_list)
 
     show_parser = subparsers.add_parser("show", help="Show resolved metadata and processing config")

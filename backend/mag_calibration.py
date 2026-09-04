@@ -14,6 +14,7 @@ PipelineKind = Literal["front", "rear"]
 TimeBasis = Literal["elapsed", "active"]
 CalibrationMethod = Literal[
     "self_supervised_power",
+    "oracle_power",
     "oracle_isotonic",
     "oracle_binned_median",
 ]
@@ -62,7 +63,7 @@ class ResolvedWindow:
         return mask
 
 
-def _sample_durations(time_s: np.ndarray) -> np.ndarray:
+def sample_durations(time_s: np.ndarray) -> np.ndarray:
     time_s = np.asarray(time_s, dtype=float).reshape(-1)
     if len(time_s) == 0:
         return np.empty(0, dtype=float)
@@ -96,7 +97,7 @@ def resolve_window(
     if np.any(~np.isfinite(time_s)) or np.any(np.diff(time_s) < 0):
         raise ValueError("Time values must be finite and nondecreasing")
 
-    durations = _sample_durations(time_s)
+    durations = sample_durations(time_s)
     if activity_mask is None:
         activity = np.ones(len(time_s), dtype=bool)
     else:
@@ -175,6 +176,7 @@ class MagTravelCalibration:
     pred_soft_mg: float | None = None
     mag_knots: tuple[float, ...] = ()
     travel_knots: tuple[float, ...] = ()
+    travel_offset_mm: float = 0.0
     model_config: dict[str, Any] = field(default_factory=dict)
     training_diagnostics: dict[str, Any] = field(default_factory=dict)
     source_fingerprint: str | None = None
@@ -183,7 +185,7 @@ class MagTravelCalibration:
     def __post_init__(self):
         if self.pipeline not in ("front", "rear"):
             raise ValueError(f"Unknown pipeline {self.pipeline!r}")
-        if self.method == "self_supervised_power":
+        if self.method in ("self_supervised_power", "oracle_power"):
             if self.coefficients is None or len(self.coefficients) != 3:
                 raise ValueError("Power calibration requires exactly three coefficients")
             if self.pred_soft_mg is None:
@@ -197,15 +199,15 @@ class MagTravelCalibration:
             raise ValueError(f"Unknown calibration method {self.method!r}")
 
     def make_model(self) -> MagToTravelModel:
-        if self.method != "self_supervised_power":
+        if self.method not in ("self_supervised_power", "oracle_power"):
             raise ValueError(f"Calibration method {self.method!r} is not a power-law model")
         model = MagToTravelModel(pred_soft_mg=float(self.pred_soft_mg))
         model.set_coeffs(np.asarray(self.coefficients, dtype=float))
         return model
 
     def predict(self, mag: np.ndarray | float) -> np.ndarray:
-        if self.method == "self_supervised_power":
-            return self.make_model().pred_x(mag)
+        if self.method in ("self_supervised_power", "oracle_power"):
+            return self.make_model().pred_x(mag) + float(self.travel_offset_mm)
         return np.interp(
             np.asarray(mag, dtype=float),
             np.asarray(self.mag_knots, dtype=float),

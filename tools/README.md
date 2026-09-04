@@ -18,6 +18,7 @@ Use the pipeline first if a log has no cache.
 | `tools/stats.py` | Create, catalog, inspect, and compare versioned stats experiments from registry groups. Rejects stale caches and always saves centered plus uncentered metrics. |
 | `tools/stats_aggregator.py` | Internal metric calculation engine used by `tools/stats.py`; direct command-line use is disabled. |
 | `tools/mag_calibration_experiment.py` | Fit front or rear mag-to-travel curves on selected cached log/time windows, save portable calibrations, and evaluate them on other windows or logs. |
+| `tools/mag_calibration_sweep.py` | Schedule, resume, summarize, and plot deterministic random-window learning-curve experiments. |
 | `tools/export_sst_csv.py` | Export solved and ground-truth travel into SST-compatible CSV files. |
 | `tools/front/mag_nuisance/` | Body/world magnetic-nuisance solvers, current encoder-blind experiments, supervised diagnostics, and archived prototypes. Start with its `README.md`. |
 | `tools/rear/analyze_rear_chunking_tradeoffs.py` | Current rear mag-model chunking/training tradeoff analysis, including the mag-gated blend follow-up. |
@@ -56,6 +57,11 @@ venv/bin/python tools/mag_calibration_experiment.py pair \
   --calibration-out experiments/mag_calibration/log103-oracle.json \
   --metrics-out experiments/mag_calibration/log103-oracle-to-log104.csv
 ```
+
+`--trainer oracle-power` fits reference travel with the same three-parameter
+power curve used by the production learner (plus its otherwise-free absolute
+offset). It isolates error due to self-supervised learning from error imposed by
+the curve family itself.
 
 `--trainer oracle-binned-median --oracle-bins 100` provides a less flexible,
 easier-to-explain alternative. It takes the median magnetic value and reference
@@ -103,6 +109,14 @@ The front and rear mag-to-travel pipeline steps also accept a
 `provided_calibration` object. In that opt-in mode they bypass fitting, recreate
 the standard mag-model outputs, and leave downstream solver stages unchanged.
 Normal pipeline runs continue to fit from the current recording.
+
+For the repeated random-window experiment, use the versioned TOML specs and
+workflow in `experiments/mag_calibration/README.md`. The runner creates the full
+schedule before fitting, uses identical nested windows across trainers, records
+failures without redrawing, saves each fit atomically for resume, aggregates
+within log before weighting logs equally, and emits CSV summaries plus PNG/PDF
+learning curves and a Markdown report. `--max-trials-per-log` provides a quick
+cohort-wide compatibility smoke test.
 
 ## Legacy Front-Pipeline Diagnostics
 
