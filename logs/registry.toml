@@ -1278,3 +1278,105 @@ tags = []
 file = "log188_rear.csv"
 source = "log188_rear.bin"
 record_format = "dual_mag"
+
+[logs.log-0098]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "usable"
+file = "converted/log-0098.csv"
+source = "raw/log-0098.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0098.import]
+records = 73434
+duration_s = 367.165
+sequence_gaps = 0
+source_sha256 = "a720d69209100a028d0caaa7fa0541cccb093319dfae6b7f2dc5f359aa0a3968"
+output_sha256 = "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be"
+
+[logs.log-0099]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "usable"
+file = "converted/log-0099.csv"
+source = "raw/log-0099.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0099.import]
+records = 131158
+duration_s = 655.785
+sequence_gaps = 0
+source_sha256 = "a30f8c423ab20079c09eb35e636ed92e42dd39703c13fd79de73b7804015c991"
+output_sha256 = "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96"
+
+[logs.log-0103]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0103.csv"
+source = "raw/log-0103.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0103.import]
+records = 124909
+duration_s = 624.54
+sequence_gaps = 0
+source_sha256 = "79a8845bb553991d009e5ad2d328f84aa8a976dcdd03edd3eeb8d610f080af31"
+output_sha256 = "b7b933b1cbc13a6150fd9c86952b028b451beb5c2355b21495120e597a154390"
+
+[logs.log-0104]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0104.csv"
+source = "raw/log-0104.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0104.import]
+records = 125906
+duration_s = 629.525
+sequence_gaps = 0
+source_sha256 = "3682f4f2bf69e8e905eca7c234f8e9fff6889f98908d55bf4b75ffa989619bd2"
+output_sha256 = "63aa1eb1cd1a9597e9bc93d3a10f9255423235f3a76551fe6ace5ea12ac9cc7e"
+
+[logs.log-0105]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0105.csv"
+source = "raw/log-0105.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0105.import]
+records = 110714
+duration_s = 553.565
+sequence_gaps = 0
+source_sha256 = "dbfd5db4c6677551a0ea6a8fc45abdb4db7742ed12873e730ae4a553fb60a49a"
+output_sha256 = "310bc1466fa2e30c9310d4e858cecf14ca93fd92efef627eb220830a892133dd"
+
+[logs.log-0106]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0106.csv"
+source = "raw/log-0106.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0106.import]
+records = 300429
+duration_s = 1502.14
+sequence_gaps = 0
+source_sha256 = "b3355d91f16fb19b7912795f69f0260bec1558b3a30d0cc32557ab23e90ab85d"
+output_sha256 = "b549b261be649c1c4dcd373fbff93d74658d940d28a1865e07466f9ad72e84ea"
