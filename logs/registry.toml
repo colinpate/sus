@@ -1,0 +1,1382 @@
+schema_version = 1
+
+[profiles.front-pod-v1]
+pipeline = "front"
+record_format = "dual_mag"
+
+[profiles.front-pod-v1.metadata]
+position = "front"
+pod_version = 1
+accelerometer = "lsm6dso32"
+
+[profiles.front-pod-v2]
+pipeline = "front"
+record_format = "dual_mag"
+
+[profiles.front-pod-v2.metadata]
+position = "front"
+pod_version = 2
+accelerometer = "lsm6dso32"
+
+[profiles.rear-pod-v0]
+pipeline = "rear"
+record_format = "dual_mag"
+
+[profiles.rear-pod-v0.metadata]
+position = "rear"
+pod_version = 0
+accelerometer = "lsm6dso32"
+
+[profiles.rear-pod-v1]
+pipeline = "rear"
+record_format = "dual_mag"
+
+[profiles.rear-pod-v1.metadata]
+position = "rear"
+pod_version = 1
+accelerometer = "lsm6dso32"
+
+[profiles.bike-stumpjumper.metadata]
+bike_model = "Specialized Stumpjumper"
+
+[profiles.bike-tr11.metadata]
+bike_model = "Transition TR11"
+
+[profiles.fork-fox36-160.metadata]
+fork_model = "Fox 36"
+front_travel_mm = 160
+
+[profiles.fork-boxxer-200.metadata]
+fork_model = "RockShox Boxxer"
+front_travel_mm = 200
+
+[profiles.rear-stumpjumper-150.metadata]
+rear_travel_mm = 150
+
+[profiles.front-angle-stumpjumper-v1.config.steps.angle_to_travel]
+hypotenuse = 125.0
+top_adjacent = 121.0
+
+[profiles.front-angle-stumpjumper-v2.config.steps.angle_to_travel]
+hypotenuse = 125.0
+top_adjacent = 113.5
+angle_sign = -1.0
+
+[profiles.front-angle-tr11-boxxer.config.steps.angle_to_travel]
+hypotenuse = 150.0
+top_adjacent = 136.0
+angle_sign = -1.0
+
+[profiles.rear-linkage-original.config.steps.linkage_angle_to_travel]
+linkage_path = "config/linkages/stumpjumper-rear-original.json"
+
+[profiles.rear-linkage-current.config.steps.linkage_angle_to_travel]
+linkage_path = "config/linkages/stumpjumper-rear-current.json"
+
+[profiles.rear-mag-z-minus90.config.steps.diff_mag]
+z_rotation_deg = -90
+
+[profiles.rear-mag-z-zero.config.steps.diff_mag]
+z_rotation_deg = 0
+
+[profiles.dual-mag-opposed.config.signals.mag]
+orientation_preset = "identity"
+sensor_to_pod_matrix = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+[profiles.dual-mag-opposed.config.signals.mag_lis]
+orientation_preset = "rot_y_180"
+sensor_to_pod_matrix = [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]]
+
+[presets.stumpjumper-front-v1]
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+status = "pending-review"
+
+[presets.stumpjumper-front-v2]
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+status = "pending-review"
+
+[presets.tr11-front-v2]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+
+[presets.stumpjumper-rear-v0]
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+status = "pending-review"
+
+[presets.stumpjumper-rear-v1]
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+status = "pending-review"
+
+[logs.log-0046]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0046.csv"
+source = "log-0046.bin"
+record_format = "dual_mag"
+
+[logs.log-0048]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0048.csv"
+source = "log-0048.bin"
+record_format = "dual_mag"
+
+[logs.log-0049]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0049.csv"
+source = "log-0049.bin"
+record_format = "dual_mag"
+
+[logs.log-0054]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0054.csv"
+source = "log-0054.bin"
+record_format = "dual_mag"
+
+[logs.log-0055]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0055.csv"
+source = "log-0055.bin"
+record_format = "dual_mag"
+
+[logs.log-0056]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0056.csv"
+source = "log-0056.bin"
+record_format = "dual_mag"
+
+[logs.log-0058]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0058.csv"
+source = "log-0058.bin"
+record_format = "dual_mag"
+
+[logs.log-0062]
+pipeline = "front"
+status = "corrupt"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160"]
+sets = ["catalog"]
+tags = []
+file = "log-0062.csv"
+record_format = "dual_mag"
+reason = "Marked invalid in the legacy log list"
+
+[logs.log-0063]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0063.csv"
+source = "log-0063.bin"
+record_format = "dual_mag"
+
+[logs.log-0071_183]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0071_183.csv"
+source = "log-0071_183.bin"
+record_format = "dual_mag"
+
+[logs.log-0071_183.metadata]
+trail = "Ccdh part 1"
+
+[logs.log-0072_184]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0072_184.csv"
+source = "log-0072_184.bin"
+record_format = "dual_mag"
+
+[logs.log-0072_184.metadata]
+trail = "Ccdh part 2"
+
+[logs.log-0073_185]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0073_185.csv"
+source = "log-0073_185.bin"
+record_format = "dual_mag"
+
+[logs.log-0073_185.metadata]
+trail = "Poppin tops"
+
+[logs.log-0078]
+pipeline = "front"
+status = "partial"
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200"]
+sets = ["catalog"]
+tags = []
+source = "log-0078.bin"
+record_format = "dual_mag"
+reason = "Marked partial in the legacy log list"
+
+[logs.log-0078.metadata]
+legacy_setup_note = "Jamaal boxxer"
+legacy_travel_mm = 200
+
+[logs.log-0078-valid]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0078-valid.csv"
+source = "log-0078.bin"
+record_format = "dual_mag"
+
+[logs.log-0078-valid.metadata]
+legacy_setup_note = "Jamaal boxxer"
+legacy_travel_mm = 200
+
+[logs.log-0079]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0079.csv"
+source = "log-0079.bin"
+record_format = "dual_mag"
+
+[logs.log-0079.metadata]
+legacy_setup_note = "Jamaal boxxer"
+legacy_travel_mm = 200
+
+[logs.log-0080]
+pipeline = "front"
+status = "partial"
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200"]
+sets = ["catalog"]
+tags = []
+source = "log-0080.bin"
+record_format = "dual_mag"
+reason = "Marked partial in the legacy log list"
+
+[logs.log-0080.metadata]
+legacy_setup_note = "Jamaal boxxer"
+legacy_travel_mm = 200
+
+[logs.log-0080-valid]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0080-valid.csv"
+source = "log-0080.bin"
+record_format = "dual_mag"
+
+[logs.log-0080-valid.metadata]
+legacy_setup_note = "Jamaal boxxer"
+legacy_travel_mm = 200
+
+[logs.log-0081]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log-0081.csv"
+source = "log-0081.bin"
+record_format = "dual_mag"
+
+[logs.log-0081.metadata]
+legacy_setup_note = "Jamaal boxxer"
+legacy_travel_mm = 200
+
+[logs.log000]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log000.csv"
+record_format = "dual_mag"
+
+[logs.log002]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log002.csv"
+record_format = "dual_mag"
+
+[logs.log003]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log003.csv"
+record_format = "dual_mag"
+
+[logs.log005]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log005.csv"
+source = "log005.bin"
+record_format = "dual_mag"
+
+[logs.log009]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log009.csv"
+source = "log009.bin"
+record_format = "dual_mag"
+
+[logs.log011]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log011.csv"
+source = "log011.bin"
+record_format = "dual_mag"
+
+[logs.log013]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log013.csv"
+source = "log013.bin"
+record_format = "dual_mag"
+
+[logs.log016]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log016.csv"
+source = "log016.bin"
+record_format = "dual_mag"
+
+[logs.log018]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log018.csv"
+source = "log018.bin"
+record_format = "dual_mag"
+
+[logs.log022]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log022.csv"
+source = "log022.bin"
+record_format = "dual_mag"
+
+[logs.log022.overrides.signals.mag]
+offset = [0, 0, 0]
+
+[logs.log022.overrides.signals.mag_lis]
+offset = [0.0, 0.0, 0.0]
+
+[logs.log022.overrides.steps.angle_to_travel]
+top_adjacent = 118.75
+
+[logs.log023]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log023.csv"
+source = "log023.bin"
+record_format = "dual_mag"
+
+[logs.log029]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log029.csv"
+source = "log029.bin"
+record_format = "dual_mag"
+
+[logs.log030]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log030.csv"
+source = "log030.bin"
+record_format = "dual_mag"
+
+[logs.log031]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log031.csv"
+source = "log031.bin"
+record_format = "dual_mag"
+
+[logs.log038]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log038.csv"
+source = "log038.bin"
+record_format = "dual_mag"
+
+[logs.log049]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log049.csv"
+source = "log049.bin"
+record_format = "dual_mag"
+
+[logs.log050]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log050.csv"
+source = "log050.bin"
+record_format = "dual_mag"
+
+[logs.log056_ccdh]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log056_ccdh.csv"
+record_format = "dual_mag"
+
+[logs.log057_poppin]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log057_poppin.csv"
+record_format = "dual_mag"
+
+[logs.log059_notg]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log059_notg.csv"
+record_format = "dual_mag"
+
+[logs.log059_notg_corr]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log059_notg_corr.csv"
+record_format = "dual_mag"
+
+[logs.log060_upperpred]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log060_upperpred.csv"
+record_format = "dual_mag"
+
+[logs.log061_lowerpred]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log061_lowerpred.csv"
+record_format = "dual_mag"
+
+[logs.log076]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log076.csv"
+source = "log076.bin"
+record_format = "dual_mag"
+
+[logs.log077]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log077.csv"
+source = "log077.bin"
+record_format = "dual_mag"
+
+[logs.log078]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log078.csv"
+source = "log078.bin"
+record_format = "dual_mag"
+
+[logs.log079]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log079.csv"
+source = "log079.bin"
+record_format = "dual_mag"
+
+[logs.log080]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log080.csv"
+source = "log080.bin"
+record_format = "dual_mag"
+
+[logs.log082]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log082.csv"
+source = "log082.bin"
+record_format = "dual_mag"
+
+[logs.log085]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log085.csv"
+source = "log085.bin"
+record_format = "dual_mag"
+
+[logs.log085.overrides.signals.mag]
+offset = [0, 0, 0]
+
+[logs.log085.overrides.signals.mag_lis]
+offset = [0.0, 0.0, 0.0]
+
+[logs.log085.overrides.steps.angle_to_travel]
+top_zeroangle = 1.5278823439290237
+
+[logs.log086]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log086.csv"
+source = "log086.bin"
+record_format = "dual_mag"
+
+[logs.log088]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log088.csv"
+source = "log088.bin"
+record_format = "dual_mag"
+
+[logs.log091]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = ["front-default"]
+tags = []
+file = "log091.csv"
+source = "log091.bin"
+record_format = "dual_mag"
+
+[logs.log096]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["front-default"]
+tags = []
+file = "log096.csv"
+source = "log096.bin"
+record_format = "dual_mag"
+
+[logs.log098]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["front-default"]
+tags = []
+file = "log098.csv"
+source = "log098.bin"
+record_format = "dual_mag"
+
+[logs.log099]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["front-default"]
+tags = []
+file = "log099.csv"
+source = "log099.bin"
+record_format = "dual_mag"
+
+[logs.log100]
+pipeline = "front"
+status = "usable"
+profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = []
+tags = []
+file = "log100.csv"
+source = "log100.bin"
+record_format = "dual_mag"
+
+[logs.log103]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log103.csv"
+source = "log103.bin"
+record_format = "dual_mag"
+
+[logs.log104]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log104.csv"
+source = "log104.bin"
+record_format = "dual_mag"
+
+[logs.log106]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log106.csv"
+source = "log106.bin"
+record_format = "dual_mag"
+
+[logs.log107]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log107.csv"
+source = "log107.bin"
+record_format = "dual_mag"
+
+[logs.log109]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log109.csv"
+source = "log109.bin"
+record_format = "dual_mag"
+
+[logs.log110]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log110.csv"
+source = "log110.bin"
+record_format = "dual_mag"
+
+[logs.log112]
+pipeline = "front"
+status = "usable"
+profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
+sets = ["catalog", "front-default"]
+tags = []
+file = "log112.csv"
+source = "log112.bin"
+record_format = "dual_mag"
+
+[logs.log128]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log128.csv"
+record_format = "dual_mag"
+
+[logs.log129_rear]
+pipeline = "rear"
+status = "pending-review"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150"]
+sets = []
+tags = []
+file = "log129_rear.csv"
+record_format = "dual_mag"
+
+[logs.log130_rear]
+pipeline = "rear"
+status = "pending-review"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150"]
+sets = []
+tags = []
+file = "log130_rear.csv"
+record_format = "dual_mag"
+
+[logs.log131_rear]
+pipeline = "rear"
+status = "pending-review"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150"]
+sets = []
+tags = []
+file = "log131_rear.csv"
+record_format = "dual_mag"
+
+[logs.log133_reartest]
+pipeline = "rear"
+status = "pending-review"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150"]
+sets = []
+tags = []
+file = "log133_reartest.csv"
+source = "log133_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log134_reartest]
+pipeline = "rear"
+status = "pending-review"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150"]
+sets = []
+tags = []
+file = "log134_reartest.csv"
+source = "log134_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log136_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-original", "rear-mag-z-minus90"]
+sets = []
+tags = []
+file = "log136_rear.csv"
+source = "log136_rear.bin"
+record_format = "dual_mag"
+
+[logs.log137_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-original", "rear-mag-z-minus90"]
+sets = []
+tags = []
+file = "log137_rear.csv"
+source = "log137_rear.bin"
+record_format = "dual_mag"
+
+[logs.log138_reartest]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-original", "rear-mag-z-minus90"]
+sets = []
+tags = []
+file = "log138_reartest.csv"
+source = "log138_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log139_reartest]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-original", "rear-mag-z-minus90"]
+sets = []
+tags = []
+file = "log139_reartest.csv"
+source = "log139_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log140_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "rear-mag-z-zero"]
+sets = []
+tags = []
+file = "log140_rear.csv"
+source = "log140_rear.bin"
+record_format = "dual_mag"
+
+[logs.log141_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "rear-mag-z-zero"]
+sets = []
+tags = []
+file = "log141_rear.csv"
+source = "log141_rear.bin"
+record_format = "dual_mag"
+
+[logs.log142_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "rear-mag-z-zero"]
+sets = []
+tags = []
+file = "log142_rear.csv"
+source = "log142_rear.bin"
+record_format = "dual_mag"
+
+[logs.log143_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "rear-mag-z-zero"]
+sets = []
+tags = []
+file = "log143_rear.csv"
+source = "log143_rear.bin"
+record_format = "dual_mag"
+
+[logs.log144_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "rear-mag-z-zero"]
+sets = []
+tags = []
+file = "log144_rear.csv"
+source = "log144_rear.bin"
+record_format = "dual_mag"
+
+[logs.log145_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "rear-mag-z-zero"]
+sets = []
+tags = []
+file = "log145_rear.csv"
+source = "log145_rear.bin"
+record_format = "dual_mag"
+
+[logs.log146_reartest_sag]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log146_reartest_sag.csv"
+source = "log146_reartest_sag.bin"
+record_format = "dual_mag"
+
+[logs.log147_reartest_locked]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log147_reartest_locked.csv"
+source = "log147_reartest_locked.bin"
+record_format = "dual_mag"
+
+[logs.log148_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log148_rear.csv"
+source = "log148_rear.bin"
+record_format = "dual_mag"
+
+[logs.log149_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log149_rear.csv"
+source = "log149_rear.bin"
+record_format = "dual_mag"
+
+[logs.log150_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log150_rear.csv"
+source = "log150_rear.bin"
+record_format = "dual_mag"
+
+[logs.log151_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log151_rear.csv"
+source = "log151_rear.bin"
+record_format = "dual_mag"
+
+[logs.log152_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log152_rear.csv"
+source = "log152_rear.bin"
+record_format = "dual_mag"
+
+[logs.log153_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log153_rear.csv"
+source = "log153_rear.bin"
+record_format = "dual_mag"
+
+[logs.log154_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log154_rear.csv"
+source = "log154_rear.bin"
+record_format = "dual_mag"
+
+[logs.log157_front]
+pipeline = "front"
+status = "pending-review"
+profiles = ["bike-stumpjumper", "fork-fox36-160"]
+sets = []
+tags = []
+file = "log157_front.csv"
+source = "log157_front.bin"
+record_format = "dual_mag"
+
+[logs.log157_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log157_rear.csv"
+source = "log157_rear.bin"
+record_format = "dual_mag"
+
+[logs.log158_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log158_rear.csv"
+source = "log158_rear.bin"
+record_format = "dual_mag"
+
+[logs.log159_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log159_rear.csv"
+source = "log159_rear.bin"
+record_format = "dual_mag"
+
+[logs.log160_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log160_rear.csv"
+source = "log160_rear.bin"
+record_format = "dual_mag"
+
+[logs.log161_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log161_rear.csv"
+source = "log161_rear.bin"
+record_format = "dual_mag"
+
+[logs.log162_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log162_rear.csv"
+source = "log162_rear.bin"
+record_format = "dual_mag"
+
+[logs.log163_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current"]
+sets = []
+tags = []
+file = "log163_rear.csv"
+source = "log163_rear.bin"
+record_format = "dual_mag"
+
+[logs.log164_reartest]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log164_reartest.csv"
+source = "log164_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log167_reartest]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log167_reartest.csv"
+source = "log167_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log168_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log168_rear.csv"
+source = "log168_rear.bin"
+record_format = "dual_mag"
+
+[logs.log168_rear_1]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log168_rear_1.csv"
+record_format = "dual_mag"
+
+[logs.log168_rear_2]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log168_rear_2.csv"
+record_format = "dual_mag"
+
+[logs.log169_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log169_rear.csv"
+source = "log169_rear.bin"
+record_format = "dual_mag"
+
+[logs.log169_rear_1]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log169_rear_1.csv"
+record_format = "dual_mag"
+
+[logs.log169_rear_2]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log169_rear_2.csv"
+record_format = "dual_mag"
+
+[logs.log169_rear_3]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log169_rear_3.csv"
+record_format = "dual_mag"
+
+[logs.log171_reartest]
+pipeline = "rear"
+status = "pending-review"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150"]
+sets = []
+tags = []
+file = "log171_reartest.csv"
+source = "log171_reartest.bin"
+record_format = "dual_mag"
+
+[logs.log180_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log180_rear.csv"
+source = "log180_rear.bin"
+record_format = "dual_mag"
+
+[logs.log181_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log181_rear.csv"
+source = "log181_rear.bin"
+record_format = "dual_mag"
+
+[logs.log183_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log183_rear.csv"
+source = "log183_rear.bin"
+record_format = "dual_mag"
+
+[logs.log183_rear.metadata]
+trail = "Ccdh part 1"
+
+[logs.log184_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log184_rear.csv"
+source = "log184_rear.bin"
+record_format = "dual_mag"
+
+[logs.log184_rear.metadata]
+trail = "Ccdh part 2"
+
+[logs.log185_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = ["catalog", "rear-default"]
+tags = []
+file = "log185_rear.csv"
+source = "log185_rear.bin"
+record_format = "dual_mag"
+
+[logs.log185_rear.metadata]
+trail = "Poppin tops"
+
+[logs.log186_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log186_rear.csv"
+source = "log186_rear.bin"
+record_format = "dual_mag"
+
+[logs.log187_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log187_rear.csv"
+source = "log187_rear.bin"
+record_format = "dual_mag"
+
+[logs.log188_rear]
+pipeline = "rear"
+status = "usable"
+profiles = ["rear-pod-v0", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
+sets = []
+tags = []
+file = "log188_rear.csv"
+source = "log188_rear.bin"
+record_format = "dual_mag"
+
+[logs.log-0098]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "usable"
+file = "converted/log-0098.csv"
+source = "raw/log-0098.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0098.import]
+records = 73434
+duration_s = 367.165
+sequence_gaps = 0
+source_sha256 = "a720d69209100a028d0caaa7fa0541cccb093319dfae6b7f2dc5f359aa0a3968"
+output_sha256 = "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be"
+
+[logs.log-0099]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "usable"
+file = "converted/log-0099.csv"
+source = "raw/log-0099.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0099.import]
+records = 131158
+duration_s = 655.785
+sequence_gaps = 0
+source_sha256 = "a30f8c423ab20079c09eb35e636ed92e42dd39703c13fd79de73b7804015c991"
+output_sha256 = "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96"
+
+[logs.log-0103]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0103.csv"
+source = "raw/log-0103.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0103.import]
+records = 124909
+duration_s = 624.54
+sequence_gaps = 0
+source_sha256 = "79a8845bb553991d009e5ad2d328f84aa8a976dcdd03edd3eeb8d610f080af31"
+output_sha256 = "b7b933b1cbc13a6150fd9c86952b028b451beb5c2355b21495120e597a154390"
+
+[logs.log-0104]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0104.csv"
+source = "raw/log-0104.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0104.import]
+records = 125906
+duration_s = 629.525
+sequence_gaps = 0
+source_sha256 = "3682f4f2bf69e8e905eca7c234f8e9fff6889f98908d55bf4b75ffa989619bd2"
+output_sha256 = "63aa1eb1cd1a9597e9bc93d3a10f9255423235f3a76551fe6ace5ea12ac9cc7e"
+
+[logs.log-0105]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0105.csv"
+source = "raw/log-0105.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0105.import]
+records = 110714
+duration_s = 553.565
+sequence_gaps = 0
+source_sha256 = "dbfd5db4c6677551a0ea6a8fc45abdb4db7742ed12873e730ae4a553fb60a49a"
+output_sha256 = "310bc1466fa2e30c9310d4e858cecf14ca93fd92efef627eb220830a892133dd"
+
+[logs.log-0106]
+profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
+status = "pending-review"
+file = "converted/log-0106.csv"
+source = "raw/log-0106.bin"
+pipeline = "front"
+record_format = "dual_mag"
+sets = []
+tags = []
+
+[logs.log-0106.import]
+records = 300429
+duration_s = 1502.14
+sequence_gaps = 0
+source_sha256 = "b3355d91f16fb19b7912795f69f0260bec1558b3a30d0cc32557ab23e90ab85d"
+output_sha256 = "b549b261be649c1c4dcd373fbff93d74658d940d28a1865e07466f9ad72e84ea"

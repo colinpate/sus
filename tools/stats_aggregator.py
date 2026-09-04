@@ -1,3 +1,5 @@
+"""Metric calculation engine retained behind the versioned ``tools/stats.py`` workflow."""
+
 from __future__ import annotations
 
 import argparse
@@ -63,11 +65,22 @@ NEW_LOGS = [
     "log112",
 ]
 
-COMPARISONS = (
+REQUIRED_COMPARISONS = (
     ("travel/mag_model", "travel"),
     ("travel/mag_model/adj", "travel"),
     ("travel/solved", "travel"),
 )
+
+# New pipeline variants can expose these outputs while older/baseline caches do not.
+# Missing optional comparisons are skipped per log instead of invalidating the experiment.
+OPTIONAL_COMPARISONS = (
+    ("travel/solved/mag_nuisance/delta_lifted", "travel"),
+    ("travel/mag_nuisance/corrected", "travel"),
+    ("travel/solved/mag_nuisance/fusion2", "travel"),
+)
+
+COMPARISONS = REQUIRED_COMPARISONS + OPTIONAL_COMPARISONS
+OPTIONAL_COMPARISON_KEYS = {pred_key for pred_key, _ in OPTIONAL_COMPARISONS}
 
 DEFAULT_CACHE_ROOT = Path("backend/run_artifacts")
 METRICS_FILENAME = "metrics.csv"
@@ -158,8 +171,8 @@ class AggregatedReport:
 
     def add_log_summary(self, summary: LogSummary) -> None:
         self.summary_rows.append(summary.summary)
-        for pred_key, _ in COMPARISONS:
-            self.error_rows[pred_key].append(summary.comparison_rows[pred_key])
+        for pred_key, row in summary.comparison_rows.items():
+            self.error_rows[pred_key].append(row)
 
     def add_diagnostics(self, diagnostics: Diagnostics) -> None:
         self.diagnostic_stage_rows.append(diagnostics.stage)
@@ -407,6 +420,10 @@ def summarize_log_cache(
 
     comparison_rows: dict[str, Row] = {}
     for pred_key, gt_key in COMPARISONS:
+        if not cache_series_exists(cache, pred_key) or not cache_series_exists(cache, gt_key):
+            if pred_key in OPTIONAL_COMPARISON_KEYS:
+                continue
+            raise KeyError(f"{log_name}: missing required cache series for {pred_key} vs {gt_key}")
         pred = flatten_1d(cache[f"{pred_key}__x"])
         gt = flatten_1d(cache[f"{gt_key}__x"])
         mask = build_mask(cache, pred_key, gt_key, error_threshold=error_threshold)
@@ -954,6 +971,8 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
     ]
     for pred_key, gt_key in COMPARISONS:
         rows=report.error_rows[pred_key]
+        if not rows:
+            continue
         agg_rows = create_agg_rows(columns, rows)
         print_table(
             title=f"Error stats on boring_mask ({center_label}): {pred_key} vs {gt_key}",
@@ -1611,4 +1630,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(
+        "Direct stats_aggregator.py runs are disabled because they can silently consume stale caches. "
+        "Use `python tools/stats.py run NAME ...`; see `python tools/stats.py --help`."
+    )

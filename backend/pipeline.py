@@ -32,17 +32,22 @@ from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, Get
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
-from classes.log_config import attach_log_config, get_log_config_path, get_signal_config, load_log_config
+from classes.log_config import attach_log_config, get_signal_config
+from log_registry import resolve_log
+from run_provenance import build_run_provenance
 
 DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
 
 def main() -> None:
     log_filename = parse_args().log_filename
     out_dir = Path("backend/run_artifacts") / log_filename
-    log_path = Path(f"logs/{log_filename}.csv")
-    log_config = load_log_config(log_path)
-    if log_config:
-        print(f"Loaded log config from {get_log_config_path(log_path)}")
+    resolved_log = resolve_log(log_filename)
+    if resolved_log.pipeline != "front":
+        raise ValueError(f"{log_filename} is configured for the {resolved_log.pipeline!r} pipeline")
+    log_path = resolved_log.require_csv()
+    log_config = resolved_log.processing_config
+    print(f"Loaded {log_filename} from {resolved_log.registry_path} with profiles {resolved_log.profiles}")
+    provenance = build_run_provenance(resolved_log, pipeline="front")
 
 
     # Load sensors (OOP edge)
@@ -402,7 +407,7 @@ def main() -> None:
         ),
     ]
 
-    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False)
+    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False, provenance=provenance)
     ws = runner.run(ws, steps)
 
     # Example: access final result

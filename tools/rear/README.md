@@ -8,7 +8,7 @@ These scripts target `backend/pipeline_rear.py` caches and current rear model wo
 | `analyze_rear_zv_accel_correction.py` | Sweep acceleration correction methods based on mag zero-velocity points. |
 
 The rear pipeline now uses `accel/lphp/proj/zv` and `mag_zv_points/accel_corr` downstream.
-Use `tools/stats_aggregator.py rear --center-errors --deep-dive` for the current default rear
+Use `tools/stats.py run NAME --set rear-default --deep-dive` for the current default rear
 log set.
 
 Historical rear experiments live in `archive/`.

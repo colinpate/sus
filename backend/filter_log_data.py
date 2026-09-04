@@ -6,16 +6,16 @@ from classes.step import FilterStep
 
 from angle import AngleToTravel, FindBoringRegions
 from classes.sensor_loader import AngleLoader
-from classes.log_config import attach_log_config, get_log_config_path, load_log_config
+from classes.log_config import attach_log_config
+from log_registry import resolve_log
 import numpy as np
 
 def main() -> None:
     log_filename = parse_args().log_filename
-    out_dir = Path("run_artifacts") / log_filename
-    log_path = Path(f"../logs/{log_filename}.csv")
-    log_config = load_log_config(log_path)
-    if log_config:
-        print(f"Loaded log config from {get_log_config_path(log_path)}")
+    out_dir = Path("backend/run_artifacts") / log_filename / "filter"
+    resolved_log = resolve_log(log_filename)
+    log_path = resolved_log.require_csv()
+    log_config = resolved_log.processing_config
 
     angle_loader = AngleLoader(path=log_path)
     ws = {}
@@ -65,7 +65,7 @@ def create_filtered_csv(log_filename: str, log_path: Path, boring_chunks: List[T
     filtered_df["t_s"] = hacked_t[mask]
     print("Saving filtered log with", len(filtered_df), "rows (removed", len(df) - len(filtered_df), "rows)")
 
-    out_path = Path(f"../logs/{log_filename}_filtered.csv")
+    out_path = log_path.with_name(f"{log_filename}_filtered.csv")
     filtered_df.to_csv(out_path, index=False)
     print(f"Filtered log saved to {out_path}")
 

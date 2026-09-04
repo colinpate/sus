@@ -15,7 +15,9 @@ from classes.step import Step, FilterStep, ChunkStep
 from angle import FindBoringRegions, LinkageAngleToTravel, AngleToTravel
 from mag import ProjectMag, FindMagZVPoints, DiffMag, MagAngle
 from classes.runner import Runner, PlotSpec
-from classes.log_config import attach_log_config, get_log_config_path, get_signal_config, load_log_config
+from classes.log_config import attach_log_config, get_signal_config
+from log_registry import resolve_log
+from run_provenance import build_run_provenance
 
 DEC_FREQ = 200 # Hz, for decimating data to speed up optimization
 LP_FREQ = 40 # Hz, for lowpass filtering accel and gyro data
@@ -25,10 +27,11 @@ MAG_LP_FREQ = 20 # Hz, for lowpass filtering magnetometer data
 def main() -> None:
     log_filename = parse_args().log_filename
     out_dir = Path("backend/run_artifacts") / log_filename
-    log_path = Path(f"logs/{log_filename}.csv")
-    log_config = load_log_config(log_path)
-    if log_config:
-        print(f"Loaded log config from {get_log_config_path(log_path)}")
+    resolved_log = resolve_log(log_filename)
+    log_path = resolved_log.require_csv()
+    log_config = resolved_log.processing_config
+    print(f"Loaded {log_filename} from {resolved_log.registry_path} with profiles {resolved_log.profiles}")
+    provenance = build_run_provenance(resolved_log, pipeline=f"{resolved_log.pipeline}-sensors-only")
     angle_signal_config = get_signal_config(log_config, "angle")
 
 
@@ -105,7 +108,7 @@ def main() -> None:
             dec_freq=DEC_FREQ,
         ),
     ]
-    if "angle_to_travel" in log_config["steps"]:
+    if "angle_to_travel" in log_config.get("steps", {}):
         steps += [
             AngleToTravel(
                 name="angle_to_travel",
@@ -179,7 +182,7 @@ def main() -> None:
         ),
     ]
 
-    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False)
+    runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False, provenance=provenance)
     ws = runner.run(ws, steps)
 
     # Example: access final result

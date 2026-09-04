@@ -3,7 +3,8 @@
 Run tools from the repository root, preferably with the project environment:
 
 ```bash
-venv/bin/python tools/stats_aggregator.py --help
+venv/bin/python tools/logs.py --help
+venv/bin/python tools/stats.py --help
 ```
 
 Most tools read cached pipeline output from `backend/run_artifacts/<log>/cache/all.npz`.
@@ -13,7 +14,9 @@ Use the pipeline first if a log has no cache.
 
 | Tool | Purpose |
 | --- | --- |
-| `tools/stats_aggregator.py` | Main summary/report tool for pipeline cache metrics. Handles both front and rear cache key shapes. |
+| `tools/logs.py` | Import binary logs, reuse metadata presets, annotate/tag logs, validate the registry, and run the configured front/rear pipeline. |
+| `tools/stats.py` | Create, catalog, inspect, and compare versioned stats experiments from registry groups. Rejects stale caches and always saves centered plus uncentered metrics. |
+| `tools/stats_aggregator.py` | Internal metric calculation engine used by `tools/stats.py`; direct command-line use is disabled. |
 | `tools/export_sst_csv.py` | Export solved and ground-truth travel into SST-compatible CSV files. |
 | `tools/front/mag_nuisance/` | Body/world magnetic-nuisance solvers, current encoder-blind experiments, supervised diagnostics, and archived prototypes. Start with its `README.md`. |
 | `tools/rear/analyze_rear_chunking_tradeoffs.py` | Current rear mag-model chunking/training tradeoff analysis, including the mag-gated blend follow-up. |
