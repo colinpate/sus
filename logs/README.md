@@ -98,3 +98,14 @@ venv/bin/python tools/stats.py compare solver-baseline solver-candidate
 
 Comparisons recompute summaries using only the logs present in both experiments, so differently
 sized groups can be compared without accidentally attributing group composition to a code change.
+Use separate output keys when comparing a new estimator against the old solver on the same inputs:
+
+```bash
+venv/bin/python tools/stats.py compare baseline mag-corrected \
+  --centering centered \
+  --baseline-comparison travel/solved \
+  --current-comparison travel/solved/mag_nuisance/fusion2
+```
+
+Magnetic-correction outputs are optional: old caches remain valid, while experiments generated
+from caches containing `delta_lifted`, `corrected`, or `fusion2` save those metrics automatically.

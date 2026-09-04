@@ -369,7 +369,17 @@ def command_run(args: argparse.Namespace) -> int:
 
     if args.baseline:
         print()
-        return print_comparison(args.baseline, str(destination), args.store, "both", "error", "travel/solved", "rmse", args.compare_top)
+        return print_comparison(
+            args.baseline,
+            str(destination),
+            args.store,
+            "both",
+            "error",
+            "travel/solved",
+            "travel/solved",
+            "rmse",
+            args.compare_top,
+        )
     return 0
 
 
@@ -460,7 +470,8 @@ def print_comparison(
     store: Path,
     centering: str,
     section: str,
-    comparison: str,
+    baseline_comparison: str,
+    current_comparison: str,
     metric: str,
     top: int,
 ) -> int:
@@ -476,7 +487,12 @@ def print_comparison(
     print(f"          code {', '.join(value[:12] for value in baseline_code) or '(unknown)'}")
     print(f"Current:  {current_manifest['name']} ({current_manifest['id']})")
     print(f"          code {', '.join(value[:12] for value in current_code) or '(unknown)'}")
-    print(f"Metric: {section} / {comparison} / {metric}; delta = current - baseline")
+    if baseline_comparison == current_comparison:
+        print(f"Metric: {section} / {baseline_comparison} / {metric}; delta = current - baseline")
+    else:
+        print(f"Baseline output: {baseline_comparison}")
+        print(f"Current output:  {current_comparison}")
+        print(f"Metric: {section} / {metric}; delta = current - baseline")
 
     baseline_stats = baseline_manifest.get("stats", {})
     current_stats = current_manifest.get("stats", {})
@@ -507,16 +523,27 @@ def print_comparison(
             baseline_metrics,
             centering=mode,
             section=section,
-            comparison=comparison,
+            comparison=baseline_comparison,
             metric=metric,
         )
         after = primary_metric_values(
             current_metrics,
             centering=mode,
             section=section,
-            comparison=comparison,
+            comparison=current_comparison,
             metric=metric,
         )
+        if not before:
+            print(
+                f"\n{mode}: baseline experiment has no {section}/{baseline_comparison}/{metric} values."
+            )
+        if not after:
+            print(
+                f"\n{mode}: current experiment has no {section}/{current_comparison}/{metric} values; "
+                "regenerate its stats experiment with the updated tool if the cache contains that output."
+            )
+        if not before or not after:
+            continue
         overlap = sorted((set(before) & set(after)) - changed_inputs)
         only_before = sorted(set(before) - set(after))
         only_after = sorted(set(after) - set(before))
@@ -556,13 +583,15 @@ def print_comparison(
 
 
 def command_compare(args: argparse.Namespace) -> int:
+    shared_comparison = args.comparison or "travel/solved"
     return print_comparison(
         args.baseline,
         args.current,
         args.store,
         args.centering,
         args.section,
-        args.comparison,
+        args.baseline_comparison or shared_comparison,
+        args.current_comparison or shared_comparison,
         args.metric,
         args.top,
     )
@@ -614,7 +643,18 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument("current")
     compare_parser.add_argument("--centering", choices=["both", *CENTERING_MODES], default="both")
     compare_parser.add_argument("--section", default="error")
-    compare_parser.add_argument("--comparison", default="travel/solved")
+    compare_parser.add_argument(
+        "--comparison",
+        help="Output key used by both experiments (defaults to travel/solved)",
+    )
+    compare_parser.add_argument(
+        "--baseline-comparison",
+        help="Override the output key read from the baseline experiment",
+    )
+    compare_parser.add_argument(
+        "--current-comparison",
+        help="Override the output key read from the current experiment",
+    )
     compare_parser.add_argument("--metric", default="rmse")
     compare_parser.add_argument("--top", type=int, default=20)
     add_store_argument(compare_parser)

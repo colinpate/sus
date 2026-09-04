@@ -21,6 +21,7 @@ from tools.stats_experiments import (
     write_metrics,
 )
 from tools.stats import print_comparison
+from tools.stats_aggregator import collect_report
 
 
 def make_log(root: Path, *, config_value: int = 1) -> ResolvedLog:
@@ -41,6 +42,30 @@ def make_log(root: Path, *, config_value: int = 1) -> ResolvedLog:
         processing_config={"steps": {"sample": {"value": config_value}}},
         record_format="dual_mag",
     )
+
+
+def write_stats_cache(cache_root: Path, log_id: str, *, include_corrected: bool) -> None:
+    cache_dir = cache_root / log_id / "cache"
+    cache_dir.mkdir(parents=True)
+    time_s = np.arange(4, dtype=float) * 0.01
+    travel = np.array([0.0, 10.0, 20.0, 30.0])
+    payload = {
+        "travel__t": time_s,
+        "travel__x": travel,
+        "boring_mask": np.ones(4, dtype=bool),
+    }
+    for key, offset in (
+        ("travel/mag_model", 3.0),
+        ("travel/mag_model/adj", 2.0),
+        ("travel/solved", 1.0),
+    ):
+        payload[f"{key}__t"] = time_s
+        payload[f"{key}__x"] = travel + offset
+    if include_corrected:
+        key = "travel/solved/mag_nuisance/fusion2"
+        payload[f"{key}__t"] = time_s
+        payload[f"{key}__x"] = travel + 0.5
+    np.savez(cache_dir / "all.npz", **payload)
 
 
 class CacheInspectionTests(unittest.TestCase):
@@ -83,6 +108,25 @@ class CacheInspectionTests(unittest.TestCase):
 
 
 class ExperimentStoreTests(unittest.TestCase):
+    def test_corrected_comparisons_are_optional_per_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "old", include_corrected=False)
+            write_stats_cache(cache_root, "new", include_corrected=True)
+
+            report = collect_report(
+                ["old", "new"],
+                cache_root,
+                center_errors=False,
+                error_threshold=None,
+                include_diagnostics=False,
+            )
+
+            self.assertFalse(report.failures)
+            self.assertEqual(len(report.error_rows["travel/solved"]), 2)
+            corrected = report.error_rows["travel/solved/mag_nuisance/fusion2"]
+            self.assertEqual([row["log"] for row in corrected], ["new"])
+
     def test_centering_is_part_of_metric_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "metrics.csv"
@@ -145,9 +189,70 @@ class ExperimentStoreTests(unittest.TestCase):
 
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
-                print_comparison("base", "current", root, "both", "error", "travel/solved", "rmse", 20)
+                print_comparison(
+                    "base",
+                    "current",
+                    root,
+                    "both",
+                    "error",
+                    "travel/solved",
+                    "travel/solved",
+                    "rmse",
+                    20,
+                )
             self.assertIn("input checksum changed", output.getvalue())
             self.assertIn("0 overlapping logs", output.getvalue())
+
+    def test_comparison_can_use_different_baseline_and_current_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            specs = (
+                ("base", "travel/solved", 3.0),
+                ("current", "travel/solved/mag_nuisance/fusion2", 2.0),
+            )
+            for experiment_id, comparison, value in specs:
+                experiment_dir = root / experiment_id
+                experiment_dir.mkdir()
+                manifest = {
+                    "id": experiment_id,
+                    "name": experiment_id,
+                    "created_at": "2026-01-01T00:00:00Z",
+                    "stats": {"error_threshold": None},
+                    "versions": {"pipeline_code_sha256": [f"code-{experiment_id}"]},
+                    "logs": [{"log": "same-log", "input_sha256": "same-input"}],
+                }
+                (experiment_dir / MANIFEST_FILENAME).write_text(json.dumps(manifest), encoding="utf-8")
+                write_metrics(
+                    experiment_dir / "metrics.csv",
+                    [
+                        {
+                            "centering": "centered",
+                            "section": "error",
+                            "log": "same-log",
+                            "comparison": comparison,
+                            "metric": "rmse",
+                            "value": value,
+                        }
+                    ],
+                )
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                print_comparison(
+                    "base",
+                    "current",
+                    root,
+                    "centered",
+                    "error",
+                    "travel/solved",
+                    "travel/solved/mag_nuisance/fusion2",
+                    "rmse",
+                    20,
+                )
+            rendered = output.getvalue()
+            self.assertIn("Baseline output: travel/solved", rendered)
+            self.assertIn("Current output:  travel/solved/mag_nuisance/fusion2", rendered)
+            self.assertIn("delta -1.0000", rendered)
 
 
 if __name__ == "__main__":
