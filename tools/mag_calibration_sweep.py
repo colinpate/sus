@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import contextlib
 from datetime import datetime, timezone
 import csv
 import hashlib
+import io
 import json
 import math
 import os
@@ -33,7 +35,13 @@ for directory in (BACKEND_DIR, TOOLS_DIR):
     if str(directory) not in sys.path:
         sys.path.insert(0, str(directory))
 
-from mag_calibration import RecordingWindow, TimeRange, resolve_window, sample_durations  # noqa: E402
+from mag_calibration import (  # noqa: E402
+    MagTravelCalibration,
+    RecordingWindow,
+    TimeRange,
+    resolve_window,
+    sample_durations,
+)
 from mag_calibration_experiment import (  # noqa: E402
     calibration_columns,
     fit_calibration,
@@ -58,10 +66,21 @@ SUPPORTED_SCOPES = {
 SUMMARY_METRICS = (
     "aligned_rmse",
     "aligned_mae",
+    "aligned_nrmse_std",
+    "aligned_nrmse_p90",
     "anchored_rmse",
     "anchored_mae",
+    "anchored_nrmse_std",
+    "fixed_aligned_rmse",
+    "fixed_aligned_nrmse_std",
     "bin_rmse",
+    "bin_occupied_rmse",
     "correlation",
+    "travel_std",
+    "travel_range",
+    "travel_p90_span",
+    "prediction_std",
+    "prediction_to_travel_std",
     "training_observations",
 )
 _WORKER_CACHE: dict[str, Any] = {}
@@ -311,6 +330,24 @@ def prepare_run(spec_path: Path, output_dir: Path) -> tuple[dict[str, Any], list
     return spec, schedule
 
 
+def load_frozen_run(output_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    manifest_path = output_dir / "manifest.json"
+    schedule_path = output_dir / "trial_schedule.csv"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    schedule_hash = sha256_bytes(schedule_path.read_bytes())
+    expected_hash = manifest.get("schedule_sha256")
+    if expected_hash not in (None, schedule_hash):
+        raise ValueError(f"The frozen trial schedule in {output_dir} has changed")
+    if expected_hash is None:
+        manifest["schedule_sha256"] = schedule_hash
+        atomic_write_json(manifest_path, manifest)
+    schedule = [
+        coerce_schedule_row(row)
+        for row in csv.DictReader(schedule_path.open(encoding="utf-8"))
+    ]
+    return dict(manifest["spec"]), schedule
+
+
 def coerce_schedule_row(row: dict[str, Any]) -> dict[str, Any]:
     converted = dict(row)
     converted["repeat"] = int(converted["repeat"])
@@ -325,6 +362,71 @@ def worker_data(log_name: str) -> Any:
     if log_name not in _WORKER_CACHE:
         _WORKER_CACHE[log_name] = load_cached_log(log_name)
     return _WORKER_CACHE[log_name]
+
+
+def compute_trial_metrics(
+    data: Any,
+    row: dict[str, Any],
+    calibration: MagTravelCalibration,
+    spec: dict[str, Any],
+) -> tuple[list[dict[str, Any]], float, dict[str, Any]]:
+    training = resolve_window(
+        data.time_s,
+        TimeRange(float(row["start_s"]), float(row["stop_s"])),
+        time_basis=str(row["time_basis"]),
+        activity_mask=data.activity_mask,
+    )
+    with contextlib.redirect_stdout(io.StringIO()):
+        _, prediction, anchor_offset = predict_calibration(calibration, data)
+    full = resolve_window(
+        data.time_s,
+        TimeRange(),
+        time_basis=str(row["time_basis"]),
+        activity_mask=data.activity_mask,
+    )
+    training_mask = training.sample_mask(len(data.time_s))
+    scope_parameters = {
+        "training_window": (training, None),
+        "full_log": (full, None),
+        "full_log_excluding_training": (full, training_mask),
+    }
+
+    # Every scope also receives the single alignment offset estimated on the
+    # full log. Comparing this with its locally centered RMSE quantifies how
+    # much short-window centering itself helps.
+    full_score = score_prediction(prediction, data, full)
+    full_alignment_offset = float(full_score["aligned_offset_mm"])
+    metrics: list[dict[str, Any]] = []
+    for scope in spec.get("evaluation_scopes", sorted(SUPPORTED_SCOPES)):
+        resolved, exclude = scope_parameters[scope]
+        scored = score_prediction(
+            prediction,
+            data,
+            resolved,
+            exclude_mask=exclude,
+            fixed_alignment_offset_mm=full_alignment_offset,
+        )
+        metrics.append({"evaluation_scope": scope, **scored})
+
+    diagnostic_mask = (
+        training_mask
+        & data.activity_mask
+        & np.isfinite(data.mag)
+        & np.isfinite(data.travel)
+    )
+    diagnostics = {
+        "requested_active_s": float(row["duration_s"]),
+        "resolved_active_s": training.active_duration_s,
+        "wall_start_s": training.wall_start_s,
+        "wall_stop_s": training.wall_stop_s,
+        "mag_min": float(np.min(data.mag[diagnostic_mask])),
+        "mag_max": float(np.max(data.mag[diagnostic_mask])),
+        "travel_min": float(np.min(data.travel[diagnostic_mask])),
+        "travel_max": float(np.max(data.travel[diagnostic_mask])),
+        "travel_range": float(np.ptp(data.travel[diagnostic_mask])),
+        "travel_std": float(np.std(data.travel[diagnostic_mask])),
+    }
+    return metrics, anchor_offset, diagnostics
 
 
 def execute_trial(row: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
@@ -343,46 +445,12 @@ def execute_trial(row: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
             oracle_bins=int(spec.get("oracle_bins", 100)),
             verbose=False,
         )
-        _, prediction, anchor_offset = predict_calibration(calibration, data)
-        full = resolve_window(
-            data.time_s,
-            TimeRange(),
-            time_basis=str(row["time_basis"]),
-            activity_mask=data.activity_mask,
+        metrics, anchor_offset, diagnostics = compute_trial_metrics(
+            data, row, calibration, spec
         )
-        training_mask = training.sample_mask(len(data.time_s))
-        scope_parameters = {
-            "training_window": (training, None),
-            "full_log": (full, None),
-            "full_log_excluding_training": (full, training_mask),
-        }
-        metrics: list[dict[str, Any]] = []
-        for scope in spec.get("evaluation_scopes", sorted(SUPPORTED_SCOPES)):
-            resolved, exclude = scope_parameters[scope]
-            scored = score_prediction(
-                prediction, data, resolved, exclude_mask=exclude
-            )
-            metrics.append({"evaluation_scope": scope, **scored})
-
-        diagnostic_mask = (
-            training_mask
-            & data.activity_mask
-            & np.isfinite(data.mag)
-            & np.isfinite(data.travel)
-        )
-        diagnostics = {
-            "requested_active_s": float(row["duration_s"]),
-            "resolved_active_s": training.active_duration_s,
-            "wall_start_s": training.wall_start_s,
-            "wall_stop_s": training.wall_stop_s,
-            "mag_min": float(np.min(data.mag[diagnostic_mask])),
-            "mag_max": float(np.max(data.mag[diagnostic_mask])),
-            "travel_min": float(np.min(data.travel[diagnostic_mask])),
-            "travel_max": float(np.max(data.travel[diagnostic_mask])),
-            "travel_range": float(np.ptp(data.travel[diagnostic_mask])),
-        }
         return {
             "schema_version": SCHEMA_VERSION,
+            "metrics_version": 2,
             "status": "success",
             "started_at": started,
             "finished_at": utc_now(),
@@ -408,6 +476,53 @@ def execute_trial(row: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
 
 def trial_path(output_dir: Path, trial_id: str) -> Path:
     return output_dir / "trials" / f"{trial_id}.json"
+
+
+def backfill_metrics(
+    spec: dict[str, Any],
+    schedule: list[dict[str, Any]],
+    output_dir: Path,
+    *,
+    force: bool,
+) -> tuple[int, list[dict[str, Any]]]:
+    updated = 0
+    errors: list[dict[str, Any]] = []
+    for index, row in enumerate(schedule, start=1):
+        path = trial_path(output_dir, str(row["trial_id"]))
+        if not path.exists():
+            continue
+        result = json.loads(path.read_text(encoding="utf-8"))
+        if result.get("status") != "success":
+            continue
+        if not force and int(result.get("metrics_version", 1)) >= 2:
+            continue
+        try:
+            data = worker_data(str(row["log"]))
+            calibration = MagTravelCalibration.from_dict(result["calibration"])
+            metrics, anchor_offset, diagnostics = compute_trial_metrics(
+                data, row, calibration, spec
+            )
+            result["metrics_version"] = 2
+            result["metrics_updated_at"] = utc_now()
+            result["metrics"] = metrics
+            result["target_anchor_offset_mm"] = anchor_offset
+            result["training_window"] = diagnostics
+            atomic_write_json(path, result)
+            updated += 1
+        except Exception as error:
+            errors.append({
+                "trial_id": row["trial_id"],
+                "log": row["log"],
+                "error_type": type(error).__name__,
+                "error": str(error),
+            })
+        if index % 100 == 0:
+            print(
+                f"Scanned {index}/{len(schedule)} trials; updated {updated}, errors {len(errors)}",
+                flush=True,
+            )
+    write_csv(output_dir / "metric_backfill_failures.csv", errors)
+    return updated, errors
 
 
 def run_trials(
@@ -797,11 +912,26 @@ def parse_args() -> argparse.Namespace:
     summarize = subparsers.add_parser("summarize")
     summarize.add_argument("spec", type=Path)
     summarize.add_argument("--output-dir", type=Path, required=True)
+    refresh = subparsers.add_parser(
+        "refresh",
+        help="Backfill current metrics and summaries from a run's frozen manifest",
+    )
+    refresh.add_argument("--output-dir", type=Path, required=True)
+    refresh.add_argument("--force", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.command == "refresh":
+        spec, schedule = load_frozen_run(args.output_dir)
+        updated, errors = backfill_metrics(
+            spec, schedule, args.output_dir, force=args.force
+        )
+        status = summarize_results(spec, schedule, args.output_dir)
+        print(f"Updated metrics for {updated} trials ({len(errors)} backfill errors)")
+        print(json.dumps(status, indent=2))
+        return
     spec, _ = read_spec(args.spec)
     output_dir = args.output_dir or default_output_dir(spec)
     spec, schedule = prepare_run(args.spec, output_dir)

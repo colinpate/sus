@@ -19,6 +19,8 @@ Use the pipeline first if a log has no cache.
 | `tools/stats_aggregator.py` | Internal metric calculation engine used by `tools/stats.py`; direct command-line use is disabled. |
 | `tools/mag_calibration_experiment.py` | Fit front or rear mag-to-travel curves on selected cached log/time windows, save portable calibrations, and evaluate them on other windows or logs. |
 | `tools/mag_calibration_sweep.py` | Schedule, resume, summarize, and plot deterministic random-window learning-curve experiments. |
+| `tools/mag_calibration_transfer_sweep.py` | Fit each source calibration once and resumably evaluate the complete cross-log transfer matrix from a TOML spec. |
+| `tools/analyze_mag_calibration_window_sweep.py` | Compare front learning-curve runs while controlling evaluation support, centering, travel bins, and hardware/setup strata. |
 | `tools/export_sst_csv.py` | Export solved and ground-truth travel into SST-compatible CSV files. |
 | `tools/front/mag_nuisance/` | Body/world magnetic-nuisance solvers, current encoder-blind experiments, supervised diagnostics, and archived prototypes. Start with its `README.md`. |
 | `tools/rear/analyze_rear_chunking_tradeoffs.py` | Current rear mag-model chunking/training tradeoff analysis, including the mag-gated blend follow-up. |

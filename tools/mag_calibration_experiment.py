@@ -526,6 +526,7 @@ def score_prediction(
     *,
     include_mask: np.ndarray | None = None,
     exclude_mask: np.ndarray | None = None,
+    fixed_alignment_offset_mm: float | None = None,
 ) -> dict[str, Any]:
     window_mask = resolved.sample_mask(len(target.time_s))
     if include_mask is not None:
@@ -553,30 +554,74 @@ def score_prediction(
     raw_error = pred - travel
     aligned_offset = -float(np.mean(raw_error))
     error = raw_error + aligned_offset
+    travel_std = float(np.std(travel))
+    travel_range = float(np.ptp(travel))
+    travel_p05, travel_p95 = np.percentile(travel, [5.0, 95.0])
+    travel_p90_span = float(travel_p95 - travel_p05)
+    prediction_std = float(np.std(pred))
+    fixed_offset = aligned_offset if fixed_alignment_offset_mm is None else float(fixed_alignment_offset_mm)
+    fixed_error = raw_error + fixed_offset
+
+    def normalized(value: float, scale: float) -> float:
+        return value / scale if scale > 0 else float("nan")
+
+    anchored_rmse = float(np.sqrt(np.mean(raw_error**2)))
+    aligned_rmse = float(np.sqrt(np.mean(error**2)))
+    fixed_aligned_rmse = float(np.sqrt(np.mean(fixed_error**2)))
     row: dict[str, Any] = {
         "eval_samples": count,
         "eval_active_s": float(np.sum(sample_durations(target.time_s)[mask])),
-        "anchored_rmse": float(np.sqrt(np.mean(raw_error**2))),
+        "travel_mean": float(np.mean(travel)),
+        "travel_std": travel_std,
+        "travel_range": travel_range,
+        "travel_p05": float(travel_p05),
+        "travel_p95": float(travel_p95),
+        "travel_p90_span": travel_p90_span,
+        "prediction_std": prediction_std,
+        "prediction_to_travel_std": normalized(prediction_std, travel_std),
+        "anchored_rmse": anchored_rmse,
         "anchored_mae": float(np.mean(np.abs(raw_error))),
+        "anchored_nrmse_std": normalized(anchored_rmse, travel_std),
+        "anchored_nrmse_p90": normalized(anchored_rmse, travel_p90_span),
         "aligned_offset_mm": aligned_offset,
-        "aligned_rmse": float(np.sqrt(np.mean(error**2))),
+        "aligned_rmse": aligned_rmse,
         "aligned_mae": float(np.mean(np.abs(error))),
+        "aligned_nrmse_std": normalized(aligned_rmse, travel_std),
+        "aligned_nrmse_p90": normalized(aligned_rmse, travel_p90_span),
+        "fixed_alignment_offset_mm": fixed_offset,
+        "fixed_aligned_rmse": fixed_aligned_rmse,
+        "fixed_aligned_mae": float(np.mean(np.abs(fixed_error))),
+        "fixed_aligned_nrmse_std": normalized(fixed_aligned_rmse, travel_std),
+        "fixed_aligned_nrmse_p90": normalized(fixed_aligned_rmse, travel_p90_span),
         "correlation": float(np.corrcoef(pred, travel)[0, 1]),
     }
 
     eligible_mses: list[float] = []
+    occupied_mses: list[float] = []
     for index, (low, high) in enumerate(zip(TRAVEL_BIN_EDGES[:-1], TRAVEL_BIN_EDGES[1:])):
         upper = travel <= high if index == len(TRAVEL_BIN_EDGES) - 2 else travel < high
         bin_mask = (travel >= low) & upper
         bin_count = int(np.sum(bin_mask))
         row[f"bin{index}_n"] = bin_count
-        row[f"bin{index}_rmse"] = (
-            float(np.sqrt(np.mean(error[bin_mask] ** 2))) if bin_count else float("nan")
+        aligned_bin_mse = float(np.mean(error[bin_mask] ** 2)) if bin_count else float("nan")
+        row[f"bin{index}_rmse"] = float(np.sqrt(aligned_bin_mse)) if bin_count else float("nan")
+        row[f"bin{index}_anchored_rmse"] = (
+            float(np.sqrt(np.mean(raw_error[bin_mask] ** 2))) if bin_count else float("nan")
         )
+        row[f"bin{index}_fixed_rmse"] = (
+            float(np.sqrt(np.mean(fixed_error[bin_mask] ** 2))) if bin_count else float("nan")
+        )
+        if bin_count:
+            occupied_mses.append(aligned_bin_mse)
         if bin_count >= MIN_BIN_SAMPLES:
-            eligible_mses.append(float(np.mean(error[bin_mask] ** 2)))
+            eligible_mses.append(aligned_bin_mse)
     row["bin_rmse"] = (
         float(np.sqrt(np.mean(eligible_mses))) if eligible_mses else float("nan")
+    )
+    row["bin_eligible_count"] = len(eligible_mses)
+    row["bin_occupied_count"] = len(occupied_mses)
+    row["bin_occupied_rmse"] = (
+        float(np.sqrt(np.mean(occupied_mses))) if occupied_mses else float("nan")
     )
     return row
 
