@@ -94,7 +94,7 @@ class LinkageAngleToTravel(Step):
 class FindBoringRegions(Step):
     """Find boring regions where travel is stable"""
     travel_delta_threshold: float = 10  # mm
-    max_travel: float = 50 # mm
+    max_travel: float = 200 # mm
     min_region_len_samp: int = 100
     padding : int = 10
 
@@ -146,6 +146,23 @@ class FindBoringRegions(Step):
                     chunk_min = np.inf
                     chunk_max = -np.inf
                     chunk_has_finite = False
+
+            # The final chunk has no following sample to trigger the normal
+            # close-out path. If it contains finite travel and is long enough,
+            # it is a boring region because neither termination condition fired.
+            chunk_end = len(trav)
+            chunk_is_boring = (
+                chunk_has_finite
+                and (chunk_max - chunk_min) <= self.travel_delta_threshold
+                and chunk_max <= self.max_travel
+            )
+            if chunk_is_boring and (chunk_end - chunk_start) >= self.min_region_len_samp:
+                chunks.append(
+                    (
+                        max(0, chunk_start + self.padding),
+                        min(len(trav), chunk_end - self.padding),
+                    )
+                )
 
         print(len(chunks), "boring regions found")
 
