@@ -1432,12 +1432,12 @@ output_sha256 = "3bf4e47787c7b11a3ef4d6dbc304dad7c06428e3965130e62ebe8f938916422
 
 [logs.log-0113]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0113.csv"
 source = "raw/log-0113.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0113.import]
@@ -1449,12 +1449,12 @@ output_sha256 = "88791ba326078cef19bbb9e4e4ed345b8bae8b65a06137ca5384863d5f470d7
 
 [logs.log-0115]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0115.csv"
 source = "raw/log-0115.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0115.import]
@@ -1466,12 +1466,12 @@ output_sha256 = "d77e4c9ce5238b5c1f237dcaccfb6149147b512a6789654cc5b9880e1984683
 
 [logs.log-0116]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0116.csv"
 source = "raw/log-0116.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0116.import]
@@ -1483,12 +1483,12 @@ output_sha256 = "3dec5726b38a0c68f622c68ddc6ae46e4edec182fddc28bb81376cedfc97b80
 
 [logs.log-0117]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0117.csv"
 source = "raw/log-0117.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0117.import]
@@ -1500,12 +1500,12 @@ output_sha256 = "f4c2aa28716003ee56ff419bf7e81c7c5b2b8124d5fbe64ef67e031de99e4c0
 
 [logs.log-0118]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0118.csv"
 source = "raw/log-0118.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0118.import]
@@ -1517,12 +1517,12 @@ output_sha256 = "780bde9aec2a37c0132f6a6f1ab860ed8548a3abd72e2d6fc0f9bd82cde6abd
 
 [logs.log-0119]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0119.csv"
 source = "raw/log-0119.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0119.import]
@@ -1534,12 +1534,12 @@ output_sha256 = "da391d6594994143ecb9669221a4525b1d00e223457326976e74efa06b0d97b
 
 [logs.log-0120]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0120.csv"
 source = "raw/log-0120.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0120.import]
@@ -1551,12 +1551,12 @@ output_sha256 = "1acee7988f92dcd77fc653f8223d703c186307ca79fa87e5c064c1888697a61
 
 [logs.log-0122]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0122.csv"
 source = "raw/log-0122.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0122.import]
@@ -1568,12 +1568,12 @@ output_sha256 = "4303a956ccdbf754ff728be72a1dca9fb094d8ae5e4ccfe45bab556355163d8
 
 [logs.log-0125]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0125.csv"
 source = "raw/log-0125.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0125.import]
@@ -1585,12 +1585,12 @@ output_sha256 = "2dfca84ee2309b44669abd1152d0a609a008b924ea2fce5cdcc09af21bdebfd
 
 [logs.log-0126]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0126.csv"
 source = "raw/log-0126.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0126.import]
@@ -1602,12 +1602,12 @@ output_sha256 = "393d64274166f8c6412a3459fe9beadf49408e0575fd1472566c9a980dbd639
 
 [logs.log-0127]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0127.csv"
 source = "raw/log-0127.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0127.import]
@@ -1619,12 +1619,12 @@ output_sha256 = "7c610b8ee41e02ca3f942169e420e0209b8ef1218714ab3d5832c917cbd0aa4
 
 [logs.log-0129]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0129.csv"
 source = "raw/log-0129.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0129.import]
@@ -1636,12 +1636,12 @@ output_sha256 = "01744f7ff89213445e131d98a7607c2e863f70b0f5858def1984e80dcdb8838
 
 [logs.log-0132]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0132.csv"
 source = "raw/log-0132.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0132.import]
@@ -1653,12 +1653,12 @@ output_sha256 = "2ae9539fbed86ab955490a14303a588098c629df3530417ec9a0644ffda8ccd
 
 [logs.log-0133]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
-status = "pending-review"
+status = "usable"
 file = "converted/log-0133.csv"
 source = "raw/log-0133.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0133.import]
