@@ -579,16 +579,19 @@ def score_prediction(
         "travel_p90_span": travel_p90_span,
         "prediction_std": prediction_std,
         "prediction_to_travel_std": normalized(prediction_std, travel_std),
+        "anchored_mean_error": float(np.mean(raw_error)),
         "anchored_rmse": anchored_rmse,
         "anchored_mae": float(np.mean(np.abs(raw_error))),
         "anchored_nrmse_std": normalized(anchored_rmse, travel_std),
         "anchored_nrmse_p90": normalized(anchored_rmse, travel_p90_span),
         "aligned_offset_mm": aligned_offset,
+        "aligned_mean_error": float(np.mean(error)),
         "aligned_rmse": aligned_rmse,
         "aligned_mae": float(np.mean(np.abs(error))),
         "aligned_nrmse_std": normalized(aligned_rmse, travel_std),
         "aligned_nrmse_p90": normalized(aligned_rmse, travel_p90_span),
         "fixed_alignment_offset_mm": fixed_offset,
+        "fixed_aligned_mean_error": float(np.mean(fixed_error)),
         "fixed_aligned_rmse": fixed_aligned_rmse,
         "fixed_aligned_mae": float(np.mean(np.abs(fixed_error))),
         "fixed_aligned_nrmse_std": normalized(fixed_aligned_rmse, travel_std),
@@ -608,8 +611,17 @@ def score_prediction(
         row[f"bin{index}_anchored_rmse"] = (
             float(np.sqrt(np.mean(raw_error[bin_mask] ** 2))) if bin_count else float("nan")
         )
+        row[f"bin{index}_anchored_mean_error"] = (
+            float(np.mean(raw_error[bin_mask])) if bin_count else float("nan")
+        )
         row[f"bin{index}_fixed_rmse"] = (
             float(np.sqrt(np.mean(fixed_error[bin_mask] ** 2))) if bin_count else float("nan")
+        )
+        row[f"bin{index}_fixed_mean_error"] = (
+            float(np.mean(fixed_error[bin_mask])) if bin_count else float("nan")
+        )
+        row[f"bin{index}_mean_error"] = (
+            float(np.mean(error[bin_mask])) if bin_count else float("nan")
         )
         if bin_count:
             occupied_mses.append(aligned_bin_mse)

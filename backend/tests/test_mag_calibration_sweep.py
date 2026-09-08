@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import unittest
 
 import numpy as np
+import pandas as pd
 
 
 os.environ["MPLCONFIGDIR"] = "/private/tmp"
@@ -16,7 +17,9 @@ sys.path.insert(0, str(REPO_ROOT / "tools"))
 sys.path.insert(0, str(REPO_ROOT / "backend"))
 
 from mag_calibration import ResolvedWindow
+from analyze_mag_calibration_cross_setup import crossed_bootstrap, source_balanced_median
 from mag_calibration_experiment import score_prediction
+from mag_calibration_solver_sweep import endpoint_change
 from mag_calibration_sweep import nested_windows, stable_uniform
 
 
@@ -57,11 +60,70 @@ class DistributionAwareMetricTests(unittest.TestCase):
             fixed_alignment_offset_mm=0.0,
         )
         self.assertAlmostEqual(score["aligned_rmse"], 0.0)
+        self.assertAlmostEqual(score["aligned_mean_error"], 0.0)
+        self.assertAlmostEqual(score["anchored_mean_error"], 1.0)
         self.assertAlmostEqual(score["fixed_aligned_rmse"], 1.0)
+        self.assertAlmostEqual(score["fixed_aligned_mean_error"], 1.0)
+        self.assertAlmostEqual(score["bin0_anchored_mean_error"], 1.0)
+        self.assertAlmostEqual(score["bin0_fixed_mean_error"], 1.0)
+        self.assertAlmostEqual(score["bin0_mean_error"], 0.0)
         self.assertAlmostEqual(score["travel_range"], 4.0)
         self.assertAlmostEqual(score["travel_std"], np.std(target.travel))
         self.assertAlmostEqual(score["fixed_aligned_nrmse_std"], 1.0 / np.std(target.travel))
         self.assertEqual(score["bin_occupied_count"], 1)
+
+    def test_solver_endpoint_change_collapses_repeats_within_log(self):
+        rows = []
+        values = {
+            ("log-a", 0): (5.0, 4.0),
+            ("log-a", 1): (5.0, 2.0),
+            ("log-b", 0): (5.0, 6.0),
+            ("log-b", 1): (7.0, 8.0),
+        }
+        for (log_name, repeat), (short, long) in values.items():
+            for duration, value in ((5.0, short), (120.0, long)):
+                rows.append({
+                    "log": log_name,
+                    "repeat": repeat,
+                    "duration_s": duration,
+                    "evaluation_scope": "full_log",
+                    "stage": "solved",
+                    "aligned_rmse": value,
+                })
+        change = endpoint_change(
+            rows,
+            scope="full_log",
+            stage="solved",
+            metric="aligned_rmse",
+        )
+        self.assertEqual(change["n"], 2)
+        self.assertAlmostEqual(change["median"], -0.5)
+        self.assertAlmostEqual(change["fraction_improved"], 0.5)
+
+
+class CrossSetupAnalysisTests(unittest.TestCase):
+    def test_source_balancing_prevents_pair_count_from_dominating(self):
+        frame = pd.DataFrame({
+            "train_log": ["source-a", "source-a", "source-b", "source-b"],
+            "value": [0.0, 100.0, 10.0, 10.0],
+        })
+        self.assertAlmostEqual(source_balanced_median(frame, "value"), 30.0)
+
+    def test_crossed_bootstrap_handles_excluded_diagonal_cells(self):
+        frame = pd.DataFrame({
+            "train_log": ["a", "a", "b", "b"],
+            "eval_log": ["a", "b", "a", "b"],
+        })
+        values = np.array([np.nan, 1.0, 2.0, np.nan])
+        low, high = crossed_bootstrap(
+            frame,
+            values,
+            draws=100,
+            rng=np.random.default_rng(1),
+        )
+        self.assertTrue(np.isfinite(low))
+        self.assertTrue(np.isfinite(high))
+        self.assertLessEqual(low, high)
 
 
 if __name__ == "__main__":

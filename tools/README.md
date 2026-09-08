@@ -20,6 +20,8 @@ Use the pipeline first if a log has no cache.
 | `tools/mag_calibration_experiment.py` | Fit front or rear mag-to-travel curves on selected cached log/time windows, save portable calibrations, and evaluate them on other windows or logs. |
 | `tools/mag_calibration_sweep.py` | Schedule, resume, summarize, and plot deterministic random-window learning-curve experiments. |
 | `tools/mag_calibration_transfer_sweep.py` | Fit each source calibration once and resumably evaluate the complete cross-log transfer matrix from a TOML spec. |
+| `tools/analyze_mag_calibration_cross_setup.py` | Summarize a complete transfer matrix by bike/sensor setup with source-balanced estimates, crossed-bootstrap intervals, signal-support diagnostics, and directed heatmaps. |
+| `tools/mag_calibration_solver_sweep.py` | Inject window-trained front calibrations, rerun both full-log fusion solves, and compare every downstream stage across fixed evaluation scopes. |
 | `tools/analyze_mag_calibration_window_sweep.py` | Compare front learning-curve runs while controlling evaluation support, centering, travel bins, and hardware/setup strata. |
 | `tools/export_sst_csv.py` | Export solved and ground-truth travel into SST-compatible CSV files. |
 | `tools/front/mag_nuisance/` | Body/world magnetic-nuisance solvers, current encoder-blind experiments, supervised diagnostics, and archived prototypes. Start with its `README.md`. |
