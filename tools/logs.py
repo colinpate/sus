@@ -55,6 +55,36 @@ def parse_key_values(values: Iterable[str]) -> dict[str, Any]:
     return result
 
 
+def parse_nested_key_values(values: Iterable[str]) -> dict[str, Any]:
+    """Parse dotted KEY=VALUE pairs into a nested mapping."""
+    result: dict[str, Any] = {}
+    for value in values:
+        if "=" not in value:
+            raise RegistryError(f"Expected KEY=VALUE, got {value!r}")
+        key, raw = value.split("=", 1)
+        parts = key.split(".")
+        if not key or any(not part for part in parts):
+            raise RegistryError(f"Expected a dotted key with no empty parts in {value!r}")
+
+        target = result
+        for part in parts[:-1]:
+            existing = target.get(part)
+            if existing is None:
+                child: dict[str, Any] = {}
+                target[part] = child
+                target = child
+            elif isinstance(existing, dict):
+                target = existing
+            else:
+                raise RegistryError(f"Override key {key!r} conflicts with another override")
+
+        leaf = parts[-1]
+        if isinstance(target.get(leaf), dict):
+            raise RegistryError(f"Override key {key!r} conflicts with another override")
+        target[leaf] = parse_value(raw)
+    return result
+
+
 def relative_to_registry(path: Path, registry: LogRegistry) -> str:
     resolved = path.resolve()
     try:
@@ -243,14 +273,24 @@ def update_record_metadata(record: dict[str, Any], updates: Mapping[str, Any]) -
 
 def command_annotate(args: argparse.Namespace) -> int:
     registry = load_registry(args.registry)
+    if not args.logs and not args.where:
+        raise RegistryError("annotate requires one or more log IDs or at least one --where filter")
+    logs = registry.select(
+        log_ids=args.logs,
+        filters=filter_dict(args.where),
+        usable_only=not (args.all_statuses or args.logs),
+    )
+    if not logs:
+        raise RegistryError("No logs matched")
+
     updates = parse_key_values(args.metadata)
+    overrides = parse_nested_key_values(args.overrides)
     for key in ("trail", "frame_model", "fork_model", "shock_model", "notes"):
         value = getattr(args, key)
         if value is not None:
             updates[key] = value
-    for log_id in args.logs:
-        if log_id not in registry.logs:
-            raise RegistryError(f"Unknown log {log_id!r}")
+    for log in logs:
+        log_id = log.log_id
         record = registry.logs[log_id]
         update_record_metadata(record, updates)
         if args.status is not None:
@@ -259,8 +299,10 @@ def command_annotate(args: argparse.Namespace) -> int:
             record["reason"] = args.reason
         record["tags"] = sorted((set(record.get("tags", [])) | set(args.tags)) - set(args.remove_tags))
         record["sets"] = sorted((set(record.get("sets", [])) | set(args.sets)) - set(args.remove_sets))
+        if overrides:
+            record["overrides"] = deep_merge(record.get("overrides", {}), overrides)
     registry.save()
-    print(f"Updated {len(args.logs)} log(s)")
+    print(f"Updated {len(logs)} log(s)")
     return 0
 
 
@@ -553,7 +595,21 @@ def build_parser() -> argparse.ArgumentParser:
     ingest_parser.set_defaults(func=command_ingest)
 
     annotate_parser = subparsers.add_parser("annotate", help="Update notes, tags, sets, or quality status")
-    annotate_parser.add_argument("logs", nargs="+")
+    annotate_parser.add_argument("logs", nargs="*")
+    annotate_parser.add_argument("--where", action="append", default=[], metavar="KEY=VALUE")
+    annotate_parser.add_argument(
+        "--all-statuses",
+        action="store_true",
+        help="Include non-usable logs when selecting with filters",
+    )
+    annotate_parser.add_argument(
+        "--override",
+        dest="overrides",
+        action="append",
+        default=[],
+        metavar="DOTTED_KEY=VALUE",
+        help="Set a per-log processing override; may be repeated",
+    )
     annotate_parser.add_argument("--status", choices=["pending-review", "usable", "partial", "corrupt", "excluded"])
     annotate_parser.add_argument("--reason")
     annotate_parser.add_argument("--tag", dest="tags", action="append", default=[])
