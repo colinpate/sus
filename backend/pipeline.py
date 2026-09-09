@@ -207,7 +207,7 @@ def main() -> None:
         FindBoringRegions(
             name="find_boring_regions",
             inputs=("travel",),
-            outputs=("boring_regions", "boring_mask"),
+            outputs=("boring_regions", "active_mask", "boring_mask"),
             read_cache=True
         ),
 
@@ -292,13 +292,13 @@ def main() -> None:
         ),
         GetErrorStats(
             name="x_preds_stats",
-            inputs=("travel/mag_model", "travel", "boring_mask"),
+            inputs=("travel/mag_model", "travel", "active_mask"),
             outputs=(),
             gt_thresh=0
         ),
         GetErrorStats(
             name="x_preds_adj_stats",
-            inputs=("travel/mag_model/adj", "travel", "boring_mask"),
+            inputs=("travel/mag_model/adj", "travel", "active_mask"),
             outputs=(),
             gt_thresh=0
         ),
@@ -316,13 +316,13 @@ def main() -> None:
         ),
         GetErrorStats(
             name="x_preds_solver",
-            inputs=("travel/solved", "travel", "boring_mask"),
+            inputs=("travel/solved", "travel", "active_mask"),
             outputs=(),
             gt_thresh=0
         ),
         GetErrorStats(
             name="x_preds_solver",
-            inputs=("travel/solved", "travel", "boring_mask"),
+            inputs=("travel/solved", "travel", "active_mask"),
             outputs=(),
             gt_thresh=30
         ),

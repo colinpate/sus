@@ -92,7 +92,7 @@ class LinkageAngleToTravel(Step):
 
 @dataclass
 class FindBoringRegions(Step):
-    """Find boring regions where travel is stable"""
+    """Find stable regions and build a mask of active travel samples."""
     travel_delta_threshold: float = 10  # mm
     max_travel: float = 200 # mm
     min_region_len_samp: int = 100
@@ -104,7 +104,7 @@ class FindBoringRegions(Step):
         print(trav.shape)
 
         chunks = []
-        mask = np.ones(len(trav), dtype=bool)
+        active_mask = np.ones(len(trav), dtype=bool)
 
         finite_trav = trav[np.isfinite(trav)]
         if len(trav) == 0:
@@ -166,13 +166,17 @@ class FindBoringRegions(Step):
 
         print(len(chunks), "boring regions found")
 
-        # Create mask for boring regions
+        # Exclude boring regions from the active-sample mask.
         for start, end in chunks:
-            mask[start:end] = False
+            active_mask[start:end] = False
 
-        boring_percentage = 100 * (np.sum(mask) / len(mask))
-        print("Interesting %:", boring_percentage)
+        active_percentage = 100 * (np.sum(active_mask) / len(active_mask))
+        print("Active %:", active_percentage)
 
-        ws[self.outputs[0]] = chunks
+        # Keep the regions cacheable so a cache hit can restore every declared
+        # output. The final output, when requested, is the legacy mask alias.
+        ws[self.outputs[0]] = np.asarray(chunks, dtype=int).reshape(-1, 2)
         if len(self.outputs) > 1:
-            ws[self.outputs[1]] = mask
+            ws[self.outputs[1]] = active_mask
+        if len(self.outputs) > 2:
+            ws[self.outputs[2]] = active_mask.copy()

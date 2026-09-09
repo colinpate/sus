@@ -16,7 +16,7 @@ from backend.log_registry import ResolvedLog
 from backend.run_provenance import RunProvenance, build_run_provenance, sha256_json
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EXPERIMENT_ROOT = REPO_ROOT / "experiments" / "stats"
 MANIFEST_FILENAME = "experiment.json"

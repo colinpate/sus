@@ -27,7 +27,7 @@ class GetErrorStatsTests(unittest.TestCase):
         ws = {
             "pred": make_series([11.0, 22.0, 103.0, 44.0], t=t),
             "gt": make_series([10.0, 20.0, 100.0, 40.0], t=t),
-            "boring_mask": np.ones(4, dtype=bool),
+            "active_mask": np.ones(4, dtype=bool),
             "angle/bad_mask": TimeSeries(
                 t=t,
                 x=np.array([False, False, True, False]),
@@ -36,7 +36,7 @@ class GetErrorStatsTests(unittest.TestCase):
         }
         step = GetErrorStats(
             name="test_error_stats",
-            inputs=("pred", "gt", "boring_mask"),
+            inputs=("pred", "gt", "active_mask"),
             outputs=(),
             gt_thresh=0,
         )
