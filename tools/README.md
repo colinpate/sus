@@ -10,6 +10,22 @@ venv/bin/python tools/stats.py --help
 Most tools read cached pipeline output from `backend/run_artifacts/<log>/cache/all.npz`.
 Use the pipeline first if a log has no cache.
 
+Bulk annotations can select usable logs with repeated metadata filters. For example,
+this adds matching logs to a set and gives each one a nested processing override:
+
+```bash
+venv/bin/python tools/logs.py annotate \
+  --where 'bike_model=Specialized Stumpjumper' \
+  --where pod_version=2 \
+  --where pipeline=front \
+  --set stumpjumper-front-pod-v2 \
+  --override steps.angle_to_travel.top_zeroangle=1.52788
+```
+
+Add `--all-statuses` to include non-usable matches. Without explicit log IDs,
+`annotate` requires at least one `--where` filter so it cannot accidentally update
+the entire registry.
+
 ## Current Utilities
 
 | Tool | Purpose |

@@ -123,7 +123,7 @@ status = "pending-review"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0046.csv"
 source = "log-0046.bin"
@@ -133,7 +133,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0048.csv"
 source = "log-0048.bin"
@@ -143,7 +143,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0049.csv"
 source = "log-0049.bin"
@@ -153,7 +153,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0054.csv"
 source = "log-0054.bin"
@@ -163,7 +163,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0055.csv"
 source = "log-0055.bin"
@@ -173,7 +173,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0056.csv"
 source = "log-0056.bin"
@@ -183,7 +183,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0058.csv"
 source = "log-0058.bin"
@@ -203,7 +203,7 @@ reason = "Marked invalid in the legacy log list"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0063.csv"
 source = "log-0063.bin"
@@ -213,7 +213,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0071_183.csv"
 source = "log-0071_183.bin"
@@ -226,7 +226,7 @@ trail = "Ccdh part 1"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0072_184.csv"
 source = "log-0072_184.bin"
@@ -239,7 +239,7 @@ trail = "Ccdh part 2"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v2"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v2"]
 tags = []
 file = "log-0073_185.csv"
 source = "log-0073_185.bin"
@@ -266,7 +266,7 @@ legacy_travel_mm = 200
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "jamaal"]
 tags = []
 file = "log-0078-valid.csv"
 source = "log-0078.bin"
@@ -276,11 +276,14 @@ record_format = "dual_mag"
 legacy_setup_note = "Jamaal boxxer"
 legacy_travel_mm = 200
 
+[logs.log-0078-valid.overrides.steps.angle_to_travel]
+top_zeroangle = -1.534
+
 [logs.log-0079]
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "jamaal"]
 tags = []
 file = "log-0079.csv"
 source = "log-0079.bin"
@@ -289,6 +292,9 @@ record_format = "dual_mag"
 [logs.log-0079.metadata]
 legacy_setup_note = "Jamaal boxxer"
 legacy_travel_mm = 200
+
+[logs.log-0079.overrides.steps.angle_to_travel]
+top_zeroangle = -1.534
 
 [logs.log-0080]
 pipeline = "front"
@@ -308,7 +314,7 @@ legacy_travel_mm = 200
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "jamaal"]
 tags = []
 file = "log-0080-valid.csv"
 source = "log-0080.bin"
@@ -318,11 +324,14 @@ record_format = "dual_mag"
 legacy_setup_note = "Jamaal boxxer"
 legacy_travel_mm = 200
 
+[logs.log-0080-valid.overrides.steps.angle_to_travel]
+top_zeroangle = -1.534
+
 [logs.log-0081]
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "jamaal"]
 tags = []
 file = "log-0081.csv"
 source = "log-0081.bin"
@@ -331,6 +340,9 @@ record_format = "dual_mag"
 [logs.log-0081.metadata]
 legacy_setup_note = "Jamaal boxxer"
 legacy_travel_mm = 200
+
+[logs.log-0081.overrides.steps.angle_to_travel]
+top_zeroangle = -1.534
 
 [logs.log000]
 pipeline = "front"
@@ -423,7 +435,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log022.csv"
 source = "log022.bin"
@@ -452,7 +464,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log029.csv"
 source = "log029.bin"
@@ -462,7 +474,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log030.csv"
 source = "log030.bin"
@@ -472,7 +484,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log031.csv"
 source = "log031.bin"
@@ -482,7 +494,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log038.csv"
 source = "log038.bin"
@@ -512,7 +524,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log056_ccdh.csv"
 record_format = "dual_mag"
@@ -548,7 +560,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log060_upperpred.csv"
 record_format = "dual_mag"
@@ -586,7 +598,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log078.csv"
 source = "log078.bin"
@@ -596,7 +608,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log079.csv"
 source = "log079.bin"
@@ -606,7 +618,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log080.csv"
 source = "log080.bin"
@@ -626,7 +638,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log085.csv"
 source = "log085.bin"
@@ -655,7 +667,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log088.csv"
 source = "log088.bin"
@@ -665,7 +677,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log091.csv"
 source = "log091.bin"
@@ -675,7 +687,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log096.csv"
 source = "log096.bin"
@@ -685,7 +697,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log098.csv"
 source = "log098.bin"
@@ -695,7 +707,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["front-default"]
+sets = []
 tags = []
 file = "log099.csv"
 source = "log099.bin"
@@ -715,7 +727,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log103.csv"
 source = "log103.bin"
@@ -725,7 +737,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log104.csv"
 source = "log104.bin"
@@ -735,7 +747,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log106.csv"
 source = "log106.bin"
@@ -745,7 +757,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log107.csv"
 source = "log107.bin"
@@ -755,7 +767,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log109.csv"
 source = "log109.bin"
@@ -765,7 +777,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log110.csv"
 source = "log110.bin"
@@ -775,7 +787,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default"]
+sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log112.csv"
 source = "log112.bin"
@@ -1299,7 +1311,7 @@ file = "converted/log-0098.csv"
 source = "raw/log-0098.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "jamaal"]
 tags = []
 
 [logs.log-0098.import]
@@ -1309,6 +1321,9 @@ sequence_gaps = 0
 source_sha256 = "a720d69209100a028d0caaa7fa0541cccb093319dfae6b7f2dc5f359aa0a3968"
 output_sha256 = "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be"
 
+[logs.log-0098.overrides.steps.angle_to_travel]
+top_zeroangle = -1.534
+
 [logs.log-0099]
 profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
 status = "usable"
@@ -1316,7 +1331,7 @@ file = "converted/log-0099.csv"
 source = "raw/log-0099.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["front-default", "jamaal"]
 tags = []
 
 [logs.log-0099.import]
@@ -1325,6 +1340,9 @@ duration_s = 655.785
 sequence_gaps = 0
 source_sha256 = "a30f8c423ab20079c09eb35e636ed92e42dd39703c13fd79de73b7804015c991"
 output_sha256 = "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96"
+
+[logs.log-0099.overrides.steps.angle_to_travel]
+top_zeroangle = -1.534
 
 [logs.log-0103]
 profiles = ["front-pod-v2", "bike-tr11", "fork-boxxer-200", "front-angle-tr11-boxxer"]
@@ -1437,7 +1455,7 @@ file = "converted/log-0113.csv"
 source = "raw/log-0113.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0113.import]
@@ -1447,6 +1465,9 @@ sequence_gaps = 0
 source_sha256 = "4722fe2f469d33f12c1bafd5bc93563aef8eb4848b98f5a24813aa6e0b526893"
 output_sha256 = "88791ba326078cef19bbb9e4e4ed345b8bae8b65a06137ca5384863d5f470d70"
 
+[logs.log-0113.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0115]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1454,7 +1475,7 @@ file = "converted/log-0115.csv"
 source = "raw/log-0115.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0115.import]
@@ -1464,6 +1485,9 @@ sequence_gaps = 0
 source_sha256 = "b481477eca0306c6646512de41963ad52e6d9233664f72f2d3e75e734f186cfc"
 output_sha256 = "d77e4c9ce5238b5c1f237dcaccfb6149147b512a6789654cc5b9880e19846832"
 
+[logs.log-0115.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0116]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1471,7 +1495,7 @@ file = "converted/log-0116.csv"
 source = "raw/log-0116.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0116.import]
@@ -1481,6 +1505,9 @@ sequence_gaps = 0
 source_sha256 = "393ab654c72477347403219253f2c1320835765f1eabd3722e214a63a4c898e2"
 output_sha256 = "3dec5726b38a0c68f622c68ddc6ae46e4edec182fddc28bb81376cedfc97b80c"
 
+[logs.log-0116.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0117]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1488,7 +1515,7 @@ file = "converted/log-0117.csv"
 source = "raw/log-0117.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0117.import]
@@ -1498,6 +1525,9 @@ sequence_gaps = 0
 source_sha256 = "f7da1e5f58130998fe92d54d307d341a9392c46292d602e3bcd77fb2943cf717"
 output_sha256 = "f4c2aa28716003ee56ff419bf7e81c7c5b2b8124d5fbe64ef67e031de99e4c0a"
 
+[logs.log-0117.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0118]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1505,7 +1535,7 @@ file = "converted/log-0118.csv"
 source = "raw/log-0118.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0118.import]
@@ -1515,6 +1545,9 @@ sequence_gaps = 0
 source_sha256 = "93c8450c6777e367e518aef9894907cc423114b334ea0a29734d333994aa3eeb"
 output_sha256 = "780bde9aec2a37c0132f6a6f1ab860ed8548a3abd72e2d6fc0f9bd82cde6abdd"
 
+[logs.log-0118.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0119]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1522,7 +1555,7 @@ file = "converted/log-0119.csv"
 source = "raw/log-0119.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0119.import]
@@ -1532,6 +1565,9 @@ sequence_gaps = 0
 source_sha256 = "f18c462361775f8aac3c1078530cd3aa5ee66c3cc6315ab36b30d1e4de878319"
 output_sha256 = "da391d6594994143ecb9669221a4525b1d00e223457326976e74efa06b0d97be"
 
+[logs.log-0119.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0120]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1539,7 +1575,7 @@ file = "converted/log-0120.csv"
 source = "raw/log-0120.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0120.import]
@@ -1549,6 +1585,9 @@ sequence_gaps = 0
 source_sha256 = "a87500b21976e881abdb7d9bb91970663f1654f28660fdc28274def03cf46622"
 output_sha256 = "1acee7988f92dcd77fc653f8223d703c186307ca79fa87e5c064c1888697a619"
 
+[logs.log-0120.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0122]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1556,7 +1595,7 @@ file = "converted/log-0122.csv"
 source = "raw/log-0122.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0122.import]
@@ -1566,6 +1605,9 @@ sequence_gaps = 0
 source_sha256 = "c177f481e30d5c36867bf2bdd2d8fda0bc07bb7ad84f56f314d7564c0f03beef"
 output_sha256 = "4303a956ccdbf754ff728be72a1dca9fb094d8ae5e4ccfe45bab556355163d8c"
 
+[logs.log-0122.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0125]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1573,7 +1615,7 @@ file = "converted/log-0125.csv"
 source = "raw/log-0125.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0125.import]
@@ -1583,6 +1625,9 @@ sequence_gaps = 0
 source_sha256 = "c05df24d147ff2f11fedb097d707d92d5eb7b04f26ccbdb09e479c8a655e4edb"
 output_sha256 = "2dfca84ee2309b44669abd1152d0a609a008b924ea2fce5cdcc09af21bdebfd5"
 
+[logs.log-0125.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0126]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1590,7 +1635,7 @@ file = "converted/log-0126.csv"
 source = "raw/log-0126.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0126.import]
@@ -1600,6 +1645,9 @@ sequence_gaps = 0
 source_sha256 = "a6fe7a323052e20d953739af71a023e9f3b335f843202225d565e42668ffb6c3"
 output_sha256 = "393d64274166f8c6412a3459fe9beadf49408e0575fd1472566c9a980dbd6392"
 
+[logs.log-0126.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0127]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1607,7 +1655,7 @@ file = "converted/log-0127.csv"
 source = "raw/log-0127.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0127.import]
@@ -1617,6 +1665,9 @@ sequence_gaps = 0
 source_sha256 = "fd5e60ad57bf14ee36f7f5263652533754288d414c108b2c67fdccce494114b1"
 output_sha256 = "7c610b8ee41e02ca3f942169e420e0209b8ef1218714ab3d5832c917cbd0aa4a"
 
+[logs.log-0127.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0129]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1624,7 +1675,7 @@ file = "converted/log-0129.csv"
 source = "raw/log-0129.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0129.import]
@@ -1634,6 +1685,9 @@ sequence_gaps = 0
 source_sha256 = "1c056cce5924f720a90dbe1fa247436c32584a9aa4da6433742ade248ce916cf"
 output_sha256 = "01744f7ff89213445e131d98a7607c2e863f70b0f5858def1984e80dcdb88384"
 
+[logs.log-0129.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0132]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1641,7 +1695,7 @@ file = "converted/log-0132.csv"
 source = "raw/log-0132.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0132.import]
@@ -1651,6 +1705,9 @@ sequence_gaps = 0
 source_sha256 = "4db86cc198ac43d46934c30b08a40b64e336949fd72bd040342ea0f357169baf"
 output_sha256 = "2ae9539fbed86ab955490a14303a588098c629df3530417ec9a0644ffda8ccd1"
 
+[logs.log-0132.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
+
 [logs.log-0133]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
 status = "usable"
@@ -1658,7 +1715,7 @@ file = "converted/log-0133.csv"
 source = "raw/log-0133.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["front-default", "tr11-2025-harry"]
+sets = ["front-default", "harry", "tr11-2025-harry"]
 tags = []
 
 [logs.log-0133.import]
@@ -1667,6 +1724,9 @@ duration_s = 105.38
 sequence_gaps = 0
 source_sha256 = "5ce9d36e9f61a98347b5ea7c028a0a2f7ed337956d021a66c404ecc4d7fadfab"
 output_sha256 = "2598724b6678ed6e68a5e3617bcd242d64f2241396abd6e74eadd11d4e71fef5"
+
+[logs.log-0133.overrides.steps.angle_to_travel]
+top_zeroangle = -1.514
 
 [logs.log-0135]
 profiles = ["front-pod-v2", "bike-tr11-2025", "fork-boxxer-200", "front-angle-tr11-boxxer-harry"]
