@@ -128,7 +128,7 @@ def main() -> None:
         FindBoringRegions(
             name="find_boring_regions",
             inputs=("travel",),
-            outputs=("boring_regions", "boring_mask"),
+            outputs=("boring_regions", "active_mask", "boring_mask"),
             read_cache=True
         ),
 
