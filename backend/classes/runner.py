@@ -70,13 +70,17 @@ class Runner:
                 return False
             if cached_hash is not None and cached_hash != current_hash:
                 return False
+            restored = {}
             for k in keys:
                 t_key = f"{k}__t"
                 x_key = f"{k}__x"
                 if t_key in data and x_key in data:
-                    ws[k] = TimeSeries(t=data[t_key], x=data[x_key])
+                    restored[k] = TimeSeries(t=data[t_key], x=data[x_key])
                 elif k in data:
-                    ws[k] = data[k]
+                    restored[k] = data[k]
+        if set(restored) != set(keys):
+            return False
+        ws.update(restored)
         return True
 
     def _plot_timeseries(self, ts: TimeSeries, title: str, path: Path) -> None:

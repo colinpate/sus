@@ -238,6 +238,21 @@ def bool_1d(arr: np.ndarray) -> np.ndarray:
     return np.asarray(arr).astype(bool).reshape(-1)
 
 
+def load_active_mask(cache: NpzFile) -> np.ndarray:
+    """Load the canonical activity mask, accepting legacy-only caches."""
+    if "active_mask" in cache:
+        active_mask = bool_1d(cache["active_mask"])
+        if "boring_mask" in cache:
+            legacy_mask = bool_1d(cache["boring_mask"])
+            require_same_shape("activity mask aliases", active_mask=active_mask, boring_mask=legacy_mask)
+            if not np.array_equal(active_mask, legacy_mask):
+                raise ValueError("active_mask and legacy boring_mask do not match")
+        return active_mask
+    if "boring_mask" in cache:
+        return bool_1d(cache["boring_mask"])
+    raise KeyError("cache is missing active_mask (and legacy boring_mask fallback)")
+
+
 def require_same_shape(context: str, **arrays: np.ndarray) -> None:
     shapes = {name: np.asarray(values).shape for name, values in arrays.items()}
     if len(set(shapes.values())) > 1:
@@ -367,18 +382,18 @@ def build_mask(
 ) -> np.ndarray:
     pred = flatten_1d(cache[f"{pred_key}__x"])
     gt = flatten_1d(cache[f"{gt_key}__x"])
-    boring_mask = bool_1d(cache["boring_mask"])
+    active_mask = load_active_mask(cache)
     gt_time_s = flatten_1d(cache[f"{gt_key}__t"])
 
     require_same_shape(
         f"cache arrays for {pred_key} vs {gt_key}",
         pred=pred,
         gt=gt,
-        boring_mask=boring_mask,
+        active_mask=active_mask,
         gt_time_s=gt_time_s,
     )
 
-    mask = boring_mask & finite_mask(pred, gt) & ~build_angle_bad_mask(cache, gt_time_s)
+    mask = active_mask & finite_mask(pred, gt) & ~build_angle_bad_mask(cache, gt_time_s)
     if error_threshold is not None:
         mask &= np.abs(gt) > error_threshold
     return mask
@@ -402,20 +417,20 @@ def summarize_log_cache(
 ) -> LogSummary:
     cache = load_cache(log_name, cache_root)
     time_s = flatten_1d(cache["travel__t"])
-    boring_mask = bool_1d(cache["boring_mask"])
-    require_same_shape(f"{log_name}: duration arrays", time_s=time_s, boring_mask=boring_mask)
+    active_mask = load_active_mask(cache)
+    require_same_shape(f"{log_name}: duration arrays", time_s=time_s, active_mask=active_mask)
 
     dt_s = infer_dt_seconds(time_s)
     total_seconds = len(time_s) * dt_s
-    boring_seconds = int(np.sum(boring_mask)) * dt_s
+    active_seconds = int(np.sum(active_mask)) * dt_s
 
     summary_row: Row = {
         "log": log_name,
         "samples": len(time_s),
         "dt_ms": dt_s * 1000.0,
         "total_s": total_seconds,
-        "boring_s": boring_seconds,
-        "boring_pct": percentage(boring_seconds, total_seconds),
+        "active_s": active_seconds,
+        "active_pct": percentage(active_seconds, total_seconds),
     }
 
     comparison_rows: dict[str, Row] = {}
@@ -431,7 +446,7 @@ def summarize_log_cache(
         masked_pred = pred[mask]
         masked_gt = gt[mask]
         if len(masked_pred) == 0:
-            raise ValueError(f"{log_name}: no finite boring-mask samples for {pred_key} vs {gt_key}")
+            raise ValueError(f"{log_name}: no finite active-mask samples for {pred_key} vs {gt_key}")
 
         stats = summarize_error(masked_pred, masked_gt, center=center_errors)
         binned = summarize_binned_rmse(
@@ -594,7 +609,7 @@ def diagnostic_rows(
 def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) -> Diagnostics:
     cache = load_cache(log_name, cache_root)
 
-    boring_mask = bool_1d(cache["boring_mask"])
+    active_mask = load_active_mask(cache)
     travel = flatten_1d(cache["travel__x"])
     mag_key = resolve_cache_series_key(cache, "mag/proj/corr/lpf", "mag/proj/lpf")
     accel_hp_key = resolve_cache_series_key(cache, "accel/lphp/proj/zv", "accel/lpfhp/proj", "accel/lphp/proj")
@@ -613,7 +628,7 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
     require_same_shape(
         f"{log_name}: diagnostic arrays",
         travel=travel,
-        boring_mask=boring_mask,
+        active_mask=active_mask,
         mag=mag,
         accel_hp_abs=accel_hp_abs,
         bad_mag_mask=bad_mag_mask,
@@ -621,9 +636,9 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
     )
 
     angle_bad_mask = build_angle_bad_mask(cache, cache["travel__t"])
-    mask = boring_mask & finite_mask(travel, mag, accel_hp_abs) & ~angle_bad_mask
+    mask = active_mask & finite_mask(travel, mag, accel_hp_abs) & ~angle_bad_mask
     if not np.any(mask):
-        raise ValueError(f"{log_name}: no finite diagnostic samples on boring_mask")
+        raise ValueError(f"{log_name}: no finite diagnostic samples on active_mask")
 
     masked_travel = travel[mask]
     masked_mag = mag[mask]
@@ -933,8 +948,8 @@ def print_cache_summary(report: AggregatedReport) -> None:
             ("samples", "samples"),
             ("dt_ms", "dt_ms"),
             ("total_s", "total_s"),
-            ("boring_s", "boring_s"),
-            ("boring_pct", "boring_%"),
+            ("active_s", "active_s"),
+            ("active_pct", "active_%"),
         ],
         rows=report.summary_rows,
         sort_key="log",
@@ -975,7 +990,7 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
             continue
         agg_rows = create_agg_rows(columns, rows)
         print_table(
-            title=f"Error stats on boring_mask ({center_label}): {pred_key} vs {gt_key}",
+            title=f"Error stats on active_mask ({center_label}): {pred_key} vs {gt_key}",
             columns=columns,
             rows=rows,
             sort_key=sort_key,
@@ -1012,7 +1027,7 @@ def print_diagnostics(report: AggregatedReport, *, center_errors: bool, sort_key
     center_label = "centered" if center_errors else "raw"
     print_table(
         title=(
-            f"Binned RMSE summary on boring_mask ({center_label}, GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-"
+            f"Binned RMSE summary on active_mask ({center_label}, GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-"
             f"{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm, bins>={TRAVEL_BIN_MIN_POINTS})"
         ),
         columns=[
@@ -1027,7 +1042,7 @@ def print_diagnostics(report: AggregatedReport, *, center_errors: bool, sort_key
     )
 
     print_table(
-        title=f"Stage RMSE summary on boring_mask ({center_label})",
+        title=f"Stage RMSE summary on active_mask ({center_label})",
         columns=[
             ("log", "log"),
             ("n", "n"),
@@ -1045,21 +1060,21 @@ def print_diagnostics(report: AggregatedReport, *, center_errors: bool, sort_key
     )
 
     print_table(
-        title=f"Conditioned solved RMSE on boring_mask ({center_label})",
+        title=f"Conditioned solved RMSE on active_mask ({center_label})",
         columns=diagnostic_condition_columns(),
         rows=report.diagnostic_condition_rows,
         sort_key=sort_key,
     )
 
     print_table(
-        title=f"Condition occurrence on boring_mask ({center_label}, % of diagnostic samples)",
+        title=f"Condition occurrence on active_mask ({center_label}, % of diagnostic samples)",
         columns=diagnostic_condition_columns(),
         rows=report.diagnostic_condition_ratio_rows,
         sort_key=sort_key,
     )
 
     print_table(
-        title=f"Solver delta vs mag_adj RMSE on boring_mask ({center_label}, negative is better)",
+        title=f"Solver delta vs mag_adj RMSE on active_mask ({center_label}, negative is better)",
         columns=[
             ("log", "log"),
             ("all_d", "all"),
@@ -1076,7 +1091,7 @@ def print_diagnostics(report: AggregatedReport, *, center_errors: bool, sort_key
 
     print_table(
         title=(
-            f"Travel-bin occurrence on boring_mask (% of in-range samples, GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-"
+            f"Travel-bin occurrence on active_mask (% of in-range samples, GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-"
             f"{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm)"
         ),
         columns=[("log", "log"), *travel_bin_columns("pct")],
@@ -1086,7 +1101,7 @@ def print_diagnostics(report: AggregatedReport, *, center_errors: bool, sort_key
 
     print_table(
         title=(
-            f"Per-bin RMSE on boring_mask ({center_label}): travel/mag_model/adj vs travel "
+            f"Per-bin RMSE on active_mask ({center_label}): travel/mag_model/adj vs travel "
             f"[GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm]"
         ),
         columns=[("log", "log"), *travel_bin_columns("rmse")],
@@ -1096,7 +1111,7 @@ def print_diagnostics(report: AggregatedReport, *, center_errors: bool, sort_key
 
     print_table(
         title=(
-            f"Per-bin RMSE on boring_mask ({center_label}): travel/solved vs travel "
+            f"Per-bin RMSE on active_mask ({center_label}): travel/solved vs travel "
             f"[GT {format_bin_edge(TRAVEL_BIN_MIN_MM)}-{format_bin_edge(TRAVEL_BIN_MAX_MM)} mm]"
         ),
         columns=[("log", "log"), *travel_bin_columns("rmse")],
@@ -1117,7 +1132,7 @@ def print_pooled_correlations(report: AggregatedReport, center_label: str) -> No
         for key, label in POOLED_FEATURES
     ]
     print_table(
-        title=f"Pooled correlation with |travel/solved error| on boring_mask ({center_label})",
+        title=f"Pooled correlation with |travel/solved error| on active_mask ({center_label})",
         columns=[
             ("feature", "feature"),
             ("corr", "corr"),
