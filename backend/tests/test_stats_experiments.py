@@ -52,6 +52,7 @@ def write_stats_cache(cache_root: Path, log_id: str, *, include_corrected: bool)
     payload = {
         "travel__t": time_s,
         "travel__x": travel,
+        "active_mask": np.ones(4, dtype=bool),
         "boring_mask": np.ones(4, dtype=bool),
     }
     for key, offset in (
@@ -108,6 +109,47 @@ class CacheInspectionTests(unittest.TestCase):
 
 
 class ExperimentStoreTests(unittest.TestCase):
+    def test_stats_accept_legacy_boring_mask_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "legacy", include_corrected=False)
+            cache_path = cache_root / "legacy" / "cache" / "all.npz"
+            with np.load(cache_path) as cache:
+                payload = {key: cache[key] for key in cache.files if key != "active_mask"}
+            np.savez(cache_path, **payload)
+
+            report = collect_report(
+                ["legacy"],
+                cache_root,
+                center_errors=False,
+                error_threshold=None,
+                include_diagnostics=False,
+            )
+
+            self.assertFalse(report.failures)
+            self.assertEqual(report.summary_rows[0]["active_pct"], 100.0)
+
+    def test_stats_reject_mismatched_activity_mask_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "mismatch", include_corrected=False)
+            cache_path = cache_root / "mismatch" / "cache" / "all.npz"
+            with np.load(cache_path) as cache:
+                payload = {key: cache[key] for key in cache.files}
+            payload["boring_mask"] = np.zeros(4, dtype=bool)
+            np.savez(cache_path, **payload)
+
+            report = collect_report(
+                ["mismatch"],
+                cache_root,
+                center_errors=False,
+                error_threshold=None,
+                include_diagnostics=False,
+            )
+
+            self.assertEqual(len(report.failures), 1)
+            self.assertIn("do not match", str(report.failures[0][1]))
+
     def test_corrected_comparisons_are_optional_per_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache_root = Path(directory)
