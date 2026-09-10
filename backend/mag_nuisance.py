@@ -248,7 +248,7 @@ class MagNuisanceTravelCorrection(Step):
 class MagNuisanceFullRateCorrection(Step):
     """Lift slow nuisance estimates onto the full pipeline timeline.
 
-    Two travel signals are emitted for different purposes:
+    Three full-rate signals are emitted for different purposes:
 
     * ``delta_lifted`` adds only the interpolated 10 Hz correction delta to
       the original solved travel without resampling or low-pass filtering the
@@ -256,6 +256,8 @@ class MagNuisanceFullRateCorrection(Step):
     * ``corrected_mag_travel`` is a full-rate magnetometer-only observation
       made by subtracting the interpolated XYZ nuisance field and projecting
       onto the learned XYZ path. It is suitable for a second fusion pass.
+    * ``corrected_mag_scalar`` is the magnitude of that same nuisance-corrected
+      XYZ signal, before travel inference or confidence blending.
     """
 
     output_alpha: float = 0.75
@@ -284,10 +286,10 @@ class MagNuisanceFullRateCorrection(Step):
                 "initial solved travel, scalar-mag travel, low-rate corrected "
                 "travel, body field, world field, and the learned XYZ path"
             )
-        if len(self.outputs) != 2:
+        if len(self.outputs) != 3:
             raise ValueError(
                 "MagNuisanceFullRateCorrection requires delta-lifted travel "
-                "and corrected magnetic-travel outputs"
+                "corrected magnetic-travel, and corrected magnetic-scalar outputs"
             )
 
         mag_ts: TimeSeries = ws[self.inputs[0]]
@@ -396,4 +398,7 @@ class MagNuisanceFullRateCorrection(Step):
         ws[self.outputs[0]] = full_series_out(delta_lifted, "mm", "travel")
         ws[self.outputs[1]] = full_series_out(
             corrected_mag_travel, "mm", "travel"
+        )
+        ws[self.outputs[2]] = full_series_out(
+            np.linalg.norm(corrected_xyz, axis=1), "milli-Gauss", "gyro1"
         )

@@ -355,10 +355,12 @@ def main() -> None:
             outputs=(
                 "travel/solved/mag_nuisance/delta_lifted",
                 "travel/mag_nuisance/corrected",
+                "mag/nuisance/corrected/norm",
             ),
             plot_keys=(
                 "travel/solved/mag_nuisance/delta_lifted",
                 "travel/mag_nuisance/corrected",
+                "mag/nuisance/corrected/norm",
             ),
         ),
         TravelSolver(
