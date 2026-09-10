@@ -254,7 +254,11 @@ def run_downstream(log_name: str, calibration: MagTravelCalibration) -> tuple[An
     runtimes["nuisance_full_rate"] = timed_step(MagNuisanceFullRateCorrection(
         name="mag_nuisance_full_rate",
         inputs=("mag/lpf", "gyro/lpf/gyro1", "travel/fusion1", "travel/mag_model/adj", "travel/solved/mag_nuisance/10hz", "mag/nuisance/body/10hz", "mag/nuisance/world/10hz", "mag/nuisance/xyz_path"),
-        outputs=("travel/solved/mag_nuisance/delta_lifted", "travel/mag_nuisance/corrected"),
+        outputs=(
+            "travel/solved/mag_nuisance/delta_lifted",
+            "travel/mag_nuisance/corrected",
+            "mag/nuisance/corrected/norm",
+        ),
     ), ws)
     runtimes["fusion2"] = timed_step(TravelSolver(
         name="travel_solver_mag_nuisance",
