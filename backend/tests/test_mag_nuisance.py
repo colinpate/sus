@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 import numpy as np
@@ -11,6 +12,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
 from classes.time_series import TimeSeries
+from classes.runner import Runner
 from mag_nuisance import (
     MAG_NUISANCE_SUMMARY_FIELDS,
     MagNuisanceFullRateCorrection,
@@ -34,6 +36,7 @@ OUTPUTS = (
 FULL_RATE_OUTPUTS = (
     "travel/delta_lifted",
     "travel/mag_corrected",
+    "mag/corrected_norm",
 )
 
 
@@ -132,7 +135,14 @@ class MagNuisanceTravelCorrectionTests(unittest.TestCase):
                 (0.0, 0.0, 1.0),
             ),
         )
-        full_step.run(ws)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            Runner(
+                out_dir=Path(temp_dir),
+                make_plots=False,
+            ).run(ws, [full_step])
+            with np.load(Path(temp_dir) / "cache" / "all.npz") as artifact:
+                cached_norm = artifact["mag/corrected_norm__x"]
+                self.assertEqual(cached_norm.shape, (sample_count, 1))
 
         expected_delta = np.interp(
             time_s,
@@ -145,6 +155,27 @@ class MagNuisanceTravelCorrectionTests(unittest.TestCase):
         )
         self.assertEqual(ws["travel/mag_corrected"].x.shape, (sample_count, 1))
         self.assertTrue(np.all(np.isfinite(ws["travel/mag_corrected"].x)))
+        full_rotations = integrate_gyro(time_s, ws["gyro"].x)
+        state_indices = np.arange(0, sample_count, 10)
+        body_full, world_full = interpolate_nuisance_fields(
+            time_s,
+            ws["travel/corrected"].t,
+            full_rotations,
+            full_rotations[state_indices],
+            ws["mag/body"].x,
+            ws["mag/world"].x,
+        )
+        expected_corrected_norm = np.linalg.norm(
+            mag_xyz - body_full - world_full, axis=1
+        )
+        corrected_norm = ws["mag/corrected_norm"]
+        np.testing.assert_allclose(corrected_norm.t, time_s)
+        np.testing.assert_allclose(
+            corrected_norm.x[:, 0], expected_corrected_norm
+        )
+        self.assertEqual(corrected_norm.units, "milli-Gauss")
+        self.assertEqual(corrected_norm.frame, "gyro1")
+        self.assertAlmostEqual(corrected_norm.meta["fs_hz"], 100.0)
 
     def test_world_field_interpolation_uses_full_rate_rotation(self):
         full_time = np.linspace(0.0, 1.0, 101)

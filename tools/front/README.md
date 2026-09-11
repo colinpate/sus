@@ -18,6 +18,8 @@ Shared front/rear calibration-transfer and time-window experiments live in
 `tools/mag_calibration_experiment.py`. They use this pipeline's cached corrected
 mag magnitude, projected acceleration, ZV points, reference point, and scoring
 mask without changing the canonical cache.
+The post-correction fusion sweeps and magnetic offset-calibration investigation
+are grouped under `mag_offset_calibration/`.
 
 These scripts assume front cache keys such as `accel/lpfhp/proj`, `mag/proj/corr/lpf`,
 and `mag_baseline`. For rear logs, start with `tools/stats_aggregator.py` or `tools/rear/`.
