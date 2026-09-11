@@ -14,6 +14,9 @@ The magnetic nuisance-field investigation is grouped under
 `mag_nuisance/`. Its `README.md` distinguishes reusable solvers, current
 experiments, encoder-supervised diagnostics, and archived prototypes.
 
+The post-correction fusion sweeps and magnetic offset-calibration investigation
+are grouped under `mag_offset_calibration/`.
+
 These scripts assume front cache keys such as `accel/lpfhp/proj`, `mag/proj/corr/lpf`,
 and `mag_baseline`. For rear logs, start with `tools/stats_aggregator.py` or `tools/rear/`.
 
