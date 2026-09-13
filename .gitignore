@@ -221,9 +221,9 @@ __marimo__/
 !config/linkages/*.json
 
 # Versioned stats experiments are the durable, reviewable results catalog.
-!experiments/
-!experiments/stats/
-!experiments/stats/**
+# !experiments/
+experiments/stats/
+# !experiments/stats/**
 
 # Imported source data and deterministic conversions stay local/backed up separately.
 logs/raw/
