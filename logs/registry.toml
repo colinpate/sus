@@ -83,6 +83,16 @@ hypotenuse = 150.0
 top_adjacent = 138.5
 angle_sign = -1.0
 
+[profiles.front-angle-slayer-boxxer.config.signals.angle]
+# This installation uses the rail codes during normal boundary crossings.
+mark_bad_samples = false
+
+[profiles.front-angle-slayer-boxxer.config.steps.get_mag_travel_ref_point]
+min_ref_points = 20
+
+[profiles.front-angle-slayer-boxxer.config.steps.mag_to_travel_model]
+ref_max_offset_delta_mm = 40.0
+
 [profiles.rear-linkage-original.config.steps.linkage_angle_to_travel]
 linkage_path = "config/linkages/stumpjumper-rear-original.json"
 
@@ -1764,7 +1774,7 @@ file = "converted/log-0144.csv"
 source = "raw/log-0144.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0144.import]
@@ -1781,7 +1791,7 @@ file = "converted/log-0145.csv"
 source = "raw/log-0145.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0145.import]
@@ -1798,7 +1808,7 @@ file = "converted/log-0146.csv"
 source = "raw/log-0146.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0146.import]
@@ -1815,7 +1825,7 @@ file = "converted/log-0147.csv"
 source = "raw/log-0147.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0147.import]
@@ -1832,7 +1842,7 @@ file = "converted/log-0148.csv"
 source = "raw/log-0148.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0148.import]
@@ -1849,7 +1859,7 @@ file = "converted/log-0149.csv"
 source = "raw/log-0149.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0149.import]
@@ -1866,7 +1876,7 @@ file = "converted/log-0150.csv"
 source = "raw/log-0150.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0150.import]
@@ -1883,7 +1893,7 @@ file = "converted/log-0151.csv"
 source = "raw/log-0151.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0151.import]
@@ -1900,7 +1910,7 @@ file = "converted/log-0152.csv"
 source = "raw/log-0152.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0152.import]
@@ -1917,7 +1927,7 @@ file = "converted/log-0153.csv"
 source = "raw/log-0153.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0153.import]
@@ -1934,7 +1944,7 @@ file = "converted/log-0154.csv"
 source = "raw/log-0154.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0154.import]
@@ -1951,7 +1961,7 @@ file = "converted/log-0155.csv"
 source = "raw/log-0155.bin"
 pipeline = "front"
 record_format = "dual_mag"
-sets = []
+sets = ["slayer"]
 tags = []
 
 [logs.log-0155.import]

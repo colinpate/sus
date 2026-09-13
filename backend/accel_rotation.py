@@ -29,6 +29,7 @@ class FilterChunkPairs(Step):
 
         jitter_rejects = 0
         diff_rejects = 0
+        invalid_rejects = 0
 
         still_pairs = []
         for i, (chunk_a, chunk_b) in enumerate(zip(a.iter_chunks(), b.iter_chunks())):
@@ -36,7 +37,15 @@ class FilterChunkPairs(Step):
             mean_accels = []
             for chunk_i in [chunk_a, chunk_b]:
                 chunk_i = chunk_i.x  # (N, 3)
-                norm_samples = chunk_i / np.linalg.norm(chunk_i, axis=1, keepdims=True)
+                sample_norms = np.linalg.norm(chunk_i, axis=1, keepdims=True)
+                if (
+                    not np.all(np.isfinite(chunk_i))
+                    or not np.all(np.isfinite(sample_norms))
+                    or np.any(sample_norms <= 1e-9)
+                ):
+                    invalid_rejects += 1
+                    break
+                norm_samples = chunk_i / sample_norms
                 mean_vector = np.mean(norm_samples, axis=0)
                 conf = np.linalg.norm(mean_vector)
                 if conf < self.conf_thresh:
@@ -53,9 +62,21 @@ class FilterChunkPairs(Step):
                     continue
                 still_pairs.append([chunk_a, chunk_b])
 
+        if not still_pairs:
+            raise ValueError(
+                "Accelerometer alignment found no valid stationary sensor pairs "
+                f"({diff_rejects} gravity/difference rejects, {jitter_rejects} jitter rejects, "
+                f"{invalid_rejects} invalid/zero-output rejects). Check for sensor dropout or "
+                "record several stationary poses with both accelerometers working."
+            )
+
         self.get_pair_stats(still_pairs)
 
-        print(f"Accel pose alignment: Rejected {diff_rejects} diff, {jitter_rejects} jitter, remaining {len(still_pairs)}")
+        print(
+            "Accel pose alignment: Rejected "
+            f"{diff_rejects} diff, {jitter_rejects} jitter, {invalid_rejects} invalid, "
+            f"remaining {len(still_pairs)}"
+        )
         ws[self.outputs[0]] = still_pairs
 
     def get_pair_stats(self, pairs):
@@ -76,11 +97,16 @@ class FilterChunkPairs(Step):
 
 @dataclass
 class FilterColinearPairs(Step):
-    colinear_thresh_deg = 10
+    colinear_thresh_deg: float = 10
+    min_pairs: int = 2
 
     """Example 'fusion': difference between two aligned signals."""
     def run(self, ws: Workspace) -> None:
         pairs: List = ws[self.inputs[0]]
+        if not pairs:
+            raise ValueError(
+                "Accelerometer alignment has no stationary pose pairs to test for pose diversity."
+            )
         
         # Normalize chunks to get unit direction vectors
         chunks_u = []
@@ -101,6 +127,14 @@ class FilterColinearPairs(Step):
                 filt_pairs.append(pairs[i])
 
         print(f"Colinear pair removal: Kept {len(filt_pairs)} out of {len(pairs)}")
+
+        if len(filt_pairs) < self.min_pairs:
+            raise ValueError(
+                "Accelerometer alignment is under-constrained: "
+                f"only {len(filt_pairs)} non-collinear stationary pose pairs remained "
+                f"after filtering {len(pairs)} candidates; at least {self.min_pairs} are required. "
+                "Record stationary samples in several substantially different bike orientations."
+            )
         
         ws[self.outputs[0]] = filt_pairs
         if len(self.outputs) == 3:
@@ -111,9 +145,16 @@ class FilterColinearPairs(Step):
 
 @dataclass
 class RotationFromPairs(Step):
+    min_pairs: int = 2
+
     """Example 'fusion': difference between two aligned signals."""
     def run(self, ws: Workspace) -> None:
         pairs: List = ws[self.inputs[0]]
+        if len(pairs) < self.min_pairs:
+            raise ValueError(
+                "Accelerometer rotation is under-constrained: "
+                f"received {len(pairs)} stationary pose pairs; at least {self.min_pairs} are required."
+            )
 
         A_u = []
         B_u = []

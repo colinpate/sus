@@ -28,6 +28,10 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
     ref_zero_percentile: float = 8.0
     ref_neg_fallback_max_pct: float = 0.08
     ref_fallback_accel_quantile: float = 70.0
+    ref_max_offset_delta_mm: float | None = None
+    ref_max_out_of_range_pct: float = 0.08
+    ref_min_travel_mm: float = 0.0
+    ref_max_travel_mm: float = 200.0
     apply_ref_point: bool = True
 
     def run(self, ws: Workspace) -> None:
@@ -67,7 +71,12 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
                 ref_point[0], 
                 ref_point[1], 
                 mag, 
-                ref_fallback_mask
+                ref_fallback_mask,
+                max_offset_delta_mm=self.param(
+                    ws,
+                    "ref_max_offset_delta_mm",
+                    self.ref_max_offset_delta_mm,
+                ),
             )
         else:
             x_preds_adj = x_preds
@@ -111,30 +120,97 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
             return np.zeros_like(accel_abs, dtype=bool)
         return motion_mask
 
-    def adjust_with_ref_point(self, x_preds, ref_x, ref_mag, mag=None, active_mask=None):
-        ref_x_pred = self.model.pred_x(ref_mag)
-        offset = - ref_x_pred + ref_x
-        x_preds_ref = x_preds + offset
+    def adjust_with_ref_point(
+        self,
+        x_preds,
+        ref_x,
+        ref_mag,
+        mag=None,
+        active_mask=None,
+        *,
+        max_offset_delta_mm: float | None = None,
+    ):
+        x_preds = np.asarray(x_preds, dtype=float)
+        finite_mag = None if mag is None else np.asarray(mag, dtype=float)
+        if finite_mag is not None:
+            finite_mag = finite_mag[np.isfinite(finite_mag)]
 
-        if mag is not None and active_mask is not None:
+        zero_mag = None
+        zero_offset = None
+        if finite_mag is not None and finite_mag.size:
+            zero_mag = float(np.percentile(finite_mag, self.ref_zero_percentile))
+            zero_offset = -float(self.model.pred_x(zero_mag))
+
+        ref_values = np.asarray([ref_x, ref_mag], dtype=float)
+        if not np.all(np.isfinite(ref_values)):
+            if zero_offset is None:
+                raise ValueError(
+                    "Absolute travel reference is non-finite and no finite magnetic samples "
+                    "are available for a fallback."
+                )
+            print("Ref-point fallback: absolute reference contains non-finite values")
+            return x_preds + zero_offset
+
+        ref_x_pred = float(self.model.pred_x(ref_mag))
+        offset = -ref_x_pred + float(ref_x)
+        if not np.isfinite(offset):
+            if zero_offset is None:
+                raise ValueError("Absolute travel reference produced a non-finite offset")
+            print("Ref-point fallback: absolute reference produced a non-finite offset")
+            return x_preds + zero_offset
+
+        fallback_reasons = []
+        if (
+            zero_offset is not None
+            and max_offset_delta_mm is not None
+            and abs(offset - zero_offset) > max_offset_delta_mm
+        ):
+            fallback_reasons.append(
+                f"reference offset differs from the data-driven zero by "
+                f"{abs(offset - zero_offset):.1f} mm"
+            )
+
+        x_preds_ref = x_preds + offset
+        if active_mask is not None:
             active_mask = np.asarray(active_mask, dtype=bool).reshape(-1)
-            if np.any(active_mask):
-                neg_pct = float(np.mean(x_preds_ref[active_mask] < 0))
+            if active_mask.shape != x_preds.shape:
+                raise ValueError(
+                    f"Reference fallback mask shape differs from predictions: "
+                    f"{active_mask.shape} vs {x_preds.shape}"
+                )
+            valid_active = active_mask & np.isfinite(x_preds_ref)
+            if np.any(valid_active):
+                active_preds = x_preds_ref[valid_active]
+                neg_pct = float(np.mean(active_preds < self.ref_min_travel_mm))
+                high_pct = float(np.mean(active_preds > self.ref_max_travel_mm))
                 print(
-                    "Ref-point fallback check: {:.1f}% of motion-mask samples have negative predicted travel".format(
-                        neg_pct * 100
+                    "Ref-point fallback check: {:.1f}% below {:.0f} mm, {:.1f}% above {:.0f} mm "
+                    "in motion-mask samples".format(
+                        neg_pct * 100,
+                        self.ref_min_travel_mm,
+                        high_pct * 100,
+                        self.ref_max_travel_mm,
                     )
                 )
                 if neg_pct > self.ref_neg_fallback_max_pct:
-                    zero_mag = float(np.percentile(mag, self.ref_zero_percentile))
-                    zero_offset = -float(self.model.pred_x(zero_mag))
-                    if zero_offset > offset:
-                        print(
-                            f"Ref-point fallback: neg_pct={neg_pct * 100:.1f}% exceeds {self.ref_neg_fallback_max_pct * 100:.1f}%, "
-                            f"switching offset from {offset:.1f} to {zero_offset:.1f} using mag p{self.ref_zero_percentile:.0f}={zero_mag:.1f}"
-                        )
-                        offset = zero_offset
-                        x_preds_ref = x_preds + offset
+                    fallback_reasons.append(
+                        f"{neg_pct * 100:.1f}% of motion-mask predictions are below "
+                        f"{self.ref_min_travel_mm:.0f} mm"
+                    )
+                if high_pct > self.ref_max_out_of_range_pct:
+                    fallback_reasons.append(
+                        f"{high_pct * 100:.1f}% of motion-mask predictions are above "
+                        f"{self.ref_max_travel_mm:.0f} mm"
+                    )
+
+        if fallback_reasons and zero_offset is not None:
+            print(
+                "Ref-point fallback: "
+                + "; ".join(fallback_reasons)
+                + f"; switching offset from {offset:.1f} to {zero_offset:.1f} "
+                + f"using mag p{self.ref_zero_percentile:.0f}={zero_mag:.1f}"
+            )
+            return x_preds + zero_offset
 
         return x_preds_ref
 
@@ -262,6 +338,8 @@ class GetMagTravelRefPoint(Step):
 
     ref_mag_range: float = 2000
     min_ref_mag: float = 2000
+    min_ref_points: int = 1
+    ref_zero_percentile: float = 8.0
 
     debug: bool = False
 
@@ -294,7 +372,21 @@ class GetMagTravelRefPoint(Step):
         if len(mag_chunks):
             mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
             print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
-        abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks)
+        finite_mag = mag[np.isfinite(mag)]
+        if finite_mag.size:
+            fallback_ref_mag = float(
+                np.percentile(finite_mag, self.param(ws, "ref_zero_percentile", self.ref_zero_percentile))
+            )
+        else:
+            fallback_ref_mag = float(mag_baseline + self.min_ref_mag)
+        abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(
+            mag_chunks,
+            a_intint_chunks,
+            mag_baseline,
+            gt_x_chunks,
+            min_ref_points=int(self.param(ws, "min_ref_points", self.min_ref_points)),
+            fallback_ref_mag=fallback_ref_mag,
+        )
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
         ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
@@ -362,20 +454,57 @@ class GetMagTravelRefPoint(Step):
 
         return mag_chunks, a_intint_chunks, slices, gt_x_chunks
 
-    def get_abs_pos_ref(self, mag_chunks, a_intint_chunks, mag_baseline, gt_x_chunks=None):
+    def get_abs_pos_ref(
+        self,
+        mag_chunks,
+        a_intint_chunks,
+        mag_baseline,
+        gt_x_chunks=None,
+        *,
+        min_ref_points: int | None = None,
+        fallback_ref_mag: float | None = None,
+    ):
+        if min_ref_points is None:
+            min_ref_points = self.min_ref_points
+        if fallback_ref_mag is None:
+            fallback_ref_mag = float(mag_baseline + self.min_ref_mag)
+
         if len(mag_chunks) == 0:
-            print("No calibration chunks found, cannot determine absolute position reference point, returning 0 and mag baseline + min ref mag")
-            return 0, mag_baseline + self.min_ref_mag
+            print(
+                "No calibration chunks found; using the data-driven zero-travel "
+                "magnetic reference"
+            )
+            return 0.0, fallback_ref_mag
         x_points = np.concatenate(a_intint_chunks)
         mag_points = np.concatenate(mag_chunks)
         print("Absolute position reference input points", x_points.shape[0])
 
         mag_center = max(mag_baseline + self.min_ref_mag, np.median(mag_points))
         center_range = self.ref_mag_range / 2
-        thresh_mask = (mag_points > mag_center - center_range) & (mag_points < mag_center + center_range)
-        print(f"Using {np.sum(thresh_mask)} points within mag range {mag_center - center_range} to {mag_center + center_range} for absolute position reference stats")
+        thresh_mask = (
+            np.isfinite(x_points)
+            & np.isfinite(mag_points)
+            & (mag_points > mag_center - center_range)
+            & (mag_points < mag_center + center_range)
+        )
+        selected_count = int(np.sum(thresh_mask))
+        print(f"Using {selected_count} points within mag range {mag_center - center_range} to {mag_center + center_range} for absolute position reference stats")
+        if selected_count < min_ref_points:
+            print(
+                "Absolute position reference is under-supported: "
+                f"found {selected_count} valid points, need at least {min_ref_points}; "
+                "using the data-driven zero-travel magnetic reference"
+            )
+            return 0.0, fallback_ref_mag
+
         abs_pos_ref_x = np.median(x_points[thresh_mask])
         abs_pos_ref_mag = np.median(mag_points[thresh_mask])
+        if not np.isfinite(abs_pos_ref_x) or not np.isfinite(abs_pos_ref_mag):
+            print(
+                "Absolute position reference is non-finite; using the data-driven "
+                "zero-travel magnetic reference"
+            )
+            return 0.0, fallback_ref_mag
         print(f"X STD: {np.std(x_points[thresh_mask]):.1f} Mag STD: {np.std(mag_points[thresh_mask]):.1f}")
 
         if gt_x_chunks is not None:

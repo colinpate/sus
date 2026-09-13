@@ -164,6 +164,8 @@ class AngleLoader:
     mark_bad_samples: bool = True
     bad_mask_pad_samples: int = ANGLE_RAW_PAD_SAMPLES
     allow_degenerate: bool = False
+    unwrap: bool = True
+    encoder_counts: int = 4096
 
     def load(self) -> Workspace:
         df = pd.read_csv(self.path)
@@ -175,7 +177,16 @@ class AngleLoader:
         else:
             bad_mask = np.zeros_like(angle_raw, dtype=bool)
 
-        x_raw = ((angle_raw + self.offset) % 4096) * np.pi * 2 / 4096
+        if self.encoder_counts <= 0 or self.encoder_counts % 2:
+            raise ValueError("encoder_counts must be a positive even integer")
+
+        angle_counts = (angle_raw + self.offset) % self.encoder_counts
+        x_raw = angle_counts * np.pi * 2 / self.encoder_counts
+        if self.unwrap:
+            # Encoder position is circular. Remove full-revolution jumps before
+            # interpolation and filtering so a 4095 -> 0 transition remains a
+            # small physical movement instead of a nearly 2-pi spike.
+            x_raw = np.unwrap(x_raw)
         if self.interpolate_bad:
             interpolated_bad_samples = False
             good_samples = int(np.sum(~bad_mask))
@@ -214,6 +225,8 @@ class AngleLoader:
                     "fs_hz": fs_hz,
                     "source_path": source_path,
                     "angle_bad_pct": float(np.mean(bad_mask) * 100.0),
+                    "angle_unwrapped": self.unwrap,
+                    "encoder_counts": self.encoder_counts,
                 },
             ),
             "angle/bad_mask": TimeSeries(

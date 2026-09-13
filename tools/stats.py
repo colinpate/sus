@@ -123,6 +123,34 @@ def process_log(log: ResolvedLog) -> None:
     )
 
 
+def process_logs(
+    logs: Iterable[ResolvedLog],
+    *,
+    continue_on_failure: bool = False,
+) -> list[tuple[ResolvedLog, subprocess.CalledProcessError]]:
+    failures: list[tuple[ResolvedLog, subprocess.CalledProcessError]] = []
+    for log in logs:
+        print(f"Running {log.pipeline} pipeline for {log.log_id}...", flush=True)
+        try:
+            process_log(log)
+        except subprocess.CalledProcessError as exc:
+            if not continue_on_failure:
+                raise
+            failures.append((log, exc))
+    return failures
+
+
+def print_processing_failures(
+    failures: Iterable[tuple[ResolvedLog, subprocess.CalledProcessError]],
+) -> None:
+    rows = list(failures)
+    if not rows:
+        return
+    print(f"Pipeline processing failures ({len(rows)}):")
+    for log, exc in rows:
+        print(f"  {log.log_id:<24} {log.pipeline} pipeline exited with code {exc.returncode}")
+
+
 def inspect_logs(logs: Iterable[ResolvedLog], cache_root: Path) -> list[CacheInspection]:
     inspections: list[CacheInspection] = []
     for log in logs:
@@ -323,9 +351,8 @@ def command_run(args: argparse.Namespace) -> int:
         stale = [inspection.log for inspection in inspections if not inspection.fresh]
         if stale:
             print(f"Processing {len(stale)} stale or missing log(s) with the current pipeline...")
-        for log in stale:
-            print(f"Running {log.pipeline} pipeline for {log.log_id}...", flush=True)
-            process_log(log)
+        processing_failures = process_logs(stale, continue_on_failure=args.all_statuses)
+        print_processing_failures(processing_failures)
         inspections = inspect_logs(logs, args.cache_root)
 
     nonfresh = [inspection for inspection in inspections if not inspection.fresh]
