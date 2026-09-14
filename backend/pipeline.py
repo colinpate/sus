@@ -28,7 +28,13 @@ from mag_nuisance import (
     MagNuisanceFullRateCorrection,
     MagNuisanceTravelCorrection,
 )
-from fusion import GetMagTravelRefPoint, GetMagToTravelModel, GetErrorStats, GetMagBaseline
+from fusion import (
+    ApplyMagTravelRefPoint,
+    GetMagBaseline,
+    GetMagTravelRefPoint,
+    GetMagToTravelModel,
+    GetErrorStats,
+)
 from travel_solver import TravelSolver
 from classes.time_series import TimeSeries
 from classes.runner import Runner, PlotSpec
@@ -276,11 +282,6 @@ def main() -> None:
             inputs=("mag/norm/corr/lpf", "accel/lpfhp/proj"),
             outputs=("mag_baseline",)
         ),
-        GetMagTravelRefPoint(
-            name="get_mag_travel_ref_point",
-            inputs=("mag/norm/corr/lpf", "accel/lpfhp/proj", "mag_baseline", "travel"),
-            outputs=("mag_travel_ref_point",)
-        ),
         GetMagToTravelModel(
             name="mag_to_travel_model",
             inputs=(
@@ -289,7 +290,6 @@ def main() -> None:
                 "travel", 
                 "mag/norm/bad_mask",
                 "mag_zv_points",
-                "mag_travel_ref_point",
                 "mag_baseline"
                 ),
             outputs=(
@@ -303,6 +303,7 @@ def main() -> None:
                 PlotSpec(kind="scatter", key="fusion_scatter_points"),
             ),
             train_with_mask=False,
+            apply_ref_point=False,
         ),
         GetErrorStats(
             name="x_preds_stats",
@@ -326,7 +327,8 @@ def main() -> None:
                 "mag_baseline",
             ),
             outputs=("travel/fusion1",),
-            plot_keys=("travel/fusion1",)
+            plot_keys=("travel/fusion1",),
+            weight_overrides={"oob": 0.0},
         ),
         # Estimate slow nuisance states separately from their full-rate
         # application. The low-rate travel output is retained only for the
@@ -373,14 +375,42 @@ def main() -> None:
                 "mag/nuisance/corrected/norm",
             ),
         ),
+        GetMagBaseline(
+            name="get_mag_nuisance_corrected_baseline",
+            inputs=("mag/nuisance/corrected/norm", "accel/lpfhp/proj"),
+            outputs=("mag/nuisance/corrected/baseline",),
+        ),
+        GetMagTravelRefPoint(
+            name="get_mag_travel_ref_point",
+            inputs=(
+                "mag/nuisance/corrected/norm",
+                "accel/lpfhp/proj",
+                "mag/nuisance/corrected/baseline",
+                "travel",
+            ),
+            outputs=("mag_travel_ref_point",),
+        ),
+        ApplyMagTravelRefPoint(
+            name="apply_mag_travel_ref_point",
+            inputs=(
+                "travel/mag_nuisance/corrected",
+                "mag/nuisance/corrected/norm",
+                "accel/lpfhp/proj",
+                "mag/norm/bad_mask",
+                "mag_travel_ref_point",
+                "mag_model_coeffs",
+            ),
+            outputs=("travel/mag_nuisance/corrected/adj",),
+            plot_keys=("travel/mag_nuisance/corrected/adj",),
+        ),
         TravelSolver(
             name="travel_solver_mag_nuisance",
             inputs=(
                 "accel/lpfhp/proj",
-                "mag/norm/corr/lpf",
-                "travel/mag_nuisance/corrected",
+                "mag/nuisance/corrected/norm",
+                "travel/mag_nuisance/corrected/adj",
                 "mag_zv_points",
-                "mag_baseline",
+                "mag/nuisance/corrected/baseline",
             ),
             outputs=("travel/solved",),
             plot_keys=("travel/solved",),
