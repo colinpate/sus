@@ -344,6 +344,18 @@ class GetMagTravelRefPoint(Step):
     debug: bool = False
 
     def run(self, ws: Workspace) -> None:
+        fixed_reference = self.param(ws, "fixed_reference", None)
+        if fixed_reference is not None:
+            reference = np.asarray(fixed_reference, dtype=float).reshape(-1)
+            if reference.shape != (2,) or not np.all(np.isfinite(reference)):
+                raise ValueError("fixed_reference must contain finite [travel_mm, magnitude_mG]")
+            print(
+                "Using fixed absolute position reference point: "
+                f"x={reference[0]:.1f} mm, mag={reference[1]:.1f} mG"
+            )
+            ws[self.outputs[0]] = reference
+            return
+
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
         mag_baseline: float = ws[self.inputs[2]][0]
@@ -534,6 +546,15 @@ class GetMagBaseline(Step):
     still_a_max: float = 1000 # mm/s^2
 
     def run(self, ws: Workspace) -> None:
+        fixed_baseline = self.param(ws, "fixed_baseline_mG", None)
+        if fixed_baseline is not None:
+            baseline = float(fixed_baseline)
+            if not np.isfinite(baseline):
+                raise ValueError("fixed_baseline_mG must be finite")
+            print("Using fixed mag baseline", baseline)
+            ws[self.outputs[0]] = np.array([baseline])
+            return
+
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
         mag = mag_ts.x[:, 0]

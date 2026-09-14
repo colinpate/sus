@@ -128,11 +128,22 @@ class FilterColinearPairs(Step):
 
         print(f"Colinear pair removal: Kept {len(filt_pairs)} out of {len(pairs)}")
 
-        if len(filt_pairs) < self.min_pairs:
+        min_pairs = int(self.param(ws, "min_pairs", self.min_pairs))
+        allow_underconstrained = bool(self.param(ws, "allow_underconstrained", False))
+        if len(filt_pairs) < min_pairs and allow_underconstrained:
+            # A fixed downstream rotation can make pose diversity unnecessary,
+            # but the stationary pairs remain useful for static-offset correction.
+            filt_pairs = pairs
+            print(
+                "Accelerometer pose diversity is under-constrained; retaining "
+                f"{len(filt_pairs)} stationary pair(s) for fixed-alignment offset correction"
+            )
+
+        if len(filt_pairs) < min_pairs and not allow_underconstrained:
             raise ValueError(
                 "Accelerometer alignment is under-constrained: "
                 f"only {len(filt_pairs)} non-collinear stationary pose pairs remained "
-                f"after filtering {len(pairs)} candidates; at least {self.min_pairs} are required. "
+                f"after filtering {len(pairs)} candidates; at least {min_pairs} are required. "
                 "Record stationary samples in several substantially different bike orientations."
             )
         
@@ -149,6 +160,19 @@ class RotationFromPairs(Step):
 
     """Example 'fusion': difference between two aligned signals."""
     def run(self, ws: Workspace) -> None:
+        fixed_rotation = self.param(ws, "fixed_rotation_matrix", None)
+        if fixed_rotation is not None:
+            rotation = np.asarray(fixed_rotation, dtype=float)
+            if rotation.shape != (3, 3) or not np.all(np.isfinite(rotation)):
+                raise ValueError("fixed_rotation_matrix must be a finite 3x3 matrix")
+            if not np.allclose(rotation @ rotation.T, np.eye(3), atol=1e-5):
+                raise ValueError("fixed_rotation_matrix must be orthonormal")
+            if not np.isclose(np.linalg.det(rotation), 1.0, atol=1e-5):
+                raise ValueError("fixed_rotation_matrix must be a proper rotation with determinant +1")
+            print("Using fixed accelerometer rotation matrix", rotation)
+            ws[self.outputs[0]] = rotation
+            return
+
         pairs: List = ws[self.inputs[0]]
         if len(pairs) < self.min_pairs:
             raise ValueError(

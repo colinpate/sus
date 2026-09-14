@@ -12,7 +12,8 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
 from classes.time_series import TimeSeries
-from fusion import GetErrorStats, GetMagToTravelModel, GetMagTravelRefPoint
+from classes.log_config import attach_log_config
+from fusion import GetErrorStats, GetMagBaseline, GetMagToTravelModel, GetMagTravelRefPoint
 from mag_to_travel_model_core import MagToTravelModel
 
 
@@ -52,6 +53,38 @@ class GetErrorStatsTests(unittest.TestCase):
 
 
 class AbsoluteReferenceTests(unittest.TestCase):
+    def test_fixed_reference_bypasses_estimation(self):
+        ws = {}
+        attach_log_config(
+            ws,
+            {"steps": {"reference": {"fixed_reference": [42.0, 3210.0]}}},
+        )
+        step = GetMagTravelRefPoint(
+            name="reference",
+            inputs=("mag", "accel", "baseline", "travel"),
+            outputs=("reference",),
+        )
+
+        step.run(ws)
+
+        np.testing.assert_allclose(ws["reference"], [42.0, 3210.0])
+
+    def test_fixed_baseline_bypasses_estimation(self):
+        ws = {}
+        attach_log_config(
+            ws,
+            {"steps": {"baseline": {"fixed_baseline_mG": 1450.0}}},
+        )
+        step = GetMagBaseline(
+            name="baseline",
+            inputs=("mag", "accel"),
+            outputs=("baseline",),
+        )
+
+        step.run(ws)
+
+        np.testing.assert_allclose(ws["baseline"], [1450.0])
+
     def test_under_supported_reference_uses_finite_fallback(self):
         step = GetMagTravelRefPoint(
             name="reference",

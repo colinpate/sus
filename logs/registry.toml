@@ -93,6 +93,15 @@ min_ref_points = 20
 [profiles.front-angle-slayer-boxxer.config.steps.mag_to_travel_model]
 ref_max_offset_delta_mm = 40.0
 
+# Shared pod-to-pod alignment calibrated from the five complete Slayer parent
+# logs used to derive the slayer-filtered set. Individual derived logs retain
+# their own stationary-pose offset correction, but do not re-estimate rotation.
+[profiles.slayer-filtered-alignment-v1.config.steps.filter_colinear]
+allow_underconstrained = true
+
+[profiles.slayer-filtered-alignment-v1.config.steps.accel_rot_from_pairs]
+fixed_rotation_matrix = [[0.894924041399688, 0.01647756812859, -0.445914173214327], [-0.429467114229456, 0.30304761759644, -0.850717426214219], [0.121115473496465, 0.952832950321141, 0.278281172309657]]
+
 [profiles.rear-linkage-original.config.steps.linkage_angle_to_travel]
 linkage_path = "config/linkages/stumpjumper-rear-original.json"
 
@@ -1970,3 +1979,185 @@ duration_s = 145.9
 sequence_gaps = 0
 source_sha256 = "7939372f025aaaf37dc5a9368a8e6599212ed3736035cf9a0aed4120c1a63ab2"
 output_sha256 = "1cee5cec29c073d8fd724e96b077f67f29bd9ffffdc0c03eda8c6dd1b6d65ee6"
+
+[logs.log-0145-filtered-c01]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0145-filtered-c01.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0145-filtered-c01.metadata]
+parent_log = "log-0145"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 0
+source_stop_index_100hz = 39029
+source_start_row_200hz = 0
+source_stop_row_200hz = 78058
+active_s_at_selection = 348.37
+selection_dropout_fraction = 0.0
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0145-filtered-c01.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1589.8094311506377
+
+[logs.log-0145-filtered-c01.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [59.70822822060133, 3082.6808146518842]
+
+[logs.log-0147-filtered-c01]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0147-filtered-c01.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0147-filtered-c01.metadata]
+parent_log = "log-0147"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 674
+source_stop_index_100hz = 21512
+source_start_row_200hz = 1348
+source_stop_row_200hz = 43024
+active_s_at_selection = 81.56
+selection_dropout_fraction = 0.19997120644975524
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0147-filtered-c01.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1406.2907895982073
+
+[logs.log-0147-filtered-c01.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [0.0, 1249.5147284632924]
+
+[logs.log-0147-filtered-c02]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0147-filtered-c02.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0147-filtered-c02.metadata]
+parent_log = "log-0147"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 23132
+source_stop_index_100hz = 61371
+source_start_row_200hz = 46264
+source_stop_row_200hz = 122742
+active_s_at_selection = 319.6
+selection_dropout_fraction = 0.1999790789508094
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0147-filtered-c02.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1406.2907895982073
+
+[logs.log-0147-filtered-c02.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [0.0, 1249.5147284632924]
+
+[logs.log-0151-filtered-c01]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0151-filtered-c01.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0151-filtered-c01.metadata]
+parent_log = "log-0151"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 6573
+source_stop_index_100hz = 16564
+source_start_row_200hz = 13146
+source_stop_row_200hz = 33128
+active_s_at_selection = 86.59
+selection_dropout_fraction = 0.19997998198378542
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0151-filtered-c01.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1478.5659806981346
+
+[logs.log-0151-filtered-c01.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [78.19572979772903, 3334.5191674375515]
+
+[logs.log-0152-filtered-c01]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0152-filtered-c01.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0152-filtered-c01.metadata]
+parent_log = "log-0152"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 0
+source_stop_index_100hz = 16176
+source_start_row_200hz = 0
+source_stop_row_200hz = 32352
+active_s_at_selection = 149.14
+selection_dropout_fraction = 0.19998763600395648
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0152-filtered-c01.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1504.0831622403791
+
+[logs.log-0152-filtered-c01.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [0.0, 1311.4907327788778]
+
+[logs.log-0152-filtered-c02]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0152-filtered-c02.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0152-filtered-c02.metadata]
+parent_log = "log-0152"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 31185
+source_stop_index_100hz = 41401
+source_start_row_200hz = 62370
+source_stop_row_200hz = 82801
+active_s_at_selection = 92.55
+selection_dropout_fraction = 0.1999804228660924
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0152-filtered-c02.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1504.0831622403791
+
+[logs.log-0152-filtered-c02.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [0.0, 1311.4907327788778]
+
+[logs.log-0155-filtered-c01]
+profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
+status = "usable"
+file = "converted/log-0155-filtered-c01.csv"
+pipeline = "front"
+record_format = "dual_mag"
+sets = ["slayer-filtered"]
+tags = ["derived", "paper", "dropout-retained"]
+
+[logs.log-0155-filtered-c01.metadata]
+parent_log = "log-0155"
+derivation_manifest = "logs/slayer-filtered-manifest.json"
+source_start_index_100hz = 0
+source_stop_index_100hz = 14580
+source_start_row_200hz = 0
+source_stop_row_200hz = 29160
+active_s_at_selection = 133.28
+selection_dropout_fraction = 0.061796982167352536
+notes = "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+
+[logs.log-0155-filtered-c01.overrides.steps.get_mag_baseline]
+fixed_baseline_mG = 1606.6737633586804
+
+[logs.log-0155-filtered-c01.overrides.steps.get_mag_travel_ref_point]
+fixed_reference = [0.0, 1342.9160200017532]
