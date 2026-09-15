@@ -434,7 +434,7 @@ class GetMagTravelRefPoint(Step):
     bump_dx_min: int = 20
 
     still_len_s: float = 0.1 # seconds
-    bump_len_s: float = 0.3 # seconds
+    bump_len_s: float = 0.2 # seconds
     stride_s: float = 0.05 # seconds
     skips: int = 3 # number of following strides to skip if we find a good one, prevents repeats
 
@@ -469,9 +469,18 @@ class GetMagTravelRefPoint(Step):
 
         assert mag_ts.units == "milli-Gauss"
         assert accel_ts.units == "m/s^2"
-        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
-        bump_len = int(self.bump_len_s * mag_ts.meta["fs_hz"])
-        stride = int(self.stride_s * mag_ts.meta["fs_hz"])
+        still_len = max(
+            1,
+            int(float(self.param(ws, "still_len_s", self.still_len_s)) * mag_ts.meta["fs_hz"]),
+        )
+        bump_len = max(
+            1,
+            int(float(self.param(ws, "bump_len_s", self.bump_len_s)) * mag_ts.meta["fs_hz"]),
+        )
+        stride = max(
+            1,
+            int(float(self.param(ws, "stride_s", self.stride_s)) * mag_ts.meta["fs_hz"]),
+        )
 
         mag_chunks, a_intint_chunks, _, gt_x_chunks = self.find_chunks(
             accel, 
@@ -481,7 +490,11 @@ class GetMagTravelRefPoint(Step):
             still_len, 
             bump_len, 
             stride, 
-            mag_baseline
+            mag_baseline,
+            still_a_max=float(self.param(ws, "still_a_max", self.still_a_max)),
+            bump_mag_min=float(self.param(ws, "bump_mag_min", self.bump_mag_min)),
+            bump_dx_min=float(self.param(ws, "bump_dx_min", self.bump_dx_min)),
+            skips=int(self.param(ws, "skips", self.skips)),
         )
         #if len(mag_chunks):
         #    mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
@@ -492,7 +505,9 @@ class GetMagTravelRefPoint(Step):
                 np.percentile(finite_mag, self.param(ws, "ref_zero_percentile", self.ref_zero_percentile))
             )
         else:
-            fallback_ref_mag = float(mag_baseline + self.min_ref_mag)
+            fallback_ref_mag = float(
+                mag_baseline + float(self.param(ws, "min_ref_mag", self.min_ref_mag))
+            )
         abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(
             mag_chunks,
             a_intint_chunks,
@@ -500,13 +515,34 @@ class GetMagTravelRefPoint(Step):
             gt_x_chunks,
             min_ref_points=int(self.param(ws, "min_ref_points", self.min_ref_points)),
             fallback_ref_mag=fallback_ref_mag,
+            min_ref_mag=float(self.param(ws, "min_ref_mag", self.min_ref_mag)),
+            ref_mag_range=float(self.param(ws, "ref_mag_range", self.ref_mag_range)),
         )
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
         ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
 
-    def find_chunks(self, accel, mag, gt_x, dt_s, still_len, bump_len, stride, still_mag_max):
+    def find_chunks(
+        self,
+        accel,
+        mag,
+        gt_x,
+        dt_s,
+        still_len,
+        bump_len,
+        stride,
+        still_mag_max,
+        *,
+        still_a_max: float | None = None,
+        bump_mag_min: float | None = None,
+        bump_dx_min: float | None = None,
+        skips: int | None = None,
+    ):
         # Find the chunks
+        still_a_max = self.still_a_max if still_a_max is None else still_a_max
+        bump_mag_min = self.bump_mag_min if bump_mag_min is None else bump_mag_min
+        bump_dx_min = self.bump_dx_min if bump_dx_min is None else bump_dx_min
+        skips = self.skips if skips is None else skips
         a_mms = accel * 1000
         still_slice = slice(0, still_len)
         bump_slice = slice(still_len, still_len + bump_len)
@@ -542,18 +578,18 @@ class GetMagTravelRefPoint(Step):
 
                 if np.mean(mag_still) > still_mag_max:
                     continue
-                if max(abs(a_still)) > self.still_a_max:
+                if max(abs(a_still)) > still_a_max:
                     continue
-                if max(mag_bump) < mag_still_mean + self.bump_mag_min:
+                if max(mag_bump) < mag_still_mean + bump_mag_min:
                     continue
                 
                 a_int = np.cumsum(a_bump * dt_bump)
                 a_intint = np.cumsum(a_int * dt_bump)
 
-                if max(a_intint) < self.bump_dx_min:
+                if max(a_intint) < bump_dx_min:
                     continue
 
-                skip = self.skips
+                skip = skips
 
                 a_intint_chunks.append(a_intint)
                 mag_chunks.append(mag_bump)
@@ -577,11 +613,17 @@ class GetMagTravelRefPoint(Step):
         *,
         min_ref_points: int | None = None,
         fallback_ref_mag: float | None = None,
+        min_ref_mag: float | None = None,
+        ref_mag_range: float | None = None,
     ):
         if min_ref_points is None:
             min_ref_points = self.min_ref_points
+        if min_ref_mag is None:
+            min_ref_mag = self.min_ref_mag
+        if ref_mag_range is None:
+            ref_mag_range = self.ref_mag_range
         if fallback_ref_mag is None:
-            fallback_ref_mag = float(mag_baseline + self.min_ref_mag)
+            fallback_ref_mag = float(mag_baseline + min_ref_mag)
 
         if len(mag_chunks) == 0:
             print(
@@ -593,8 +635,8 @@ class GetMagTravelRefPoint(Step):
         mag_points = np.concatenate(mag_chunks)
         print("Absolute position reference input points", x_points.shape[0])
 
-        mag_center = max(mag_baseline + self.min_ref_mag, np.median(mag_points))
-        center_range = self.ref_mag_range / 2
+        mag_center = max(mag_baseline + min_ref_mag, np.median(mag_points))
+        center_range = ref_mag_range / 2
         thresh_mask = (
             np.isfinite(x_points)
             & np.isfinite(mag_points)
@@ -643,6 +685,7 @@ class GetMagTravelRefPoint(Step):
         plt.show()
 
 
+@dataclass
 class GetMagBaseline(Step):
     """Find the mag baseline by looking at still regions and taking the median + std"""
     still_len_s: float = 0.1 # seconds
@@ -666,16 +709,35 @@ class GetMagBaseline(Step):
 
         assert mag_ts.units == "milli-Gauss"
         assert accel_ts.units == "m/s^2"
-        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
+        still_len = max(
+            1,
+            int(float(self.param(ws, "still_len_s", self.still_len_s)) * mag_ts.meta["fs_hz"]),
+        )
+        still_a_max = float(self.param(ws, "still_a_max", self.still_a_max))
+        fallback_percentile = float(
+            self.param(ws, "fallback_percentile", self.fallback_percentile)
+        )
         a_mms = accel * 1000
         still_mags = []
         for i in range(0, mag.shape[0] - still_len, still_len):
             mag_chunk = mag[i:i+still_len]
             a_chunk = a_mms[i:i+still_len]
-            if max(abs(a_chunk)) < self.still_a_max:
+            if max(abs(a_chunk)) < still_a_max:
                 still_mags.append(mag_chunk)
 
-        print("Fallback", self.fallback_percentile)
-        mag_baseline = min(float(np.median(still_mags)), float(np.percentile(mag, self.fallback_percentile))) + np.std(still_mags)
-        print("Mag baseline", mag_baseline, "std", np.std(still_mags))
+        finite_mag = mag[np.isfinite(mag)]
+        if finite_mag.size == 0:
+            raise ValueError("Cannot estimate magnetic baseline without finite samples")
+        fallback = float(np.percentile(finite_mag, fallback_percentile))
+        if still_mags:
+            still_values = np.concatenate(still_mags)
+            still_median = float(np.median(still_values))
+            still_std = float(np.std(still_values))
+            mag_baseline = min(still_median, fallback) + still_std
+        else:
+            still_std = 0.0
+            mag_baseline = fallback
+            print("No stationary magnetic windows found; using percentile fallback")
+        print("Fallback", fallback_percentile)
+        print("Mag baseline", mag_baseline, "std", still_std)
         ws[self.outputs[0]] = np.array([mag_baseline])
