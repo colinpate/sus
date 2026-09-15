@@ -340,7 +340,6 @@ def main() -> None:
                 "gyro/lpf/gyro1",
                 "mag/norm/corr/lpf",
                 "mag_model_coeffs",
-                "mag_model_offset_mm",
                 "travel/fusion1",
             ),
             outputs=(
@@ -414,6 +413,7 @@ def main() -> None:
             ),
             outputs=("travel/solved",),
             plot_keys=("travel/solved",),
+            mag_prediction_bounds=(0, 200)
         ),
         GetErrorStats(
             name="x_preds_solver_mag_nuisance_delta_lifted",

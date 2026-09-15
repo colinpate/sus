@@ -51,6 +51,7 @@ class SolverInputs:
     mag_preds_mm: np.ndarray
     mag_zv_points: np.ndarray
     mag_baseline: float | None
+    mag_prediction_bounds: tuple[float, float] | None = None
     initial_dt_s: float = 0.01
     dt_s: np.ndarray = field(init=False)
     mag_zv_mask: np.ndarray = field(init=False)
@@ -59,7 +60,9 @@ class SolverInputs:
         time_s = flatten_1d(self.time_s)
         accel = flatten_1d(self.accel_mm_s2)
         mag = flatten_1d(self.mag) if self.mag is not None else None
-        mag_preds = np.clip(flatten_1d(self.mag_preds_mm), 0, None)
+        mag_preds = flatten_1d(self.mag_preds_mm)
+        if self.mag_prediction_bounds is not None:
+            mag_preds = np.clip(mag_preds, self.mag_prediction_bounds[0], self.mag_prediction_bounds[1])
 
         n = len(time_s)
         if n == 0:

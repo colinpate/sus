@@ -63,10 +63,10 @@ class MagNuisanceTravelCorrection(Step):
     )
 
     def run(self, ws: Workspace) -> None:
-        if len(self.inputs) != 6:
+        if len(self.inputs) != 5:
             raise ValueError(
                 "MagNuisanceTravelCorrection expects mag XYZ, gyro1, scalar "
-                "mag, scalar coefficients, scalar offset, and initial travel"
+                "mag, scalar coefficients, and initial travel"
             )
         if len(self.outputs) != 5:
             raise ValueError(
@@ -77,7 +77,7 @@ class MagNuisanceTravelCorrection(Step):
         mag_ts: TimeSeries = ws[self.inputs[0]]
         gyro_ts: TimeSeries = ws[self.inputs[1]]
         scalar_ts: TimeSeries = ws[self.inputs[2]]
-        initial_travel_ts: TimeSeries = ws[self.inputs[5]]
+        initial_travel_ts: TimeSeries = ws[self.inputs[4]]
 
         lengths = {
             len(mag_ts.t),
@@ -127,15 +127,11 @@ class MagNuisanceTravelCorrection(Step):
         scalar_coefficients = np.asarray(
             ws[self.inputs[3]], dtype=float
         ).reshape(-1)
-        scalar_offset_mm = float(
-            np.asarray(ws[self.inputs[4]], dtype=float).reshape(-1)[0]
-        )
 
         xyz_model = fit_scalar_parameterized_xyz(
             scalar_mag,
             mag_xyz,
             scalar_coefficients,
-            scalar_offset_mm,
             scalar_bin_mg=scalar_bin_mg,
             degree=xyz_degree,
             travel_max_mm=travel_max_mm,

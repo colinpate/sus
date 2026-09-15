@@ -184,7 +184,6 @@ class ScalarParameterizedXYZModel:
 def invert_scalar_travel_model(
     travel: np.ndarray,
     coefficients: np.ndarray,
-    offset_mm: float,
     *,
     soft_mg: float = 50.0,
 ) -> np.ndarray:
@@ -195,7 +194,7 @@ def invert_scalar_travel_model(
         raise ValueError(
             f"Expected positive scalar-model scale/power, got {y_scale}, {power}"
         )
-    normalized = (np.asarray(travel, dtype=float) - offset_mm) / y_scale
+    normalized = np.asarray(travel, dtype=float) / y_scale
     delta = np.sign(normalized) * (
         (np.abs(normalized) + soft_mg**power) ** (1.0 / power) - soft_mg
     )
@@ -221,7 +220,6 @@ def fit_scalar_parameterized_xyz(
     scalar_mag: np.ndarray,
     mag_xyz: np.ndarray,
     scalar_coefficients: np.ndarray,
-    scalar_offset_mm: float,
     *,
     scalar_bin_mg: float = 100.0,
     degree: int = 2,
@@ -269,7 +267,7 @@ def fit_scalar_parameterized_xyz(
         0.0, travel_max_mm + 0.5 * travel_step_mm, travel_step_mm
     )
     scalar_grid = invert_scalar_travel_model(
-        travel_grid, scalar_coefficients, scalar_offset_mm
+        travel_grid, scalar_coefficients
     )
     normalized_grid = (scalar_grid - center) / scale
     xyz_grid = sum(
