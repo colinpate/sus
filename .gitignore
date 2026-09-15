@@ -216,6 +216,7 @@ __marimo__/
 
 # Canonical log metadata and processing assets are source, not generated data.
 !logs/registry.toml
+!logs/slayer-filtered-manifest.json
 !config/
 !config/linkages/
 !config/linkages/*.json

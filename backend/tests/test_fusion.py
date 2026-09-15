@@ -12,7 +12,9 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
 from classes.time_series import TimeSeries
-from fusion import GetErrorStats
+from classes.log_config import attach_log_config
+from fusion import GetErrorStats, GetMagBaseline, GetMagToTravelModel, GetMagTravelRefPoint
+from mag_to_travel_model_core import MagToTravelModel
 
 
 def make_series(values: list[float], *, t: np.ndarray | None = None) -> TimeSeries:
@@ -48,6 +50,106 @@ class GetErrorStatsTests(unittest.TestCase):
         for call in print_stats.call_args_list:
             np.testing.assert_array_equal(call.args[0], np.array([11.0, 22.0, 44.0]))
             np.testing.assert_array_equal(call.args[1], np.array([10.0, 20.0, 40.0]))
+
+
+class AbsoluteReferenceTests(unittest.TestCase):
+    def test_fixed_reference_bypasses_estimation(self):
+        ws = {}
+        attach_log_config(
+            ws,
+            {"steps": {"reference": {"fixed_reference": [42.0, 3210.0]}}},
+        )
+        step = GetMagTravelRefPoint(
+            name="reference",
+            inputs=("mag", "accel", "baseline", "travel"),
+            outputs=("reference",),
+        )
+
+        step.run(ws)
+
+        np.testing.assert_allclose(ws["reference"], [42.0, 3210.0])
+
+    def test_fixed_baseline_bypasses_estimation(self):
+        ws = {}
+        attach_log_config(
+            ws,
+            {"steps": {"baseline": {"fixed_baseline_mG": 1450.0}}},
+        )
+        step = GetMagBaseline(
+            name="baseline",
+            inputs=("mag", "accel"),
+            outputs=("baseline",),
+        )
+
+        step.run(ws)
+
+        np.testing.assert_allclose(ws["baseline"], [1450.0])
+
+    def test_under_supported_reference_uses_finite_fallback(self):
+        step = GetMagTravelRefPoint(
+            name="reference",
+            inputs=(),
+            outputs=("reference",),
+        )
+
+        ref_x, ref_mag = step.get_abs_pos_ref(
+            [np.array([3000.0, 3100.0])],
+            [np.array([10.0, 20.0])],
+            1000.0,
+            min_ref_points=20,
+            fallback_ref_mag=1250.0,
+        )
+
+        self.assertEqual(ref_x, 0.0)
+        self.assertEqual(ref_mag, 1250.0)
+        self.assertTrue(np.all(np.isfinite([ref_x, ref_mag])))
+
+    def test_excessive_reference_shift_uses_data_driven_zero(self):
+        step = GetMagToTravelModel(
+            name="model",
+            inputs=(),
+            outputs=(),
+        )
+        step.model = MagToTravelModel(
+            pred_soft_mg=50.0,
+            coeffs=np.array([1000.0, 1.0, 1.0]),
+        )
+        mag = np.linspace(1000.0, 1100.0, 101)
+        predictions = step.model.pred_x(mag)
+        expected_zero_offset = -float(step.model.pred_x(np.percentile(mag, 8)))
+
+        adjusted = step.adjust_with_ref_point(
+            predictions,
+            ref_x=100.0,
+            ref_mag=1000.0,
+            mag=mag,
+            active_mask=np.ones(len(mag), dtype=bool),
+            max_offset_delta_mm=40.0,
+        )
+
+        np.testing.assert_allclose(adjusted, predictions + expected_zero_offset)
+
+    def test_nonfinite_reference_never_propagates_nan(self):
+        step = GetMagToTravelModel(
+            name="model",
+            inputs=(),
+            outputs=(),
+        )
+        step.model = MagToTravelModel(
+            pred_soft_mg=50.0,
+            coeffs=np.array([1000.0, 1.0, 1.0]),
+        )
+        mag = np.linspace(1000.0, 1100.0, 11)
+        predictions = step.model.pred_x(mag)
+
+        adjusted = step.adjust_with_ref_point(
+            predictions,
+            ref_x=np.nan,
+            ref_mag=np.nan,
+            mag=mag,
+        )
+
+        self.assertTrue(np.all(np.isfinite(adjusted)))
 
 
 if __name__ == "__main__":

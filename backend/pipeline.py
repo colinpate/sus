@@ -48,6 +48,7 @@ def main() -> None:
     log_config = resolved_log.processing_config
     print(f"Loaded {log_filename} from {resolved_log.registry_path} with profiles {resolved_log.profiles}")
     provenance = build_run_provenance(resolved_log, pipeline="front")
+    angle_signal_config = get_signal_config(log_config, "angle")
 
 
     # Load sensors (OOP edge)
@@ -58,7 +59,16 @@ def main() -> None:
         GyroLoader(sensor_id="gyro2", path=log_path),
         MagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag")),
         LISMagLoader(path=log_path, lag=0, signal_config=get_signal_config(log_config, "mag_lis")),
-        AngleLoader(path=log_path, lag=-1, allow_degenerate=True),
+        AngleLoader(
+            path=log_path,
+            lag=int(angle_signal_config.get("lag", -1)),
+            interpolate_bad=bool(angle_signal_config.get("interpolate_bad", True)),
+            offset=int(angle_signal_config.get("offset", 0)),
+            mark_bad_samples=bool(angle_signal_config.get("mark_bad_samples", True)),
+            unwrap=bool(angle_signal_config.get("unwrap", True)),
+            encoder_counts=int(angle_signal_config.get("encoder_counts", 4096)),
+            allow_degenerate=True,
+        ),
     ]
 
     ws: Workspace = {}
