@@ -322,7 +322,7 @@ def main() -> None:
             inputs=(
                 "accel/lpfhp/proj", 
                 "mag/norm/corr/lpf",
-                "travel/mag_model/adj", 
+                "travel/mag_model",
                 "mag_zv_points", 
                 "mag_baseline",
             ),
@@ -357,7 +357,7 @@ def main() -> None:
                 "mag/lpf",
                 "gyro/lpf/gyro1",
                 "travel/fusion1",
-                "travel/mag_model/adj",
+                "travel/mag_model",
                 "travel/solved/mag_nuisance/10hz",
                 "mag/nuisance/body/10hz",
                 "mag/nuisance/world/10hz",
@@ -413,7 +413,8 @@ def main() -> None:
             ),
             outputs=("travel/solved",),
             plot_keys=("travel/solved",),
-            mag_prediction_bounds=(0, 200)
+            mag_prediction_bounds=(0, 200),
+            weight_overrides={"travel_max": 200.0},
         ),
         GetErrorStats(
             name="x_preds_solver_mag_nuisance_delta_lifted",

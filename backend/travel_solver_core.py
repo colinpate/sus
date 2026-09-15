@@ -62,7 +62,12 @@ class SolverInputs:
         mag = flatten_1d(self.mag) if self.mag is not None else None
         mag_preds = flatten_1d(self.mag_preds_mm)
         if self.mag_prediction_bounds is not None:
-            mag_preds = np.clip(mag_preds, self.mag_prediction_bounds[0], self.mag_prediction_bounds[1])
+            lower, upper = self.mag_prediction_bounds
+            if not np.isfinite(lower) or not np.isfinite(upper) or upper <= lower:
+                raise ValueError(
+                    "mag_prediction_bounds must contain finite increasing bounds"
+                )
+            mag_preds = np.clip(mag_preds, lower, upper)
 
         n = len(time_s)
         if n == 0:

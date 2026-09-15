@@ -37,7 +37,7 @@ class TravelSolver(Step):
             mag_preds_mm=ws[self.inputs[2]].x[:, 0],
             mag_zv_points=ws[self.inputs[3]],
             mag_baseline=mag_baseline,
-            mag_prediction_bounds=self.mag_prediction_bounds
+            mag_prediction_bounds=self.mag_prediction_bounds,
         )
 
 @dataclass

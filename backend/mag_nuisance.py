@@ -31,6 +31,11 @@ MAG_NUISANCE_SUMMARY_FIELDS = (
     "final_iteration_change_mm",
     "xyz_scalar_center_mg",
     "xyz_scalar_scale_mg",
+    "credible_travel_min_mm",
+    "credible_travel_max_mm",
+    "projection_path_min_mm",
+    "projection_path_max_mm",
+    "initial_outside_credible_fraction",
 )
 
 
@@ -48,8 +53,10 @@ class MagNuisanceTravelCorrection(Step):
     output_alpha: float = 0.75
     xyz_degree: int = 2
     scalar_bin_mg: float = 100.0
-    travel_max_mm: float = 210.0
+    # Maximum credible support width. This is a span, not an absolute endpoint.
+    travel_max_mm: float = 200.0
     travel_step_mm: float = 0.25
+    path_margin_mm: float = 10.0
     min_bin_samples: int = 5
     mag_update_threshold: float = 1500.0
     world_rw: float = 1.5
@@ -97,6 +104,7 @@ class MagNuisanceTravelCorrection(Step):
         scalar_bin_mg = float(self.param(ws, "scalar_bin_mg"))
         travel_max_mm = float(self.param(ws, "travel_max_mm"))
         travel_step_mm = float(self.param(ws, "travel_step_mm"))
+        path_margin_mm = float(self.param(ws, "path_margin_mm"))
         min_bin_samples = int(self.param(ws, "min_bin_samples"))
         if state_hz <= 0:
             raise ValueError("state_hz must be positive")
@@ -136,6 +144,7 @@ class MagNuisanceTravelCorrection(Step):
             degree=xyz_degree,
             travel_max_mm=travel_max_mm,
             travel_step_mm=travel_step_mm,
+            path_margin_mm=path_margin_mm,
             min_bin_samples=min_bin_samples,
         )
         weights = MagSolverWeights(
@@ -207,6 +216,7 @@ class MagNuisanceTravelCorrection(Step):
         proposed_change = correction.travel - initial_travel
         applied_change = blended_travel - initial_travel
         updated = correction.update_mask
+        initial_outside_credible = ~xyz_model.covers(initial_travel)
         ws[self.outputs[4]] = np.array(
             [
                 source_hz / stride,
@@ -227,6 +237,11 @@ class MagNuisanceTravelCorrection(Step):
                 float(correction.iteration_change_mm[-1]),
                 xyz_model.scalar_center,
                 xyz_model.scalar_scale,
+                xyz_model.credible_travel_min,
+                xyz_model.credible_travel_max,
+                xyz_model.travel_min,
+                xyz_model.travel_max,
+                float(np.mean(initial_outside_credible)),
             ]
         )
 
@@ -234,6 +249,11 @@ class MagNuisanceTravelCorrection(Step):
             "Mag nuisance correction:",
             f"{len(time_s)} states at {source_hz / stride:.2f} Hz,",
             f"{xyz_model.bin_count} XYZ bins,",
+            (
+                f"credible {xyz_model.credible_travel_min:.1f}.."
+                f"{xyz_model.credible_travel_max:.1f} mm,"
+            ),
+            f"{np.mean(initial_outside_credible) * 100:.1f}% initially outside,",
             f"{np.mean(updated) * 100:.1f}% updated,",
             "iteration changes",
             np.round(correction.iteration_change_mm, 3).tolist(),
@@ -259,6 +279,8 @@ class MagNuisanceFullRateCorrection(Step):
     output_alpha: float = 0.75
     mag_update_threshold: float = 1500.0
     transition_width_mg: float = 200.0
+    path_distance_threshold_mg: float = 120.0
+    path_distance_transition_mg: float = 80.0
     mag_to_gyro_matrix: tuple[tuple[float, float, float], ...] = tuple(
         tuple(float(value) for value in row) for row in PRIMARY_MAG_TO_GYRO
     )
@@ -314,10 +336,23 @@ class MagNuisanceFullRateCorrection(Step):
         output_alpha = float(self.param(ws, "output_alpha"))
         threshold = float(self.param(ws, "mag_update_threshold"))
         transition_width = float(self.param(ws, "transition_width_mg"))
+        path_distance_threshold = float(
+            self.param(ws, "path_distance_threshold_mg")
+        )
+        path_distance_transition = float(
+            self.param(ws, "path_distance_transition_mg")
+        )
         if not 0.0 <= output_alpha <= 1.0:
             raise ValueError("output_alpha must be between zero and one")
-        if threshold <= 0.0 or transition_width < 0.0:
-            raise ValueError("threshold must be positive and transition width nonnegative")
+        if (
+            threshold <= 0.0
+            or transition_width < 0.0
+            or path_distance_threshold <= 0.0
+            or path_distance_transition < 0.0
+        ):
+            raise ValueError(
+                "thresholds must be positive and transition widths nonnegative"
+            )
 
         full_time = np.asarray(mag_ts.t, dtype=float)
         state_time = np.asarray(low_travel_ts.t, dtype=float)
@@ -351,25 +386,25 @@ class MagNuisanceFullRateCorrection(Step):
 
         travel_grid = xyz_path[:, 0]
         xyz_grid = xyz_path[:, 1:]
-        inferred_travel = travel_grid[cKDTree(xyz_grid).query(corrected_xyz)[1]]
+        path_distance, path_index = cKDTree(xyz_grid).query(corrected_xyz)
+        inferred_travel = travel_grid[path_index]
         initial_travel = np.asarray(initial_ts.x, dtype=float).reshape(-1)
         scalar_travel = np.asarray(scalar_travel_ts.x, dtype=float).reshape(-1)
-        expected_xyz = np.column_stack(
-            [
-                np.interp(initial_travel, travel_grid, xyz_grid[:, axis])
-                for axis in range(3)
-            ]
-        )
+        expected_xyz = xyz_grid[path_index]
         expected_weight = self._low_field_weight(
             np.linalg.norm(expected_xyz, axis=1), threshold, transition_width
         )
         measured_weight = self._low_field_weight(
             np.linalg.norm(mag_xyz, axis=1), threshold, transition_width
         )
-        covered = (initial_travel >= travel_grid[0]) & (
-            initial_travel <= travel_grid[-1]
+        path_weight = self._low_field_weight(
+            path_distance,
+            path_distance_threshold,
+            path_distance_transition,
         )
-        confidence = np.minimum(expected_weight, measured_weight) * covered
+        confidence = np.minimum.reduce(
+            (expected_weight, measured_weight, path_weight)
+        )
         corrected_mag_travel = scalar_travel + output_alpha * confidence * (
             inferred_travel - scalar_travel
         )
@@ -386,6 +421,9 @@ class MagNuisanceFullRateCorrection(Step):
             "output_alpha": output_alpha,
             "mag_update_threshold_mg": threshold,
             "transition_width_mg": transition_width,
+            "path_distance_threshold_mg": path_distance_threshold,
+            "path_distance_transition_mg": path_distance_transition,
+            "path_projection_fraction": float(np.mean(path_weight > 0.0)),
         }
 
         def full_series_out(values: np.ndarray, units: str, frame: str) -> TimeSeries:
