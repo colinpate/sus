@@ -12,6 +12,7 @@ class TravelSolver(Step):
     max_nfev: int = 100
     verbose: int = 1
     weight_overrides: dict[str, float] = None
+    mag_prediction_bounds: tuple[float, float] | None = None
 
     def run(self, ws: Workspace) -> None:
         inputs = self.solver_inputs(ws)
@@ -36,6 +37,7 @@ class TravelSolver(Step):
             mag_preds_mm=ws[self.inputs[2]].x[:, 0],
             mag_zv_points=ws[self.inputs[3]],
             mag_baseline=mag_baseline,
+            mag_prediction_bounds=self.mag_prediction_bounds,
         )
 
 @dataclass

@@ -93,6 +93,9 @@ min_ref_points = 20
 [profiles.front-angle-slayer-boxxer.config.steps.mag_to_travel_model]
 ref_max_offset_delta_mm = 40.0
 
+[profiles.front-angle-slayer-boxxer.config.steps.apply_mag_travel_ref_point]
+ref_max_offset_delta_mm = 40.0
+
 # Shared pod-to-pod alignment calibrated from the five complete Slayer parent
 # logs used to derive the slayer-filtered set. Individual derived logs retain
 # their own stationary-pose offset correction, but do not re-estimate rotation.
@@ -1986,7 +1989,7 @@ status = "usable"
 file = "converted/log-0145-filtered-c01.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0145-filtered-c01.metadata]
@@ -2003,16 +2006,13 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 [logs.log-0145-filtered-c01.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1589.8094311506377
 
-[logs.log-0145-filtered-c01.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [59.70822822060133, 3082.6808146518842]
-
 [logs.log-0147-filtered-c01]
 profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
 status = "usable"
 file = "converted/log-0147-filtered-c01.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0147-filtered-c01.metadata]
@@ -2029,16 +2029,13 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 [logs.log-0147-filtered-c01.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1406.2907895982073
 
-[logs.log-0147-filtered-c01.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [0.0, 1249.5147284632924]
-
 [logs.log-0147-filtered-c02]
 profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
 status = "usable"
 file = "converted/log-0147-filtered-c02.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0147-filtered-c02.metadata]
@@ -2055,16 +2052,13 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 [logs.log-0147-filtered-c02.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1406.2907895982073
 
-[logs.log-0147-filtered-c02.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [0.0, 1249.5147284632924]
-
 [logs.log-0151-filtered-c01]
 profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
 status = "usable"
 file = "converted/log-0151-filtered-c01.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0151-filtered-c01.metadata]
@@ -2081,16 +2075,13 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 [logs.log-0151-filtered-c01.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1478.5659806981346
 
-[logs.log-0151-filtered-c01.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [78.19572979772903, 3334.5191674375515]
-
 [logs.log-0152-filtered-c01]
 profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
 status = "usable"
 file = "converted/log-0152-filtered-c01.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0152-filtered-c01.metadata]
@@ -2107,16 +2098,13 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 [logs.log-0152-filtered-c01.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1504.0831622403791
 
-[logs.log-0152-filtered-c01.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [0.0, 1311.4907327788778]
-
 [logs.log-0152-filtered-c02]
 profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
 status = "usable"
 file = "converted/log-0152-filtered-c02.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0152-filtered-c02.metadata]
@@ -2133,16 +2121,13 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 [logs.log-0152-filtered-c02.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1504.0831622403791
 
-[logs.log-0152-filtered-c02.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [0.0, 1311.4907327788778]
-
 [logs.log-0155-filtered-c01]
 profiles = ["front-pod-v2", "bike-slayer", "fork-boxxer-200", "front-angle-slayer-boxxer", "slayer-filtered-alignment-v1"]
 status = "usable"
 file = "converted/log-0155-filtered-c01.csv"
 pipeline = "front"
 record_format = "dual_mag"
-sets = ["slayer-filtered"]
+sets = ["slayer-filtered", "front-default"]
 tags = ["derived", "paper", "dropout-retained"]
 
 [logs.log-0155-filtered-c01.metadata]
@@ -2158,6 +2143,3 @@ notes = "Contiguous derived log; maximal growth of the selected >=60-active-seco
 
 [logs.log-0155-filtered-c01.overrides.steps.get_mag_baseline]
 fixed_baseline_mG = 1606.6737633586804
-
-[logs.log-0155-filtered-c01.overrides.steps.get_mag_travel_ref_point]
-fixed_reference = [0.0, 1342.9160200017532]

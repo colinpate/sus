@@ -116,6 +116,8 @@ class ScalarParameterizedXYZModel:
     scalar_scale: float
     coefficients: np.ndarray
     bin_count: int
+    credible_travel_min: float
+    credible_travel_max: float
 
     def __post_init__(self) -> None:
         travel_grid = np.asarray(self.travel_grid, dtype=float)
@@ -127,6 +129,13 @@ class ScalarParameterizedXYZModel:
             raise ValueError("xyz_grid must have shape (len(travel_grid), 3)")
         if not np.all(np.diff(travel_grid) > 0):
             raise ValueError("travel_grid must be strictly increasing")
+        if not (
+            travel_grid[0]
+            <= self.credible_travel_min
+            < self.credible_travel_max
+            <= travel_grid[-1]
+        ):
+            raise ValueError("credible travel bounds must lie inside travel_grid")
         if not (
             np.all(np.isfinite(travel_grid))
             and np.all(np.isfinite(xyz_grid))
@@ -172,7 +181,9 @@ class ScalarParameterizedXYZModel:
 
     def covers(self, travel: np.ndarray) -> np.ndarray:
         travel = np.asarray(travel, dtype=float)
-        return (travel >= self.travel_min) & (travel <= self.travel_max)
+        return (travel >= self.credible_travel_min) & (
+            travel <= self.credible_travel_max
+        )
 
     def weak(self, travel: np.ndarray, threshold_mg: float) -> np.ndarray:
         travel = np.asarray(travel, dtype=float)
@@ -184,7 +195,6 @@ class ScalarParameterizedXYZModel:
 def invert_scalar_travel_model(
     travel: np.ndarray,
     coefficients: np.ndarray,
-    offset_mm: float,
     *,
     soft_mg: float = 50.0,
 ) -> np.ndarray:
@@ -195,7 +205,7 @@ def invert_scalar_travel_model(
         raise ValueError(
             f"Expected positive scalar-model scale/power, got {y_scale}, {power}"
         )
-    normalized = (np.asarray(travel, dtype=float) - offset_mm) / y_scale
+    normalized = np.asarray(travel, dtype=float) / y_scale
     delta = np.sign(normalized) * (
         (np.abs(normalized) + soft_mg**power) ** (1.0 / power) - soft_mg
     )
@@ -217,16 +227,101 @@ def predict_scalar_travel(
     return np.sign(delta) * softened * y_scale + offset_mm
 
 
+def predict_relative_scalar_travel(
+    scalar_mag: np.ndarray,
+    coefficients: np.ndarray,
+    *,
+    soft_mg: float = 50.0,
+) -> np.ndarray:
+    """Apply the scalar model without an absolute-position reference."""
+
+    return predict_scalar_travel(
+        scalar_mag,
+        coefficients,
+        0.0,
+        soft_mg=soft_mg,
+    )
+
+
+def _maximum_support_window(
+    travel_centers: np.ndarray,
+    bin_counts: np.ndarray,
+    max_span_mm: float,
+    min_bin_samples: int,
+) -> np.ndarray:
+    """Select the most populated bin window within a credible travel span."""
+
+    order = np.argsort(travel_centers)
+    sorted_travel = np.asarray(travel_centers, dtype=float)[order]
+    sorted_counts = np.asarray(bin_counts, dtype=int)[order]
+    best_start = 0
+    best_end = 0
+    best_score: tuple[int, int, float] | None = None
+    end = 0
+    count_cap = max(1, 4 * min_bin_samples)
+    for start in range(len(sorted_travel)):
+        end = max(end, start)
+        while (
+            end + 1 < len(sorted_travel)
+            and sorted_travel[end + 1] - sorted_travel[start] <= max_span_mm
+        ):
+            end += 1
+        score = (
+            end - start + 1,
+            int(np.minimum(sorted_counts[start : end + 1], count_cap).sum()),
+            float(sorted_travel[end] - sorted_travel[start]),
+        )
+        if best_score is None or score > best_score:
+            best_score = score
+            best_start, best_end = start, end
+
+    selected = np.zeros(len(sorted_travel), dtype=bool)
+    selected[best_start : best_end + 1] = True
+    result = np.zeros(len(selected), dtype=bool)
+    result[order] = selected
+    return result
+
+
+def _bounded_support_edges(
+    scalar_bin_ids: np.ndarray,
+    travel_centers: np.ndarray,
+    scalar_coefficients: np.ndarray,
+    scalar_bin_mg: float,
+    max_span_mm: float,
+) -> tuple[float, float]:
+    """Estimate occupied-bin edges while enforcing the physical span cap."""
+
+    scalar_edges = np.array(
+        [
+            np.min(scalar_bin_ids) * scalar_bin_mg,
+            (np.max(scalar_bin_ids) + 1) * scalar_bin_mg,
+        ]
+    )
+    travel_edges = np.sort(
+        predict_relative_scalar_travel(scalar_edges, scalar_coefficients)
+    )
+    edge_min, edge_max = map(float, travel_edges)
+    center_min = float(np.min(travel_centers))
+    center_max = float(np.max(travel_centers))
+    if edge_max - edge_min <= max_span_mm:
+        return edge_min, edge_max
+
+    # Keep all selected bin centers and trim only the estimated half-bin edges.
+    lower = 0.5 * (edge_min + edge_max - max_span_mm)
+    lower = min(max(lower, center_max - max_span_mm), center_min)
+    return lower, lower + max_span_mm
+
+
 def fit_scalar_parameterized_xyz(
     scalar_mag: np.ndarray,
     mag_xyz: np.ndarray,
     scalar_coefficients: np.ndarray,
-    scalar_offset_mm: float,
     *,
     scalar_bin_mg: float = 100.0,
     degree: int = 2,
-    travel_max_mm: float = 210.0,
+    travel_max_mm: float = 200.0,
     travel_step_mm: float = 0.25,
+    path_margin_mm: float = 10.0,
     min_bin_samples: int = 5,
 ) -> ScalarParameterizedXYZModel:
     """Fit XYZ against the independently calibrated scalar coordinate."""
@@ -239,24 +334,56 @@ def fit_scalar_parameterized_xyz(
         raise ValueError("degree must be one or two")
     if scalar_bin_mg <= 0 or travel_max_mm <= 0 or travel_step_mm <= 0:
         raise ValueError("bin size, maximum travel, and grid step must be positive")
+    if path_margin_mm < 0:
+        raise ValueError("path_margin_mm must be nonnegative")
     if min_bin_samples < 1:
         raise ValueError("min_bin_samples must be positive")
 
     finite = np.isfinite(scalar_mag) & np.all(np.isfinite(mag_xyz), axis=1)
-    bin_id = np.floor(scalar_mag / scalar_bin_mg).astype(int)
+    bin_id = np.zeros(len(scalar_mag), dtype=int)
+    bin_id[finite] = np.floor(scalar_mag[finite] / scalar_bin_mg).astype(int)
     scalar_centers: list[float] = []
     xyz_medians: list[np.ndarray] = []
+    populated_bin_ids: list[int] = []
+    bin_counts: list[int] = []
     for value in np.unique(bin_id[finite]):
         selected = finite & (bin_id == value)
         if np.sum(selected) < min_bin_samples:
             continue
         scalar_centers.append(float(np.median(scalar_mag[selected])))
         xyz_medians.append(np.median(mag_xyz[selected], axis=0))
+        populated_bin_ids.append(int(value))
+        bin_counts.append(int(np.sum(selected)))
     if len(scalar_centers) < degree + 2:
         raise ValueError("Not enough populated scalar-field bins for XYZ fit")
 
     scalar_centers_array = np.asarray(scalar_centers)
     xyz_medians_array = np.asarray(xyz_medians)
+    relative_travel_centers = predict_relative_scalar_travel(
+        scalar_centers_array, scalar_coefficients
+    )
+    selected_bins = _maximum_support_window(
+        relative_travel_centers,
+        np.asarray(bin_counts),
+        travel_max_mm,
+        min_bin_samples,
+    )
+    if np.sum(selected_bins) < degree + 2:
+        raise ValueError(
+            "Not enough populated scalar-field bins inside the credible travel span"
+        )
+
+    scalar_centers_array = scalar_centers_array[selected_bins]
+    xyz_medians_array = xyz_medians_array[selected_bins]
+    relative_travel_centers = relative_travel_centers[selected_bins]
+    selected_bin_ids = np.asarray(populated_bin_ids)[selected_bins]
+    credible_min, credible_max = _bounded_support_edges(
+        selected_bin_ids,
+        relative_travel_centers,
+        scalar_coefficients,
+        scalar_bin_mg,
+        travel_max_mm,
+    )
     center = float(np.median(scalar_centers_array))
     scale = max(float(np.std(scalar_centers_array)), scalar_bin_mg)
     normalized = (scalar_centers_array - center) / scale
@@ -265,11 +392,12 @@ def fit_scalar_parameterized_xyz(
     )
     coefficients = np.linalg.lstsq(design, xyz_medians_array, rcond=None)[0]
 
-    travel_grid = np.arange(
-        0.0, travel_max_mm + 0.5 * travel_step_mm, travel_step_mm
-    )
+    path_min = credible_min - path_margin_mm
+    path_max = credible_max + path_margin_mm
+    grid_steps = max(1, int(np.ceil((path_max - path_min) / travel_step_mm)))
+    travel_grid = np.linspace(path_min, path_max, grid_steps + 1)
     scalar_grid = invert_scalar_travel_model(
-        travel_grid, scalar_coefficients, scalar_offset_mm
+        travel_grid, scalar_coefficients
     )
     normalized_grid = (scalar_grid - center) / scale
     xyz_grid = sum(
@@ -283,6 +411,8 @@ def fit_scalar_parameterized_xyz(
         scalar_scale=scale,
         coefficients=coefficients,
         bin_count=len(scalar_centers_array),
+        credible_travel_min=credible_min,
+        credible_travel_max=credible_max,
     )
 
 

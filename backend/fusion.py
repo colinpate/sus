@@ -6,7 +6,7 @@ from angle_corruption import project_mask_to_timeline
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries
 from classes.step import Step
-from mag_to_travel_model_core import MagToTravelModelCore
+from mag_to_travel_model_core import MagToTravelModel, MagToTravelModelCore
 from rear_mag_model import RearMagModel
 
 import matplotlib.pyplot as plt
@@ -35,13 +35,24 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
     apply_ref_point: bool = True
 
     def run(self, ws: Workspace) -> None:
+        if len(self.inputs) == 7:
+            ref_point: np.ndarray | None = ws[self.inputs[5]]
+            mag_baseline: float = ws[self.inputs[6]]
+        elif len(self.inputs) == 6 and not self.apply_ref_point:
+            ref_point = None
+            mag_baseline = ws[self.inputs[5]]
+        else:
+            raise ValueError(
+                "GetMagToTravelModel expects mag, accel, travel, bad mask, ZV "
+                "points, and baseline, plus a reference point when reference "
+                "application is enabled"
+            )
+
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
         travel_ts: TimeSeries = ws[self.inputs[2]]
         mask_ts: np.ndarray = ws[self.inputs[3]]
         idxs: np.ndarray = ws[self.inputs[4]]
-        ref_point: np.ndarray = ws[self.inputs[5]]
-        mag_baseline: float = ws[self.inputs[6]]
 
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
@@ -65,6 +76,7 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
         x_preds = self.model.pred_x(mag)
         
         if self.apply_ref_point:
+            assert ref_point is not None
             ref_fallback_mask = self.build_ref_fallback_mask(accel, mag_proj_bad_mask)
             x_preds_adj = self.adjust_with_ref_point(
                 x_preds, 
@@ -216,6 +228,96 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
 
 
 @dataclass
+class ApplyMagTravelRefPoint(Step):
+    """Apply an absolute reference to an already inferred magnetic travel signal."""
+
+    ref_zero_percentile: float = 8.0
+    ref_neg_fallback_max_pct: float = 0.08
+    ref_fallback_accel_quantile: float = 70.0
+    ref_max_offset_delta_mm: float | None = None
+    ref_max_out_of_range_pct: float = 0.08
+    ref_min_travel_mm: float = 0.0
+    ref_max_travel_mm: float = 200.0
+    pred_soft_mg: float = 50.0
+
+    def run(self, ws: Workspace) -> None:
+        if len(self.inputs) != 6:
+            raise ValueError(
+                "ApplyMagTravelRefPoint expects magnetic travel, scalar mag, "
+                "accel, bad-mag mask, reference point, and model coefficients"
+            )
+        if len(self.outputs) != 1:
+            raise ValueError("ApplyMagTravelRefPoint requires one adjusted-travel output")
+
+        travel_ts: TimeSeries = ws[self.inputs[0]]
+        mag_ts: TimeSeries = ws[self.inputs[1]]
+        accel_ts: TimeSeries = ws[self.inputs[2]]
+        bad_mask_ts: TimeSeries = ws[self.inputs[3]]
+        ref_point = np.asarray(ws[self.inputs[4]], dtype=float).reshape(-1)
+        coefficients = np.asarray(ws[self.inputs[5]], dtype=float).reshape(-1)
+
+        if ref_point.shape != (2,):
+            raise ValueError("Magnetic travel reference must contain [travel_mm, magnitude_mG]")
+        if coefficients.shape != (3,) or not np.all(np.isfinite(coefficients)):
+            raise ValueError("Magnetic travel model coefficients must contain three finite values")
+
+        lengths = {
+            len(travel_ts.t),
+            len(mag_ts.t),
+            len(accel_ts.t),
+            len(bad_mask_ts.t),
+        }
+        if len(lengths) != 1:
+            raise ValueError("Reference-application inputs must be index-aligned")
+
+        # Reuse the established reference/fallback policy, but apply the
+        # resulting constant only after nuisance correction. The scalar model
+        # remains the source of the mag-to-travel coordinate at the reference.
+        adjuster = GetMagToTravelModel(
+            name=self.name,
+            inputs=(),
+            outputs=(),
+            ref_zero_percentile=self.ref_zero_percentile,
+            ref_neg_fallback_max_pct=self.ref_neg_fallback_max_pct,
+            ref_fallback_accel_quantile=self.ref_fallback_accel_quantile,
+            ref_max_offset_delta_mm=self.ref_max_offset_delta_mm,
+            ref_max_out_of_range_pct=self.ref_max_out_of_range_pct,
+            ref_min_travel_mm=self.ref_min_travel_mm,
+            ref_max_travel_mm=self.ref_max_travel_mm,
+            pred_soft_mg=self.pred_soft_mg,
+        )
+        adjuster.model = MagToTravelModel(
+            pred_soft_mg=self.pred_soft_mg,
+            coeffs=coefficients,
+        )
+
+        mag = mag_ts.x[:, 0]
+        accel = accel_ts.x[:, 0]
+        bad_mask = bad_mask_ts.x[:, 0].astype(bool)
+        fallback_mask = adjuster.build_ref_fallback_mask(accel, bad_mask)
+        adjusted = adjuster.adjust_with_ref_point(
+            travel_ts.x[:, 0],
+            ref_point[0],
+            ref_point[1],
+            mag,
+            fallback_mask,
+            max_offset_delta_mm=self.param(
+                ws,
+                "ref_max_offset_delta_mm",
+                self.ref_max_offset_delta_mm,
+            ),
+        )
+
+        ws[self.outputs[0]] = TimeSeries(
+            t=travel_ts.t,
+            x=adjusted,
+            units=travel_ts.units,
+            frame=travel_ts.frame,
+            meta={**travel_ts.meta},
+        )
+
+
+@dataclass
 class GetRearMagToTravelModel(Step, RearMagModel):
     min_chunk_dt: float = RearMagModel.min_chunk_dt
     max_chunk_dt: float = RearMagModel.max_chunk_dt
@@ -332,7 +434,7 @@ class GetMagTravelRefPoint(Step):
     bump_dx_min: int = 20
 
     still_len_s: float = 0.1 # seconds
-    bump_len_s: float = 0.3 # seconds
+    bump_len_s: float = 0.2 # seconds
     stride_s: float = 0.05 # seconds
     skips: int = 3 # number of following strides to skip if we find a good one, prevents repeats
 
@@ -367,9 +469,18 @@ class GetMagTravelRefPoint(Step):
 
         assert mag_ts.units == "milli-Gauss"
         assert accel_ts.units == "m/s^2"
-        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
-        bump_len = int(self.bump_len_s * mag_ts.meta["fs_hz"])
-        stride = int(self.stride_s * mag_ts.meta["fs_hz"])
+        still_len = max(
+            1,
+            int(float(self.param(ws, "still_len_s", self.still_len_s)) * mag_ts.meta["fs_hz"]),
+        )
+        bump_len = max(
+            1,
+            int(float(self.param(ws, "bump_len_s", self.bump_len_s)) * mag_ts.meta["fs_hz"]),
+        )
+        stride = max(
+            1,
+            int(float(self.param(ws, "stride_s", self.stride_s)) * mag_ts.meta["fs_hz"]),
+        )
 
         mag_chunks, a_intint_chunks, _, gt_x_chunks = self.find_chunks(
             accel, 
@@ -379,18 +490,24 @@ class GetMagTravelRefPoint(Step):
             still_len, 
             bump_len, 
             stride, 
-            mag_baseline
+            mag_baseline,
+            still_a_max=float(self.param(ws, "still_a_max", self.still_a_max)),
+            bump_mag_min=float(self.param(ws, "bump_mag_min", self.bump_mag_min)),
+            bump_dx_min=float(self.param(ws, "bump_dx_min", self.bump_dx_min)),
+            skips=int(self.param(ws, "skips", self.skips)),
         )
-        if len(mag_chunks):
-            mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
-            print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
+        #if len(mag_chunks):
+        #    mag_maxes = [np.max(mag_chunk) for mag_chunk in mag_chunks]
+        #    print("Max mags in chunks:", np.percentile(mag_maxes, 25), np.percentile(mag_maxes, 50), np.percentile(mag_maxes, 75))
         finite_mag = mag[np.isfinite(mag)]
         if finite_mag.size:
             fallback_ref_mag = float(
                 np.percentile(finite_mag, self.param(ws, "ref_zero_percentile", self.ref_zero_percentile))
             )
         else:
-            fallback_ref_mag = float(mag_baseline + self.min_ref_mag)
+            fallback_ref_mag = float(
+                mag_baseline + float(self.param(ws, "min_ref_mag", self.min_ref_mag))
+            )
         abs_pos_ref_x, abs_pos_ref_mag = self.get_abs_pos_ref(
             mag_chunks,
             a_intint_chunks,
@@ -398,13 +515,34 @@ class GetMagTravelRefPoint(Step):
             gt_x_chunks,
             min_ref_points=int(self.param(ws, "min_ref_points", self.min_ref_points)),
             fallback_ref_mag=fallback_ref_mag,
+            min_ref_mag=float(self.param(ws, "min_ref_mag", self.min_ref_mag)),
+            ref_mag_range=float(self.param(ws, "ref_mag_range", self.ref_mag_range)),
         )
         print(f"Absolute position reference point: x={abs_pos_ref_x:.1f} mm, mag={abs_pos_ref_mag:.1f} mG")
 
         ws[self.outputs[0]] = np.array([abs_pos_ref_x, abs_pos_ref_mag])
 
-    def find_chunks(self, accel, mag, gt_x, dt_s, still_len, bump_len, stride, still_mag_max):
+    def find_chunks(
+        self,
+        accel,
+        mag,
+        gt_x,
+        dt_s,
+        still_len,
+        bump_len,
+        stride,
+        still_mag_max,
+        *,
+        still_a_max: float | None = None,
+        bump_mag_min: float | None = None,
+        bump_dx_min: float | None = None,
+        skips: int | None = None,
+    ):
         # Find the chunks
+        still_a_max = self.still_a_max if still_a_max is None else still_a_max
+        bump_mag_min = self.bump_mag_min if bump_mag_min is None else bump_mag_min
+        bump_dx_min = self.bump_dx_min if bump_dx_min is None else bump_dx_min
+        skips = self.skips if skips is None else skips
         a_mms = accel * 1000
         still_slice = slice(0, still_len)
         bump_slice = slice(still_len, still_len + bump_len)
@@ -440,18 +578,18 @@ class GetMagTravelRefPoint(Step):
 
                 if np.mean(mag_still) > still_mag_max:
                     continue
-                if max(abs(a_still)) > self.still_a_max:
+                if max(abs(a_still)) > still_a_max:
                     continue
-                if max(mag_bump) < mag_still_mean + self.bump_mag_min:
+                if max(mag_bump) < mag_still_mean + bump_mag_min:
                     continue
                 
                 a_int = np.cumsum(a_bump * dt_bump)
                 a_intint = np.cumsum(a_int * dt_bump)
 
-                if max(a_intint) < self.bump_dx_min:
+                if max(a_intint) < bump_dx_min:
                     continue
 
-                skip = self.skips
+                skip = skips
 
                 a_intint_chunks.append(a_intint)
                 mag_chunks.append(mag_bump)
@@ -475,11 +613,17 @@ class GetMagTravelRefPoint(Step):
         *,
         min_ref_points: int | None = None,
         fallback_ref_mag: float | None = None,
+        min_ref_mag: float | None = None,
+        ref_mag_range: float | None = None,
     ):
         if min_ref_points is None:
             min_ref_points = self.min_ref_points
+        if min_ref_mag is None:
+            min_ref_mag = self.min_ref_mag
+        if ref_mag_range is None:
+            ref_mag_range = self.ref_mag_range
         if fallback_ref_mag is None:
-            fallback_ref_mag = float(mag_baseline + self.min_ref_mag)
+            fallback_ref_mag = float(mag_baseline + min_ref_mag)
 
         if len(mag_chunks) == 0:
             print(
@@ -491,13 +635,14 @@ class GetMagTravelRefPoint(Step):
         mag_points = np.concatenate(mag_chunks)
         print("Absolute position reference input points", x_points.shape[0])
 
-        mag_center = max(mag_baseline + self.min_ref_mag, np.median(mag_points))
-        center_range = self.ref_mag_range / 2
+        mag_center = max(mag_baseline + min_ref_mag, np.median(mag_points))
+        center_range = ref_mag_range / 2
         thresh_mask = (
             np.isfinite(x_points)
             & np.isfinite(mag_points)
             & (mag_points > mag_center - center_range)
             & (mag_points < mag_center + center_range)
+            #& (x_points > self.bump_dx_min)
         )
         selected_count = int(np.sum(thresh_mask))
         print(f"Using {selected_count} points within mag range {mag_center - center_range} to {mag_center + center_range} for absolute position reference stats")
@@ -540,10 +685,12 @@ class GetMagTravelRefPoint(Step):
         plt.show()
 
 
+@dataclass
 class GetMagBaseline(Step):
     """Find the mag baseline by looking at still regions and taking the median + std"""
     still_len_s: float = 0.1 # seconds
     still_a_max: float = 1000 # mm/s^2
+    fallback_percentile: float = 5.0
 
     def run(self, ws: Workspace) -> None:
         fixed_baseline = self.param(ws, "fixed_baseline_mG", None)
@@ -562,15 +709,35 @@ class GetMagBaseline(Step):
 
         assert mag_ts.units == "milli-Gauss"
         assert accel_ts.units == "m/s^2"
-        still_len = int(self.still_len_s * mag_ts.meta["fs_hz"])
+        still_len = max(
+            1,
+            int(float(self.param(ws, "still_len_s", self.still_len_s)) * mag_ts.meta["fs_hz"]),
+        )
+        still_a_max = float(self.param(ws, "still_a_max", self.still_a_max))
+        fallback_percentile = float(
+            self.param(ws, "fallback_percentile", self.fallback_percentile)
+        )
         a_mms = accel * 1000
         still_mags = []
         for i in range(0, mag.shape[0] - still_len, still_len):
             mag_chunk = mag[i:i+still_len]
             a_chunk = a_mms[i:i+still_len]
-            if max(abs(a_chunk)) < self.still_a_max:
+            if max(abs(a_chunk)) < still_a_max:
                 still_mags.append(mag_chunk)
 
-        mag_baseline = np.median(still_mags) + np.std(still_mags)
-        print("Mag baseline", mag_baseline, "std", np.std(still_mags))
+        finite_mag = mag[np.isfinite(mag)]
+        if finite_mag.size == 0:
+            raise ValueError("Cannot estimate magnetic baseline without finite samples")
+        fallback = float(np.percentile(finite_mag, fallback_percentile))
+        if still_mags:
+            still_values = np.concatenate(still_mags)
+            still_median = float(np.median(still_values))
+            still_std = float(np.std(still_values))
+            mag_baseline = min(still_median, fallback) + still_std
+        else:
+            still_std = 0.0
+            mag_baseline = fallback
+            print("No stationary magnetic windows found; using percentile fallback")
+        print("Fallback", fallback_percentile)
+        print("Mag baseline", mag_baseline, "std", still_std)
         ws[self.outputs[0]] = np.array([mag_baseline])

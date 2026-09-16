@@ -13,7 +13,13 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from classes.time_series import TimeSeries
 from classes.log_config import attach_log_config
-from fusion import GetErrorStats, GetMagBaseline, GetMagToTravelModel, GetMagTravelRefPoint
+from fusion import (
+    ApplyMagTravelRefPoint,
+    GetErrorStats,
+    GetMagBaseline,
+    GetMagToTravelModel,
+    GetMagTravelRefPoint,
+)
 from mag_to_travel_model_core import MagToTravelModel
 
 
@@ -53,6 +59,71 @@ class GetErrorStatsTests(unittest.TestCase):
 
 
 class AbsoluteReferenceTests(unittest.TestCase):
+    def test_calibration_steps_accept_tunable_constructor_arguments(self):
+        baseline = GetMagBaseline(
+            name="baseline",
+            inputs=("mag", "accel"),
+            outputs=("baseline",),
+            fallback_percentile=1.0,
+        )
+        reference = GetMagTravelRefPoint(
+            name="reference",
+            inputs=("mag", "accel", "baseline", "travel"),
+            outputs=("reference",),
+            bump_len_s=0.3,
+        )
+
+        self.assertEqual(baseline.fallback_percentile, 1.0)
+        self.assertEqual(reference.bump_len_s, 0.3)
+
+    def test_reference_is_applied_to_existing_corrected_mag_travel(self):
+        t = np.arange(4, dtype=float)
+        meta = {"fs_hz": 100.0}
+        ws = {
+            "corrected_travel": TimeSeries(
+                t=t,
+                x=np.array([5.0, 15.0, 25.0, 35.0]),
+                units="mm",
+                frame="travel",
+                meta=meta,
+            ),
+            "corrected_mag": TimeSeries(
+                t=t,
+                x=np.array([110.0, 120.0, 130.0, 140.0]),
+                units="milli-Gauss",
+                frame="gyro1",
+                meta=meta,
+            ),
+            "accel": TimeSeries(
+                t=t,
+                x=np.array([0.0, 1.0, 2.0, 3.0]),
+                units="m/s^2",
+                frame="travel",
+                meta=meta,
+            ),
+            "bad_mask": TimeSeries(t=t, x=np.zeros(4, dtype=bool)),
+            "reference": np.array([50.0, 120.0]),
+            "coefficients": np.array([100.0, 1.0, 1.0]),
+        }
+        step = ApplyMagTravelRefPoint(
+            name="apply_reference",
+            inputs=(
+                "corrected_travel",
+                "corrected_mag",
+                "accel",
+                "bad_mask",
+                "reference",
+                "coefficients",
+            ),
+            outputs=("adjusted",),
+        )
+
+        step.run(ws)
+
+        np.testing.assert_allclose(ws["adjusted"].x[:, 0], [35.0, 45.0, 55.0, 65.0])
+        self.assertEqual(ws["adjusted"].units, "mm")
+        self.assertEqual(ws["adjusted"].frame, "travel")
+
     def test_fixed_reference_bypasses_estimation(self):
         ws = {}
         attach_log_config(
@@ -84,6 +155,36 @@ class AbsoluteReferenceTests(unittest.TestCase):
         step.run(ws)
 
         np.testing.assert_allclose(ws["baseline"], [1450.0])
+
+    def test_baseline_scalar_overrides_are_read_from_step_config(self):
+        t = np.arange(6, dtype=float) / 10.0
+        meta = {"fs_hz": 10.0}
+        ws = {
+            "mag": TimeSeries(
+                t=t,
+                x=np.array([100.0, 110.0, 120.0, 130.0, 140.0, 150.0]),
+                units="milli-Gauss",
+                meta=meta,
+            ),
+            "accel": TimeSeries(
+                t=t,
+                x=np.full(6, 2.0),
+                units="m/s^2",
+                meta=meta,
+            ),
+        }
+        attach_log_config(
+            ws,
+            {"steps": {"baseline": {"fallback_percentile": 50.0}}},
+        )
+
+        GetMagBaseline(
+            name="baseline",
+            inputs=("mag", "accel"),
+            outputs=("baseline",),
+        ).run(ws)
+
+        np.testing.assert_allclose(ws["baseline"], [125.0])
 
     def test_under_supported_reference_uses_finite_fallback(self):
         step = GetMagTravelRefPoint(
