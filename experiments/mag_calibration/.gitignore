@@ -1,0 +1,24 @@
+# Large, reproducible execution state stays local. The experiment specifications,
+# frozen schedules, manifests, reports, figures, and compact summaries are the
+# versioned scientific record.
+runs/*/trials/
+runs/*/calibrations/
+runs/*/predictions/
+runs/*/trial_metrics.csv
+
+# The repository-wide ignore rules exclude CSV and JSON by default. Re-include
+# the compact result tables and provenance needed to audit the paper results.
+!analysis/**/*.csv
+!runs/*/aggregate_summary.csv
+!runs/*/comparison_summary.csv
+!runs/*/failures.csv
+!runs/*/manifest.json
+!runs/*/metric_backfill_failures.csv
+!runs/*/per_log_summary.csv
+!runs/*/runtime_metrics.csv
+!runs/*/setup_diagonal_baselines.csv
+!runs/*/setup_signal_summary.csv
+!runs/*/setup_transfer_summary.csv
+!runs/*/source_summary.csv
+!runs/*/status.json
+!runs/*/trial_schedule.csv

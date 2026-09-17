@@ -1,0 +1,22 @@
+schema_version = 1
+name = "random-window-front-v4-jamaal"
+pipeline = "front"
+seed = 20260904
+time_basis = "active"
+sampling = "nested-center"
+durations_s = [10, 20, 40, 60, 80]
+repeats = 20
+trainers = ["self-supervised", "oracle-power"]
+evaluation_scopes = ["training_window", "full_log", "full_log_excluding_training"]
+oracle_bins = 100
+bootstrap_draws = 2000
+
+# All lsm6dso32 front logs
+logs = [
+  "log-0078-valid",
+  "log-0079",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+]

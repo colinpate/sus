@@ -45,8 +45,20 @@ def read_inputs(spec_path: Path, run_dir: Path) -> tuple[dict, pd.DataFrame]:
     missing = (set(frame["train_log"]) | set(frame["eval_log"])) - set(setup_by_log)
     if missing:
         raise ValueError(f"No setup assignment for logs: {sorted(missing)}")
+    unit_overrides = spec.get("analysis_units", {})
+    unknown_units = set(unit_overrides) - set(setup_by_log)
+    if unknown_units:
+        raise ValueError(
+            f"Analysis units reference logs outside the setup cohort: {sorted(unknown_units)}"
+        )
     frame["train_setup"] = frame["train_log"].map(setup_by_log)
     frame["eval_setup"] = frame["eval_log"].map(setup_by_log)
+    frame["train_unit"] = frame["train_log"].map(
+        lambda log_name: unit_overrides.get(log_name, log_name)
+    )
+    frame["eval_unit"] = frame["eval_log"].map(
+        lambda log_name: unit_overrides.get(log_name, log_name)
+    )
     return spec, frame
 
 
@@ -57,8 +69,13 @@ def crossed_bootstrap(
     draws: int,
     rng: np.random.Generator,
 ) -> tuple[float, float]:
-    table = group.assign(_value=values).pivot(
-        index="train_log", columns="eval_log", values="_value"
+    source_column = "train_unit" if "train_unit" in group else "train_log"
+    target_column = "eval_unit" if "eval_unit" in group else "eval_log"
+    table = group.assign(_value=values).pivot_table(
+        index=source_column,
+        columns=target_column,
+        values="_value",
+        aggfunc="median",
     )
     matrix = table.to_numpy(dtype=float)
     estimates = np.empty(draws, dtype=float)
@@ -81,7 +98,24 @@ def crossed_bootstrap(
 
 
 def source_balanced_median(group: pd.DataFrame, column: str) -> float:
-    return float(group.groupby("train_log")[column].median().median())
+    source_column = "train_unit" if "train_unit" in group else "train_log"
+    if "eval_unit" in group:
+        unit_pairs = group.groupby(
+            [source_column, "eval_unit"], as_index=False
+        )[column].median()
+        return float(unit_pairs.groupby(source_column)[column].median().median())
+    return float(group.groupby(source_column)[column].median().median())
+
+
+def unit_balanced_fraction_positive(group: pd.DataFrame, column: str) -> float:
+    source_column = "train_unit" if "train_unit" in group else "train_log"
+    target_column = "eval_unit" if "eval_unit" in group else "eval_log"
+    unit_pairs = group.groupby([source_column, target_column])[column].median()
+    return float(np.mean(unit_pairs > 0))
+
+
+def unit_balanced_median(group: pd.DataFrame, column: str, unit_column: str) -> float:
+    return float(group.groupby(unit_column)[column].median().median())
 
 
 def analyze_pairs(
@@ -105,9 +139,12 @@ def analyze_pairs(
                 "trainer": trainer,
                 "setup": setup,
                 "logs": selected["eval_log"].nunique(),
+                "independent_units": selected["eval_unit"].nunique(),
             }
             for metric in METRICS:
-                row[f"{metric}_median"] = float(selected[metric].median())
+                row[f"{metric}_median"] = unit_balanced_median(
+                    selected, metric, "eval_unit"
+                )
             baseline_rows.append(row)
 
     result_rows = []
@@ -121,7 +158,7 @@ def analyze_pairs(
                     & (frame["eval_setup"] == eval_setup)
                 ].copy()
                 if train_setup == eval_setup:
-                    selected = selected[selected["train_log"] != selected["eval_log"]]
+                    selected = selected[selected["train_unit"] != selected["eval_unit"]]
                     transfer_type = "same_setup"
                 else:
                     transfer_type = "cross_setup"
@@ -132,6 +169,8 @@ def analyze_pairs(
                     "transfer_type": transfer_type,
                     "source_logs": selected["train_log"].nunique(),
                     "target_logs": selected["eval_log"].nunique(),
+                    "source_units": selected["train_unit"].nunique(),
+                    "target_units": selected["eval_unit"].nunique(),
                     "pairs": len(selected),
                 }
                 for metric in METRICS:
@@ -142,10 +181,14 @@ def analyze_pairs(
                     deltas = selected[metric].to_numpy(dtype=float) - baseline_values
                     row[f"{metric}_transfer_median"] = source_balanced_median(selected, metric)
                     row[f"{metric}_target_diagonal_median"] = float(
-                        diagonal[
+                        unit_balanced_median(
+                            diagonal[
                             (diagonal["trainer"] == trainer)
                             & (diagonal["eval_setup"] == eval_setup)
-                        ][metric].median()
+                            ],
+                            metric,
+                            "eval_unit",
+                        )
                     )
                     selected_delta = selected.assign(_delta=deltas)
                     row[f"{metric}_delta_median"] = source_balanced_median(
@@ -159,13 +202,16 @@ def analyze_pairs(
                     )
                     row[f"{metric}_delta_ci_low"] = low
                     row[f"{metric}_delta_ci_high"] = high
-                    row[f"{metric}_fraction_worse"] = float(np.mean(deltas > 0))
+                    row[f"{metric}_fraction_worse"] = unit_balanced_fraction_positive(
+                        selected_delta, "_delta"
+                    )
                 result_rows.append(row)
     return pd.DataFrame(baseline_rows), pd.DataFrame(result_rows)
 
 
 def signal_summary(spec: dict) -> pd.DataFrame:
     rows = []
+    unit_overrides = spec.get("analysis_units", {})
     for setup, log_names in spec["setup_logs"].items():
         per_log = []
         for log_name in log_names:
@@ -173,17 +219,27 @@ def signal_summary(spec: dict) -> pd.DataFrame:
             mask = data.activity_mask & np.isfinite(data.mag) & np.isfinite(data.travel)
             mag_low, mag_high = np.percentile(data.mag[mask], [5, 95])
             travel_low, travel_high = np.percentile(data.travel[mask], [5, 95])
-            per_log.append((mag_low, mag_high, mag_high - mag_low, travel_low, travel_high, travel_high - travel_low))
-        medians = np.median(np.asarray(per_log), axis=0)
+            per_log.append({
+                "unit": unit_overrides.get(log_name, log_name),
+                "mag_low": mag_low,
+                "mag_high": mag_high,
+                "mag_span": mag_high - mag_low,
+                "travel_low": travel_low,
+                "travel_high": travel_high,
+                "travel_span": travel_high - travel_low,
+            })
+        unit_medians = pd.DataFrame(per_log).groupby("unit").median(numeric_only=True)
+        medians = unit_medians.median()
         rows.append({
             "setup": setup,
             "logs": len(log_names),
-            "mag_p05_median": medians[0],
-            "mag_p95_median": medians[1],
-            "mag_p90_span_median": medians[2],
-            "travel_p05_median_mm": medians[3],
-            "travel_p95_median_mm": medians[4],
-            "travel_p90_span_median_mm": medians[5],
+            "independent_units": len(unit_medians),
+            "mag_p05_median": medians["mag_low"],
+            "mag_p95_median": medians["mag_high"],
+            "mag_p90_span_median": medians["mag_span"],
+            "travel_p05_median_mm": medians["travel_low"],
+            "travel_p95_median_mm": medians["travel_high"],
+            "travel_p90_span_median_mm": medians["travel_span"],
         })
     return pd.DataFrame(rows)
 
@@ -192,7 +248,11 @@ def plot_matrices(spec: dict, pairs: pd.DataFrame, output_dir: Path) -> None:
     setups = list(spec["setup_logs"])
     labels = spec["setup_labels"]
     trainers = list(spec["trainers"])
-    fig, axes = plt.subplots(2, len(trainers), figsize=(15.5, 8.2))
+    fig, axes = plt.subplots(
+        2,
+        len(trainers),
+        figsize=(max(15.5, 5.2 * len(trainers)), max(8.2, 1.6 * len(setups) + 3.0)),
+    )
     actual_max = float(pairs["aligned_rmse_transfer_median"].max())
     delta_abs = float(np.max(np.abs(pairs["aligned_rmse_delta_median"])))
     for column, trainer in enumerate(trainers):
@@ -216,8 +276,8 @@ def plot_matrices(spec: dict, pairs: pd.DataFrame, output_dir: Path) -> None:
             for i in range(len(setups)):
                 for j in range(len(setups)):
                     value = matrix[i, j]
-                    axis.text(j, i, f"{value:+.1f}" if row_index else f"{value:.1f}", ha="center", va="center", color="white" if abs(value) > vmax * .42 else "black", fontsize=10)
-            axis.set_xticks(range(len(setups)), [labels[name] for name in setups], rotation=28, ha="right")
+                    axis.text(j, i, f"{value:+.1f}" if row_index else f"{value:.1f}", ha="center", va="center", color="white" if abs(value) > vmax * .42 else "black", fontsize=9 if len(setups) > 4 else 10)
+            axis.set_xticks(range(len(setups)), [labels[name] for name in setups], rotation=32, ha="right")
             axis.set_yticks(range(len(setups)), [labels[name] for name in setups])
             axis.set_xlabel("Target setup")
             axis.set_ylabel("Source setup")
@@ -230,107 +290,139 @@ def plot_matrices(spec: dict, pairs: pd.DataFrame, output_dir: Path) -> None:
     plt.close(fig)
 
 
-def value(pairs: pd.DataFrame, trainer: str, source: str, target: str, column: str) -> float:
-    return float(pairs[
-        (pairs["trainer"] == trainer)
-        & (pairs["train_setup"] == source)
-        & (pairs["eval_setup"] == target)
-    ].iloc[0][column])
-
-
 def write_report(spec: dict, baselines: pd.DataFrame, pairs: pd.DataFrame, signals: pd.DataFrame, output_dir: Path) -> None:
     labels = spec["setup_labels"]
     setups = list(spec["setup_logs"])
+    trainers = list(spec["trainers"])
     ss = "self-supervised"
+    selected = pairs[pairs["trainer"] == ss]
+    cross = selected[selected["transfer_type"] == "cross_setup"]
+    same = selected[selected["transfer_type"] == "same_setup"]
+    worst = cross.loc[cross["aligned_rmse_delta_median"].idxmax()]
+    easiest = cross.loc[cross["aligned_rmse_delta_median"].idxmin()]
+    positive_cells = int((cross["aligned_rmse_delta_median"] > 0).sum())
+    positive_ci_cells = int((cross["aligned_rmse_delta_ci_low"] > 0).sum())
+    unit_overrides = spec.get("analysis_units", {})
+    independent_units = {
+        unit_overrides.get(log_name, log_name)
+        for log_names in spec["setup_logs"].values()
+        for log_name in log_names
+    }
+    log_count = len(spec["logs"])
+    pairs_per_trainer = (
+        log_count**2 if spec.get("include_diagonal", True) else log_count * (log_count - 1)
+    )
+    expected_evaluations = pairs_per_trainer * len(trainers)
+    sampling_note = ""
+    if "sample_seed" in spec:
+        sampling_note = (
+            f" The cohort is a frozen setup-stratified random sample of "
+            f"{spec.get('sample_per_setup', 'the configured number of')} independent "
+            f"recordings per setup using seed {spec['sample_seed']}."
+        )
+        if spec.get("screening_run"):
+            sampling_note += (
+                " The screening run was used to verify cache freshness and failures, "
+                "not to select by accuracy."
+            )
     lines = [
-        "# Cross-setup magnetometer calibration transfer",
+        f"# {spec['name']}: cross-setup magnetometer calibration transfer",
         "",
         "## Bottom line",
         "",
-        "Full-log calibrations transfer well between pod v1 and pod v2 on the same Stumpjumper, but do not transfer between the Stumpjumper and TR11. The bike/setup change produces a far larger penalty than either log-to-log variation within a setup or the pod-generation change on the same bike. This directly supports per-setup calibration and strengthens the motivation for automatic per-recording self-calibration.",
+        f"The expanded experiment finds a positive self-supervised transfer penalty in {positive_cells} of {len(cross)} directed cross-setup cells; {positive_ci_cells} have a crossed-bootstrap interval entirely above zero. The penalty ranges from {easiest['aligned_rmse_delta_median']:+.2f} to {worst['aligned_rmse_delta_median']:+.2f} mm, demonstrating that transfer is strongly directional and that pooled cross-setup averages are not sufficient.",
         "",
         "## Design",
         "",
-        f"The experiment evaluates all 24 source logs against all 24 target logs for {len(spec['trainers'])} trainers: " + ", ".join(spec["trainers"]) + ". Each calibration is trained once on its complete source log. The matrix contains the target log's own calibration, same-setup transfers, and all six directed cross-setup transfers. All 1,728 evaluations completed successfully.",
+        f"The experiment evaluates all {len(spec['logs'])} source logs against all {len(spec['logs'])} target logs for {len(trainers)} trainers: " + ", ".join(trainers) + f". It covers {len(setups)} setup cohorts and {len(independent_units)} independent recording units. Each calibration is trained once on its complete source log; the matrix retains the target log's own calibration and within-setup transfers as controls. All {expected_evaluations:,} evaluations completed successfully." + sampling_note,
         "",
-        "The primary comparison is each transfer's aligned error minus the target log's own calibration error. Positive values mean that independent target/per-recording calibration is better. Aligned normalized RMSE is retained to ensure that conclusions are not caused only by the setups' different travel ranges. Confidence intervals use a crossed bootstrap that independently resamples source and target logs; they are descriptive because the available logs are not a prospectively held-out cohort.",
+        "The primary comparison is each transfer's aligned error minus the target log's own calibration error from the same trainer. Positive values favor independent target/per-recording calibration. Aligned normalized RMSE controls for different travel distributions. Confidence intervals use a crossed bootstrap that independently resamples source and target recording units. Derived chunks from the same parent recording are collapsed within unit pairs and resampled as one unit.",
         "",
-        "## Per-log baselines",
+        "## Target-specific baselines",
         "",
-        "| Trainer | Setup | Logs | Aligned RMSE | Normalized RMSE | Anchored RMSE |",
-        "|---|---|---:|---:|---:|---:|",
+        "| Trainer | Setup | Logs | Independent units | Aligned RMSE | Normalized RMSE | Anchored RMSE |",
+        "|---|---|---:|---:|---:|---:|---:|",
     ]
     for _, row in baselines.iterrows():
         lines.append(
             f"| {row['trainer']} | {labels[row['setup']]} | {int(row['logs'])} | "
-            f"{row['aligned_rmse_median']:.2f} mm | {row['aligned_nrmse_std_median']:.3f} | "
-            f"{row['anchored_rmse_median']:.2f} mm |"
+            f"{int(row['independent_units'])} | {row['aligned_rmse_median']:.2f} mm | "
+            f"{row['aligned_nrmse_std_median']:.3f} | {row['anchored_rmse_median']:.2f} mm |"
         )
     lines.extend([
         "",
         "## Self-supervised transfer results",
         "",
-        "| Source → target | Type | Transfer RMSE | Penalty vs target calibration (95% CI) | Δ normalized RMSE | Transfer worse | Anchored RMSE |",
-        "|---|---|---:|---:|---:|---:|---:|",
+        "| Source → target | Type | Source/target units | Transfer RMSE | Penalty vs target calibration (95% CI) | Δ normalized RMSE | Unit pairs worse | Anchored RMSE |",
+        "|---|---|---:|---:|---:|---:|---:|---:|",
     ])
-    selected = pairs[pairs["trainer"] == ss]
     for _, row in selected.iterrows():
         lines.append(
             f"| {labels[row['train_setup']]} → {labels[row['eval_setup']]} | {row['transfer_type'].replace('_', ' ')} | "
-            f"{row['aligned_rmse_transfer_median']:.2f} mm | {row['aligned_rmse_delta_median']:+.2f} "
-            f"[{row['aligned_rmse_delta_ci_low']:+.2f}, {row['aligned_rmse_delta_ci_high']:+.2f}] mm | "
-            f"{row['aligned_nrmse_std_delta_median']:+.3f} | {row['aligned_rmse_fraction_worse']:.0%} | "
-            f"{row['anchored_rmse_transfer_median']:.2f} mm |"
+            f"{int(row['source_units'])}/{int(row['target_units'])} | {row['aligned_rmse_transfer_median']:.2f} mm | "
+            f"{row['aligned_rmse_delta_median']:+.2f} [{row['aligned_rmse_delta_ci_low']:+.2f}, "
+            f"{row['aligned_rmse_delta_ci_high']:+.2f}] mm | {row['aligned_nrmse_std_delta_median']:+.3f} | "
+            f"{row['aligned_rmse_fraction_worse']:.0%} | {row['anchored_rmse_transfer_median']:.2f} mm |"
         )
-    v1, v2, tr11 = setups
     lines.extend([
         "",
         "## Main findings",
         "",
-        "1. **Changing sensor generation on the same bike has a small transfer cost.** "
-        f"Pod-v1 Stumpjumper curves transferred to pod-v2 Stumpjumper with a {value(pairs, ss, v1, v2, 'aligned_rmse_delta_median'):+.2f} mm median penalty; the reverse direction was {value(pairs, ss, v2, v1, 'aligned_rmse_delta_median'):+.2f} mm. These are comparable to same-setup log-transfer penalties and tiny relative to cross-bike effects. Supervised oracle penalties are positive in both directions, showing a real but modest hardware/mounting difference that self-supervised fit variance can obscure.",
-        "2. **Stumpjumper calibrations fail on the TR11.** "
-        f"Self-supervised transfer penalties are {value(pairs, ss, v1, tr11, 'aligned_rmse_delta_median'):+.2f} mm from pod-v1 Stumpjumper and {value(pairs, ss, v2, tr11, 'aligned_rmse_delta_median'):+.2f} mm from pod-v2 Stumpjumper. Transfer is worse than the TR11 target calibration for 98% of source-target pairs from both Stumpjumper setups.",
-        "3. **TR11 calibrations fail even more severely on the Stumpjumper.** "
-        f"The penalties are {value(pairs, ss, tr11, v1, 'aligned_rmse_delta_median'):+.2f} and {value(pairs, ss, tr11, v2, 'aligned_rmse_delta_median'):+.2f} mm, and every evaluated pair is worse than the target's own calibration.",
-        "4. **The conclusion survives normalization and oracle substitution.** Cross-bike normalized-RMSE penalties remain large, and both supervised oracle families show the same qualitative separation. The result is therefore not explained merely by different fork travel, target difficulty, or self-supervised optimizer noise.",
-        "5. **Absolute anchoring amplifies cross-bike failure.** Self-supervised cross-bike anchored errors are much larger than aligned errors, so transferring a frozen curve cannot be rescued by the present target-side anchor policy.",
+        f"1. **Most setup changes penalize a frozen calibration.** {positive_cells} of {len(cross)} directed self-supervised cross-setup cells have a positive median penalty, compared with a same-setup range of {same['aligned_rmse_delta_median'].min():+.2f} to {same['aligned_rmse_delta_median'].max():+.2f} mm.",
+        f"2. **The strongest failure is {labels[worst['train_setup']]} → {labels[worst['eval_setup']]}.** Its median penalty is {worst['aligned_rmse_delta_median']:+.2f} mm [{worst['aligned_rmse_delta_ci_low']:+.2f}, {worst['aligned_rmse_delta_ci_high']:+.2f}], and {worst['aligned_rmse_fraction_worse']:.0%} of independent source-target unit pairs are worse than target-specific calibration.",
+        f"3. **The easiest transfer direction is {labels[easiest['train_setup']]} → {labels[easiest['eval_setup']]}.** Its median penalty is {easiest['aligned_rmse_delta_median']:+.2f} mm [{easiest['aligned_rmse_delta_ci_low']:+.2f}, {easiest['aligned_rmse_delta_ci_high']:+.2f}]. This direction should be interpreted separately rather than used to justify universal transfer.",
+        "4. **Oracle comparisons distinguish physical transfer mismatch from learner noise.** The oracle trainers directly observe reference travel on the source log. Agreement with the self-supervised direction therefore supports a setup-specific mapping; disagreement identifies directions where self-supervised estimation variance affects the comparison.",
+        "5. **Absolute and normalized metrics remain necessary.** Normalized error checks that results are not just caused by different travel ranges, while anchored error exposes offset and mounting-reference transfer in addition to curve shape.",
         "",
-        "## Why transfer is directionally asymmetric",
+        "### Oracle cross-setup summary",
         "",
-        "The active-data magnetic ranges differ substantially:",
-        "",
-        "| Setup | Median magnetic p5–p95 | Median magnetic span | Median travel span |",
+        "| Trainer | Positive median penalties | CIs above zero | Penalty range |",
         "|---|---:|---:|---:|",
+    ])
+    for trainer in trainers:
+        trainer_cross = pairs[
+            (pairs["trainer"] == trainer)
+            & (pairs["transfer_type"] == "cross_setup")
+        ]
+        lines.append(
+            f"| {trainer} | {(trainer_cross['aligned_rmse_delta_median'] > 0).sum()}/{len(trainer_cross)} | "
+            f"{(trainer_cross['aligned_rmse_delta_ci_low'] > 0).sum()}/{len(trainer_cross)} | "
+            f"{trainer_cross['aligned_rmse_delta_median'].min():+.2f} to {trainer_cross['aligned_rmse_delta_median'].max():+.2f} mm |"
+        )
+    lines.extend([
+        "",
+        "## Magnetic and travel support",
+        "",
+        "| Setup | Logs | Independent units | Median magnetic p5–p95 | Median magnetic span | Median travel span |",
+        "|---|---:|---:|---:|---:|---:|",
     ])
     for _, row in signals.iterrows():
         lines.append(
-            f"| {labels[row['setup']]} | {row['mag_p05_median']:.0f}–{row['mag_p95_median']:.0f} | "
+            f"| {labels[row['setup']]} | {int(row['logs'])} | {int(row['independent_units'])} | "
+            f"{row['mag_p05_median']:.0f}–{row['mag_p95_median']:.0f} | "
             f"{row['mag_p90_span_median']:.0f} | {row['travel_p90_span_median_mm']:.1f} mm |"
         )
     lines.extend([
         "",
-        "The TR11 occupies a narrow, low magnetic interval compared with either Stumpjumper setup. A TR11-trained power curve must extrapolate far outside its observed magnetic support on Stumpjumper targets, explaining why that direction is especially destructive. Stumpjumper-to-TR11 transfer stays nearer the source's low-magnitude region but still applies the wrong curve shape/scale. This asymmetry is evidence for a setup-specific mapping, not evidence that one transfer direction is acceptable.",
+        "Large support differences explain some directional asymmetry: a curve trained on a narrow magnetic interval may extrapolate or clip when transferred to a wider target interval. Support overlap is not sufficient by itself, because different magnet placement and fork geometry can still produce a different curve within overlapping ranges.",
         "",
         "## Paper implications",
         "",
-        "- The experiment directly supports the claim that a one-time calibration does not generalize across bike/sensor geometry, particularly across bikes.",
-        "- It strengthens the value proposition for calibration without stored bike-specific priors: each target log's independently learned mapping is dramatically better than importing a curve from the other bike.",
-        "- The pod-v1↔pod-v2 result is a useful nuance: the method need not claim that every remount or sensor revision creates a wholly unrelated curve. The dominant tested change is bike/fork/magnet geometry.",
-        "- The paper should show directed transfer, because the failure is strongly asymmetric. A pooled 'cross-setup' number would conceal the extrapolation mechanism.",
-        "- The primary paper table should include aligned and normalized error; anchored error can be a secondary end-to-end measure.",
+        "- Report the directed setup matrix rather than one pooled transfer statistic; source and target roles are not interchangeable.",
+        "- Use the target-specific diagonal and within-setup transfer as controls, so target difficulty and ordinary recording variation are separated from setup mismatch.",
+        "- Treat the two supervised oracles as a physical/curve-family control rather than as a deployable method.",
+        "- Keep aligned and normalized error primary, with anchored error as the production-oriented secondary measure.",
         "",
         "## Pipeline implications",
         "",
-        "- Never silently reuse a calibration across an unknown bike/setup. Require setup identity or perform self-calibration on the current recording.",
-        "- Store the calibration's observed magnetic support. If a target recording lies outside it, reject the imported curve rather than extrapolating.",
-        "- A pod-generation change on the same bike may permit a warm start, but it should still be validated by self-supervised constraints before acceptance.",
-        "- A generic population prior could initialize optimization, but the final mapping must adapt to the current bike/setup.",
-        "- Add a curve-compatibility score based on magnetic-support overlap and short-window IMU residuals; this experiment provides positive and negative pairs for selecting a threshold.",
+        "- Do not silently reuse a calibration across an unknown setup. Require setup identity or self-calibrate on the current recording.",
+        "- Store the calibration's observed magnetic support and reject unsupported extrapolation.",
+        "- Validate any warm-start or population prior with current-recording IMU constraints before accepting it.",
+        "- Use this matrix to develop a compatibility score from support overlap, curve parameters, and held-out self-supervised residuals.",
         "",
         "## Limitations and next step",
         "",
-        "This experiment evaluates the magnetic mapping before downstream fusion and uses full-log source calibration. It also uses the reference-derived `boring_mask` for evaluation, while oracle curves use target-independent reference data from their source log only. The next highest-value experiment is a smaller downstream-solver transfer study using representative source calibrations from each setup. That will measure how much cross-setup curve failure survives IMU fusion and magnetic-nuisance correction.",
+        "This experiment evaluates the magnetic mapping before downstream fusion and uses full-log source calibration. It uses the reference-derived `boring_mask` for evaluation; oracle curves use reference travel only from their source log. The confidence intervals are descriptive because these recordings were not collected as a prospectively held-out cohort. The next highest-value experiment is a smaller downstream-solver transfer study using representative source calibrations from each setup.",
         "",
     ])
     (output_dir / "cross_setup_report.md").write_text("\n".join(lines), encoding="utf-8")

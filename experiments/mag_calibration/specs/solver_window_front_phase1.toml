@@ -1,0 +1,25 @@
+schema_version = 1
+experiment_type = "downstream_solver_window"
+name = "solver-window-front-phase1"
+pipeline = "front"
+source_run = "experiments/mag_calibration/runs/random-window-front-v1"
+source_trainer = "self-supervised"
+source_repeat = 0
+durations_s = [5, 10, 20, 40, 120]
+evaluation_scopes = ["training_window", "common_core", "full_log", "full_log_excluding_training"]
+common_core_s = 5
+save_predictions = true
+
+logs = [
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+]

@@ -1,0 +1,101 @@
+{
+  "activity_mask_note": "Active time and evaluation currently use boring_mask, which is derived from reference travel and is therefore experimental infrastructure rather than a production activity detector.",
+  "created_at": "2026-09-04T19:03:35+00:00",
+  "eligible_logs": [
+    "log-0046",
+    "log-0048",
+    "log-0049",
+    "log-0054",
+    "log-0055",
+    "log-0056",
+    "log-0058",
+    "log-0063",
+    "log-0071_183",
+    "log-0072_184",
+    "log-0073_185",
+    "log-0078-valid",
+    "log-0079",
+    "log-0080-valid",
+    "log-0081",
+    "log-0098",
+    "log-0099",
+    "log103",
+    "log104",
+    "log106",
+    "log107",
+    "log109",
+    "log110",
+    "log112"
+  ],
+  "excluded_logs": [],
+  "experiment": "random-window-front-v2",
+  "git": {
+    "commit": "d9abf2a55ee32b50d11320f145c3ae6cf3d0ada1",
+    "dirty": true,
+    "status_short": [
+      "M backend/mag_calibration.py",
+      " M backend/tests/test_mag_calibration.py",
+      " M tools/mag_calibration_experiment.py",
+      "?? backend/tests/test_mag_calibration_sweep.py",
+      "?? experiments/mag_calibration/",
+      "?? tools/mag_calibration_sweep.py"
+    ]
+  },
+  "schedule_sha256": "a6ea04e5d310e83640aa7d3c238305f8bcfbc611beb6e6c1e283371748993a0c",
+  "schema_version": 1,
+  "spec": {
+    "bootstrap_draws": 2000,
+    "durations_s": [
+      1,
+      2,
+      5,
+      10,
+      40
+    ],
+    "evaluation_scopes": [
+      "training_window",
+      "full_log"
+    ],
+    "logs": [
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185",
+      "log-0078-valid",
+      "log-0079",
+      "log-0080-valid",
+      "log-0081",
+      "log103",
+      "log104",
+      "log106",
+      "log107",
+      "log109",
+      "log110",
+      "log112",
+      "log-0098",
+      "log-0099"
+    ],
+    "name": "random-window-front-v2",
+    "oracle_bins": 100,
+    "pipeline": "front",
+    "repeats": 5,
+    "sampling": "nested-center",
+    "schema_version": 1,
+    "seed": 20260904,
+    "time_basis": "active",
+    "trainers": [
+      "self-supervised",
+      "oracle-power"
+    ]
+  },
+  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/random_window_front_v2.toml",
+  "spec_sha256": "2a28544e9deecb40c79b9571511b2c8c57f5ffa7ece3cf641aafcce43caee025",
+  "trial_count": 1200
+}

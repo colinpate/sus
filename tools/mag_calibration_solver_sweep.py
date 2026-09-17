@@ -689,9 +689,9 @@ def write_report(
         "",
         f"Median runtime was {fmt(float(np.median(total_runtime)), 1)} s per full-log condition "
         f"({fmt(float(np.sum(total_runtime)) / 60.0, 1)} solver-minutes total).",
-        "Raw per-trial metrics, " + ("predictions, " if spec.get("save_predictions", True) else "") + "aggregate tables, and the learning-curve figure are "
-        "stored beside this report. The frozen schedule links every solve to its exact source "
-        "calibration and cached-input fingerprint.",
+        "Fresh runs write row-level metrics, " + ("disposable prediction arrays, " if spec.get("save_predictions", True) else "") + "aggregate tables, and the learning-curve figure "
+        "beside this report. The frozen schedule links every solve to its exact source calibration "
+        "and cached-input fingerprint; large execution caches need not be versioned.",
         "",
     ])
     atomic_write_text(output_dir / "report.md", "\n".join(lines))

@@ -1,0 +1,54 @@
+{
+  "activity_mask_note": "Evaluation uses the reference-derived boring_mask.",
+  "calibration_count": 18,
+  "created_at": "2026-09-05T05:06:19+00:00",
+  "eligible_logs": [
+    "log-0078-valid",
+    "log-0079",
+    "log-0080-valid",
+    "log-0081",
+    "log-0098",
+    "log-0099"
+  ],
+  "excluded_logs": [],
+  "experiment": "cross-log-front-jamaal-v1",
+  "git": {
+    "commit": "c766e71470ed7dbed21690aebd09d1b395c45f3c",
+    "dirty": true,
+    "status_short": [
+      "M backend/tests/test_mag_calibration_sweep.py",
+      " M tools/mag_calibration_experiment.py",
+      " M tools/mag_calibration_sweep.py",
+      "?? experiments/mag_calibration/"
+    ]
+  },
+  "schedule_sha256": "b18650ce91ad1396e8c395cb0071c2d4b31778c0adc1f29518155f082645cc04",
+  "schema_version": 1,
+  "spec": {
+    "evaluation_window": "full_log",
+    "experiment_type": "cross_log",
+    "include_diagonal": true,
+    "logs": [
+      "log-0078-valid",
+      "log-0079",
+      "log-0080-valid",
+      "log-0081",
+      "log-0098",
+      "log-0099"
+    ],
+    "name": "cross-log-front-jamaal-v1",
+    "oracle_bins": 100,
+    "pipeline": "front",
+    "schema_version": 1,
+    "time_basis": "active",
+    "trainers": [
+      "self-supervised",
+      "oracle-power",
+      "oracle-binned-median"
+    ],
+    "training_window": "full_log"
+  },
+  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/cross_log_front_jamaal_v1.toml",
+  "spec_sha256": "d249eced13e9d22ebf3becc992c7af4364aececeb76133d50c1c2fa1a0260e97",
+  "trial_count": 108
+}
