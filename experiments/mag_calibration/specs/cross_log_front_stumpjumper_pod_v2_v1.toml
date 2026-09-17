@@ -1,0 +1,26 @@
+schema_version = 1
+experiment_type = "cross_log"
+name = "cross-log-front-stumpjumper-pod-v2-v1"
+pipeline = "front"
+time_basis = "active"
+training_window = "full_log"
+evaluation_window = "full_log"
+include_diagonal = true
+trainers = ["self-supervised", "oracle-power", "oracle-binned-median"]
+oracle_bins = 100
+
+# A deliberately homogeneous cohort isolates per-recording calibration effects
+# from bike geometry and sensor-generation transfer.
+logs = [
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+]

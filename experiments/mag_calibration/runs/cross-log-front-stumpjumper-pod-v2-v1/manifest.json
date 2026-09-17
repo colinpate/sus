@@ -1,0 +1,64 @@
+{
+  "activity_mask_note": "Evaluation uses the reference-derived boring_mask.",
+  "calibration_count": 33,
+  "created_at": "2026-09-04T21:06:11+00:00",
+  "eligible_logs": [
+    "log-0046",
+    "log-0048",
+    "log-0049",
+    "log-0054",
+    "log-0055",
+    "log-0056",
+    "log-0058",
+    "log-0063",
+    "log-0071_183",
+    "log-0072_184",
+    "log-0073_185"
+  ],
+  "excluded_logs": [],
+  "experiment": "cross-log-front-stumpjumper-pod-v2-v1",
+  "git": {
+    "commit": "c766e71470ed7dbed21690aebd09d1b395c45f3c",
+    "dirty": true,
+    "status_short": [
+      "M backend/tests/test_mag_calibration_sweep.py",
+      " M tools/mag_calibration_experiment.py",
+      " M tools/mag_calibration_sweep.py",
+      "?? experiments/mag_calibration/"
+    ]
+  },
+  "schedule_sha256": "4f8a9773f5c7e83c503728b4a1b964bc9d5940b5005dc05db0ef8b891c010e18",
+  "schema_version": 1,
+  "spec": {
+    "evaluation_window": "full_log",
+    "experiment_type": "cross_log",
+    "include_diagonal": true,
+    "logs": [
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185"
+    ],
+    "name": "cross-log-front-stumpjumper-pod-v2-v1",
+    "oracle_bins": 100,
+    "pipeline": "front",
+    "schema_version": 1,
+    "time_basis": "active",
+    "trainers": [
+      "self-supervised",
+      "oracle-power",
+      "oracle-binned-median"
+    ],
+    "training_window": "full_log"
+  },
+  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/cross_log_front_stumpjumper_pod_v2_v1.toml",
+  "spec_sha256": "9df45add2ad2f7131dd5f293fc15998f4d4ef9eb9aa0fc8a01c5233a626de533",
+  "trial_count": 363
+}

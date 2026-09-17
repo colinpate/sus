@@ -213,6 +213,31 @@ class MagToTravelModelCore:
             else:
                 chunks_filt.append(chunk)
         return chunks_filt
+
+    def select_chunks_by_sample_range(
+        self,
+        chunks: list[MagToTravelChunk],
+        sample_range: tuple[int, int] | None,
+    ) -> list[MagToTravelChunk]:
+        """Return chunks fully contained in a half-open sample range.
+
+        Windowed calibration must not retain chunks whose acceleration or
+        magnetic samples cross a training boundary.  Keeping this gate in the
+        shared model core gives the front and rear learners identical boundary
+        semantics while leaving their chunk construction and filtering rules
+        independent.
+        """
+        if sample_range is None:
+            return list(chunks)
+
+        start, stop = (int(sample_range[0]), int(sample_range[1]))
+        if start < 0 or stop < start:
+            raise ValueError(f"Invalid training sample range [{start}, {stop})")
+        return [
+            chunk
+            for chunk in chunks
+            if chunk.slice_i.start >= start and chunk.slice_i.stop <= stop
+        ]
     
     def get_eligible_chunks(self, idxs_filt, mag, acc, t_s, mag_proj_bad_mask):
         chunks = self.create_chunks(idxs_filt, mag, acc, t_s, mag_proj_bad_mask)
@@ -232,7 +257,8 @@ class MagToTravelModelCore:
             train_mask,
             t,
             baseline_min_mag,
-            idxs
+            idxs,
+            sample_range: tuple[int, int] | None = None,
         ):
         if self.train_with_mask:
             print("Training with mask, shape of bad mask", train_mask.shape, "num bad samples", np.sum(train_mask))
@@ -242,6 +268,15 @@ class MagToTravelModelCore:
 
         self.min_mag = baseline_min_mag
         eligible_chunks = self.get_eligible_chunks(idxs, mag, accel, t, training_mask)
+        eligible_chunks_all = eligible_chunks
+        eligible_chunks = self.select_chunks_by_sample_range(eligible_chunks, sample_range)
+        if sample_range is not None:
+            print(
+                "Eligible chunks in training range:",
+                len(eligible_chunks),
+                "of",
+                len(eligible_chunks_all),
+            )
         chunks = self.filter_chunks_by_min_mag(eligible_chunks, self.min_mag)
         mag_mins = [chunk.metrics["mag_min"] for chunk in eligible_chunks]
         if mag_mins:
@@ -265,6 +300,7 @@ class MagToTravelModelCore:
                 len(chunks),
             )
             chunks = self.filter_chunks_by_min_mag(eligible_chunks, relaxed_min_mag)
+            effective_min_mag = float(relaxed_min_mag)
         else:
             print(
                 "Using raw min mag",
@@ -272,7 +308,16 @@ class MagToTravelModelCore:
                 "chunks",
                 len(chunks),
             )
+            effective_min_mag = float(baseline_min_mag)
         self.chunks = chunks
+        self.stats["training_selection"] = {
+            "eligible_chunks_all": int(len(eligible_chunks_all)),
+            "eligible_chunks_in_range": int(len(eligible_chunks)),
+            "training_chunks": int(len(chunks)),
+            "baseline_min_mag": float(baseline_min_mag),
+            "effective_min_mag": effective_min_mag,
+            "used_relaxed_min_mag": bool(use_relaxed_min_mag),
+        }
         print("Training chunks:", len(self.chunks))
 
         return self.format_chunks_for_fit(chunks)

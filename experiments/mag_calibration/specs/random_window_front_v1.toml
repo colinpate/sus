@@ -1,0 +1,27 @@
+schema_version = 1
+name = "random-window-front-v1"
+pipeline = "front"
+seed = 20260904
+time_basis = "active"
+sampling = "nested-center"
+durations_s = [5, 10, 20, 40, 60, 120]
+repeats = 20
+trainers = ["self-supervised", "oracle-power", "oracle-isotonic"]
+evaluation_scopes = ["training_window", "full_log", "full_log_excluding_training"]
+oracle_bins = 100
+bootstrap_draws = 2000
+
+# One bike and front-sensor generation: Specialized Stumpjumper, pod-v2.
+logs = [
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+]

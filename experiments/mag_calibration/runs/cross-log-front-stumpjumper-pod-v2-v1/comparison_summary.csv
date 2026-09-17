@@ -1,0 +1,6 @@
+baseline_trainer,comparison,fraction_baseline_better,median_delta_mm,pairs,transfer_trainer
+self-supervised,transfer minus target self-supervised diagonal,0.5363636363636364,0.09303727771939507,110,self-supervised
+oracle-power,transfer minus target oracle-power diagonal,0.9636363636363636,0.32983881516244073,110,oracle-power
+self-supervised,transfer minus target self-supervised diagonal,0.08181818181818182,-1.2208611648791226,110,oracle-power
+oracle-binned-median,transfer minus target oracle-binned-median diagonal,0.9545454545454546,0.26818326683246907,110,oracle-binned-median
+self-supervised,transfer minus target self-supervised diagonal,0.07272727272727272,-1.3932856561668423,110,oracle-binned-median

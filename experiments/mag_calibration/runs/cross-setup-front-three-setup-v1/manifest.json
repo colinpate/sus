@@ -1,0 +1,126 @@
+{
+  "activity_mask_note": "Evaluation uses the reference-derived boring_mask.",
+  "calibration_count": 72,
+  "created_at": "2026-09-07T03:32:26+00:00",
+  "eligible_logs": [
+    "log-0046",
+    "log-0048",
+    "log-0049",
+    "log-0054",
+    "log-0055",
+    "log-0056",
+    "log-0058",
+    "log-0063",
+    "log-0071_183",
+    "log-0072_184",
+    "log-0073_185",
+    "log-0078-valid",
+    "log-0079",
+    "log-0080-valid",
+    "log-0081",
+    "log-0098",
+    "log-0099",
+    "log103",
+    "log104",
+    "log106",
+    "log107",
+    "log109",
+    "log110",
+    "log112"
+  ],
+  "excluded_logs": [],
+  "experiment": "cross-setup-front-three-setup-v1",
+  "git": {
+    "commit": "b93a95090c2f00f534f417bbee7aa43bfb900cb9",
+    "dirty": true,
+    "status_short": [
+      "M backend/tests/test_mag_calibration_sweep.py",
+      " M tools/mag_calibration_experiment.py",
+      "?? experiments/mag_calibration/"
+    ]
+  },
+  "schedule_sha256": "99ab774caec07eda53906011fdc0122e9e16f10de583b94827fda5568939c884",
+  "schema_version": 1,
+  "spec": {
+    "evaluation_window": "full_log",
+    "experiment_type": "cross_log",
+    "include_diagonal": true,
+    "logs": [
+      "log103",
+      "log104",
+      "log106",
+      "log107",
+      "log109",
+      "log110",
+      "log112",
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185",
+      "log-0078-valid",
+      "log-0079",
+      "log-0080-valid",
+      "log-0081",
+      "log-0098",
+      "log-0099"
+    ],
+    "name": "cross-setup-front-three-setup-v1",
+    "oracle_bins": 100,
+    "pipeline": "front",
+    "schema_version": 1,
+    "setup_labels": {
+      "stumpjumper_pod_v1": "Stumpjumper / pod v1",
+      "stumpjumper_pod_v2": "Stumpjumper / pod v2",
+      "tr11_pod_v2": "TR11 / pod v2"
+    },
+    "setup_logs": {
+      "stumpjumper_pod_v1": [
+        "log103",
+        "log104",
+        "log106",
+        "log107",
+        "log109",
+        "log110",
+        "log112"
+      ],
+      "stumpjumper_pod_v2": [
+        "log-0046",
+        "log-0048",
+        "log-0049",
+        "log-0054",
+        "log-0055",
+        "log-0056",
+        "log-0058",
+        "log-0063",
+        "log-0071_183",
+        "log-0072_184",
+        "log-0073_185"
+      ],
+      "tr11_pod_v2": [
+        "log-0078-valid",
+        "log-0079",
+        "log-0080-valid",
+        "log-0081",
+        "log-0098",
+        "log-0099"
+      ]
+    },
+    "time_basis": "active",
+    "trainers": [
+      "self-supervised",
+      "oracle-power",
+      "oracle-binned-median"
+    ],
+    "training_window": "full_log"
+  },
+  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/cross_setup_front_three_setup_v1.toml",
+  "spec_sha256": "02bb4c2df6982e1f698348781325ea84f596ab88e1a9fbfb88cdbf30cfd2f094",
+  "trial_count": 1728
+}

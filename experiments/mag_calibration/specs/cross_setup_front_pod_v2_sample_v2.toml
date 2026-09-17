@@ -1,0 +1,70 @@
+schema_version = 1
+experiment_type = "cross_log"
+name = "cross-setup-front-pod-v2-sample-v2"
+pipeline = "front"
+time_basis = "active"
+training_window = "full_log"
+evaluation_window = "full_log"
+include_diagonal = true
+trainers = ["self-supervised", "oracle-power", "oracle-binned-median"]
+oracle_bins = 100
+
+# Reproducible setup-stratified sample from the usable pod-v2 logs in
+# front-default on 2026-09-16. Five independent recordings were selected per
+# setup with seed 20260916. The latest front-default stats run had no failures,
+# so accuracy metrics were not used to include or exclude logs.
+sample_seed = 20260916
+sample_per_setup = 5
+sampling_frame = "front-default, usable, pod_version=2"
+screening_run = "experiments/stats/20260915T042136Z-front-default-offset-invariance"
+
+logs = [
+  # Specialized Stumpjumper, pod v2
+  "log-0049",
+  "log-0054",
+  "log-0056",
+  "log-0058",
+  "log-0072_184",
+
+  # Transition TR11, pod v2 (Jamaal)
+  "log-0078-valid",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+
+  # Transition TR11 2025, pod v2 (Harry)
+  "log-0116",
+  "log-0117",
+  "log-0125",
+  "log-0126",
+  "log-0129",
+
+  # Rocky Mountain Slayer, pod v2. One derived chunk per parent recording.
+  "log-0145-filtered-c01",
+  "log-0147-filtered-c02",
+  "log-0151-filtered-c01",
+  "log-0152-filtered-c02",
+  "log-0155-filtered-c01",
+]
+
+[setup_logs]
+stumpjumper_pod_v2 = ["log-0049", "log-0054", "log-0056", "log-0058", "log-0072_184"]
+tr11_pod_v2 = ["log-0078-valid", "log-0080-valid", "log-0081", "log-0098", "log-0099"]
+tr11_2025_pod_v2 = ["log-0116", "log-0117", "log-0125", "log-0126", "log-0129"]
+slayer_pod_v2 = ["log-0145-filtered-c01", "log-0147-filtered-c02", "log-0151-filtered-c01", "log-0152-filtered-c02", "log-0155-filtered-c01"]
+
+[setup_labels]
+stumpjumper_pod_v2 = "Stumpjumper / pod v2"
+tr11_pod_v2 = "TR11 / pod v2 (Jamaal)"
+tr11_2025_pod_v2 = "TR11 2025 / pod v2 (Harry)"
+slayer_pod_v2 = "Slayer / pod v2"
+
+# Derived Slayer chunks are analyzed at their parent-recording level. This is
+# explicit even though this sample contains only one chunk from each parent.
+[analysis_units]
+"log-0145-filtered-c01" = "log-0145"
+"log-0147-filtered-c02" = "log-0147"
+"log-0151-filtered-c01" = "log-0151"
+"log-0152-filtered-c02" = "log-0152"
+"log-0155-filtered-c01" = "log-0155"
