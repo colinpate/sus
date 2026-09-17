@@ -43,6 +43,7 @@ from log_registry import resolve_log
 from run_provenance import build_run_provenance
 
 DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
+LP_FREQ = 40
 
 def main() -> None:
     log_filename = parse_args().log_filename
@@ -94,7 +95,7 @@ def main() -> None:
             inputs=("gyro/gyro1",),
             outputs=("gyro/lpf/gyro1",),
             plot_keys=("gyro/gyro1", "gyro/lpf/gyro1"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -103,7 +104,7 @@ def main() -> None:
             inputs=("gyro/gyro2",),
             outputs=("gyro/lpf/gyro2",),
             plot_keys=("gyro/gyro2", "gyro/lpf/gyro2"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -113,7 +114,7 @@ def main() -> None:
             inputs=("accel/lis1",),
             outputs=("accel/lpf/lis1",),
             plot_keys=("accel/lis1", "accel/lpf/lis1"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -122,7 +123,7 @@ def main() -> None:
             inputs=("accel/lis2",),
             outputs=("accel/lpf/lis2",),
             plot_keys=("accel/lis2", "accel/lpf/lis2"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -175,7 +176,7 @@ def main() -> None:
             name="lowpass_accelrel",
             inputs=("accel/relative",),
             outputs=("accel/lpf/relative",),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -197,7 +198,7 @@ def main() -> None:
             name="lowpass_accelproj",
             inputs=("accel/proj",),
             outputs=("accel/lpf/proj",),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -234,8 +235,8 @@ def main() -> None:
             inputs=("travel",),
             outputs=("boring_regions", "active_mask", "boring_mask"),
             read_cache=True,
-            min_region_len_samp=200,
-            padding=20,
+            min_region_len_samp=100,
+            padding=10,
         ),
 
         # Magnetometer processing
