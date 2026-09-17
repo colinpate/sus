@@ -215,7 +215,7 @@ def main() -> None:
             inputs=("angle",),
             outputs=("angle/lpf",),
             plot_keys=("angle","angle/lpf"),
-            fc_hz=20,
+            fc_hz=40,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -233,7 +233,9 @@ def main() -> None:
             name="find_boring_regions",
             inputs=("travel",),
             outputs=("boring_regions", "active_mask", "boring_mask"),
-            read_cache=True
+            read_cache=True,
+            min_region_len_samp=200,
+            padding=20,
         ),
 
         # Magnetometer processing
