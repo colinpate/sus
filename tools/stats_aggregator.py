@@ -453,14 +453,16 @@ def summarize_log_cache(
             error_vector(masked_pred, masked_gt, center=center_errors),
             masked_gt,
         )
+        travel_std = float(np.std(masked_gt))
         comparison_rows[pred_key] = {
             "log": log_name,
             "t": int(len(masked_pred) * dt_s),
             "rmse": stats.rmse,
+            "nrmse": stats.rmse / travel_std if travel_std > 0 else float("nan"),
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
             "me": stats.mean_error,
-            "rms_travel": float(np.std(masked_gt)),
+            "rms_travel": travel_std,
         }
 
     return LogSummary(summary=summary_row, comparison_rows=comparison_rows)
@@ -981,7 +983,7 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
         ("rmse", "rmse"),
         ("bin_rmse", "bin_rmse"),
         ("mae", "mae"),
-        ("me", "me"),
+        ("nrmse", "nrmse") if center_errors else ("me", "me"),
         ("rms_travel", "rms_trav"),
     ]
     for pred_key, gt_key in COMPARISONS:

@@ -21,7 +21,7 @@ from tools.stats_experiments import (
     write_metrics,
 )
 from tools.stats import print_comparison
-from tools.stats_aggregator import collect_report
+from tools.stats_aggregator import collect_report, render_report
 
 
 def make_log(root: Path, *, config_value: int = 1) -> ResolvedLog:
@@ -168,6 +168,33 @@ class ExperimentStoreTests(unittest.TestCase):
             self.assertEqual(len(report.error_rows["travel/solved"]), 2)
             corrected = report.error_rows["travel/solved/mag_nuisance/fusion2"]
             self.assertEqual([row["log"] for row in corrected], ["new"])
+
+    def test_centered_report_replaces_mean_error_with_normalized_rmse(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "sample", include_corrected=False)
+            cache_path = cache_root / "sample" / "cache" / "all.npz"
+            with np.load(cache_path) as cache:
+                payload = {key: cache[key] for key in cache.files}
+            payload["travel/solved__x"] = np.array([1.0, 13.0, 18.0, 32.0])
+            np.savez(cache_path, **payload)
+
+            report = collect_report(
+                ["sample"],
+                cache_root,
+                center_errors=True,
+                error_threshold=None,
+                include_diagnostics=False,
+            )
+            solved = report.error_rows["travel/solved"][0]
+            self.assertAlmostEqual(solved["nrmse"], solved["rmse"] / solved["rms_travel"])
+
+            output = render_report(report, center_errors=True, sort_key="log")
+            solved_section = output.split(
+                "Error stats on active_mask (centered): travel/solved vs travel", 1
+            )[1]
+            self.assertIn("nrmse", solved_section.splitlines()[1])
+            self.assertNotIn(" me ", f" {solved_section.splitlines()[1]} ")
 
     def test_centering_is_part_of_metric_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
