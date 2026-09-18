@@ -9,6 +9,12 @@ position = "front"
 pod_version = 1
 accelerometer = "lsm6dso32"
 
+# Pooled optimum across the 45 front-default logs after adding trapezoidal
+# solver integration. This replaces the legacy -1 sample (-5 ms at 200 Hz)
+# angle lag with its -2.310391 ms residual correction included.
+[profiles.front-pod-v1.config.signals.angle]
+lag_s = -0.007310391440865912
+
 [profiles.front-pod-v2]
 pipeline = "front"
 record_format = "dual_mag"
@@ -17,6 +23,9 @@ record_format = "dual_mag"
 position = "front"
 pod_version = 2
 accelerometer = "lsm6dso32"
+
+[profiles.front-pod-v2.config.signals.angle]
+lag_s = -0.007310391440865912
 
 [profiles.rear-pod-v0]
 pipeline = "rear"
