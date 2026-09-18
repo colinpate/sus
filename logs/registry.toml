@@ -98,9 +98,19 @@ ref_max_offset_delta_mm = 40.0
 
 # Shared pod-to-pod alignment calibrated from the five complete Slayer parent
 # logs used to derive the slayer-filtered set. Individual derived logs retain
-# their own stationary-pose offset correction, but do not re-estimate rotation.
+# their own stationary-pose offset correction when possible, fall back to zero
+# offset when no stationary pair survives, and do not re-estimate rotation.
+[profiles.slayer-filtered-alignment-v1.config.steps.filter_pairs]
+allow_empty = true
+
 [profiles.slayer-filtered-alignment-v1.config.steps.filter_colinear]
 allow_underconstrained = true
+
+[profiles.slayer-filtered-alignment-v1.config.steps.correct_lis1_offset]
+allow_empty = true
+
+[profiles.slayer-filtered-alignment-v1.config.steps.correct_lis2_offset]
+allow_empty = true
 
 [profiles.slayer-filtered-alignment-v1.config.steps.accel_rot_from_pairs]
 fixed_rotation_matrix = [[0.894924041399688, 0.01647756812859, -0.445914173214327], [-0.429467114229456, 0.30304761759644, -0.850717426214219], [0.121115473496465, 0.952832950321141, 0.278281172309657]]
