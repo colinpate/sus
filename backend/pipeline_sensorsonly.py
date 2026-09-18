@@ -46,6 +46,11 @@ def main() -> None:
         AngleLoader(
             path=log_path,
             lag=int(angle_signal_config.get("lag", -1)),
+            lag_s=(
+                float(angle_signal_config["lag_s"])
+                if angle_signal_config.get("lag_s") is not None
+                else None
+            ),
             interpolate_bad=bool(angle_signal_config.get("interpolate_bad", False)),
             offset=int(angle_signal_config.get("offset", 2048)),
             mark_bad_samples=bool(angle_signal_config.get("mark_bad_samples", False)),

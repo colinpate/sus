@@ -159,6 +159,7 @@ class AngleLoader:
     """Loads angle data from a DataFrame with columns"""
     path: str
     lag: int = 0
+    lag_s: Optional[float] = None
     interpolate_bad: bool = True
     offset: int = 0
     mark_bad_samples: bool = True
@@ -209,9 +210,25 @@ class AngleLoader:
         else:
             x = x_raw
 
-        if self.lag != 0:
-            x = np.roll(x, shift=-self.lag, axis=0)
-            bad_mask = np.roll(bad_mask, shift=-self.lag, axis=0)
+        lag_s = self.lag / fs_hz if self.lag_s is None else float(self.lag_s)
+        if not np.isfinite(lag_s):
+            raise ValueError("angle lag_s must be finite")
+        if lag_s != 0:
+            # A negative lag delays the angle signal: output(t) = input(t + lag_s).
+            # Interpolate on timestamps so fractional shifts remain physically
+            # consistent when the source sampling rate changes. Samples whose
+            # interpolation support extends outside the log or touches a corrupt
+            # source sample remain marked bad rather than wrapping around.
+            sample_t = t + lag_s
+            x = np.interp(sample_t, t, x)
+            bad_weight = np.interp(
+                sample_t,
+                t,
+                bad_mask.astype(float),
+                left=1.0,
+                right=1.0,
+            )
+            bad_mask = bad_weight > 0
 
         source_path = str(Path(self.path).resolve())
             
@@ -227,6 +244,7 @@ class AngleLoader:
                     "angle_bad_pct": float(np.mean(bad_mask) * 100.0),
                     "angle_unwrapped": self.unwrap,
                     "encoder_counts": self.encoder_counts,
+                    "lag_s": lag_s,
                 },
             ),
             "angle/bad_mask": TimeSeries(
@@ -234,6 +252,6 @@ class AngleLoader:
                 x=bad_mask,
                 units="bool",
                 frame="sensor",
-                meta={"fs_hz": fs_hz, "source_path": source_path},
+                meta={"fs_hz": fs_hz, "source_path": source_path, "lag_s": lag_s},
             ),
         }
