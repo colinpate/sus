@@ -62,6 +62,14 @@ class FilterChunkPairs(Step):
                     continue
                 still_pairs.append([chunk_a, chunk_b])
 
+        if not still_pairs and bool(self.param(ws, "allow_empty", False)):
+            print(
+                "Accelerometer alignment found no valid stationary sensor pairs; "
+                "continuing with the configured fixed-alignment fallback"
+            )
+            ws[self.outputs[0]] = []
+            return
+
         if not still_pairs:
             raise ValueError(
                 "Accelerometer alignment found no valid stationary sensor pairs "
@@ -104,6 +112,17 @@ class FilterColinearPairs(Step):
     def run(self, ws: Workspace) -> None:
         pairs: List = ws[self.inputs[0]]
         if not pairs:
+            if bool(self.param(ws, "allow_underconstrained", False)):
+                print(
+                    "Accelerometer alignment has no stationary pose pairs; "
+                    "continuing with empty offset-calibration inputs"
+                )
+                ws[self.outputs[0]] = []
+                if len(self.outputs) == 3:
+                    empty_chunks = np.empty((0, 0, 3), dtype=float)
+                    ws[self.outputs[1]] = empty_chunks.copy()
+                    ws[self.outputs[2]] = empty_chunks.copy()
+                return
             raise ValueError(
                 "Accelerometer alignment has no stationary pose pairs to test for pose diversity."
             )
@@ -434,6 +453,24 @@ class CorrectStaticOffset(Step):
         chunks: np.ndarray = ws[self.inputs[0]]
         accel: TimeSeries = ws[self.inputs[1]]
         g = 9.81
+
+        chunks = np.asarray(chunks, dtype=float)
+        if chunks.size == 0:
+            if not bool(self.param(ws, "allow_empty", False)):
+                raise ValueError(
+                    "Accelerometer static-offset correction received no stationary samples"
+                )
+            bias = np.zeros(3, dtype=float)
+            print("No stationary samples for accel offset; using zero fallback", bias)
+            ws[self.outputs[0]] = chunks
+            ws[self.outputs[1]] = TimeSeries(
+                t=accel.t,
+                x=accel.x.copy(),
+                units=accel.units,
+                frame=accel.frame,
+                meta={**accel.meta},
+            )
+            return
 
         samples = np.mean(chunks, axis=1) # Convert to N, 3
 
