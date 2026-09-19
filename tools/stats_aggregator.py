@@ -613,7 +613,7 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
 
     active_mask = load_active_mask(cache)
     travel = flatten_1d(cache["travel__x"])
-    mag_key = resolve_cache_series_key(cache, "mag/proj/corr/lpf", "mag/proj/lpf")
+    mag_key = resolve_cache_series_key(cache, "mag/norm/corr/lpf", "mag/proj/corr/lpf", "mag/proj/lpf")
     accel_hp_key = resolve_cache_series_key(cache, "accel/lphp/proj/zv", "accel/lpfhp/proj", "accel/lphp/proj")
     bad_mag_key = resolve_optional_cache_series_key(cache, "mag/proj/bad_mask")
     mag = flatten_1d(cache[f"{mag_key}__x"])
