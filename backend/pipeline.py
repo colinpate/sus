@@ -43,6 +43,8 @@ from log_registry import resolve_log
 from run_provenance import build_run_provenance
 
 DEC_FREQ = 100 # Hz, for decimating data to speed up optimization
+LP_FREQ = 20
+SOLVER_LP_FREQ = 40
 
 def main() -> None:
     log_filename = parse_args().log_filename
@@ -94,7 +96,7 @@ def main() -> None:
             inputs=("gyro/gyro1",),
             outputs=("gyro/lpf/gyro1",),
             plot_keys=("gyro/gyro1", "gyro/lpf/gyro1"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -103,7 +105,7 @@ def main() -> None:
             inputs=("gyro/gyro2",),
             outputs=("gyro/lpf/gyro2",),
             plot_keys=("gyro/gyro2", "gyro/lpf/gyro2"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -113,7 +115,7 @@ def main() -> None:
             inputs=("accel/lis1",),
             outputs=("accel/lpf/lis1",),
             plot_keys=("accel/lis1", "accel/lpf/lis1"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -122,7 +124,7 @@ def main() -> None:
             inputs=("accel/lis2",),
             outputs=("accel/lpf/lis2",),
             plot_keys=("accel/lis2", "accel/lpf/lis2"),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -175,7 +177,7 @@ def main() -> None:
             name="lowpass_accelrel",
             inputs=("accel/relative",),
             outputs=("accel/lpf/relative",),
-            fc_hz=20,
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -194,19 +196,27 @@ def main() -> None:
             plot_keys=("accel/proj",)
         ),
         FilterStep(
-            name="lowpass_accelproj",
+            name="highpass_accelproj",
             inputs=("accel/proj",),
-            outputs=("accel/lpf/proj",),
-            fc_hz=20,
+            outputs=("accel/hp/proj",),
+            fc_hz=1,
+            btype="high",
+        ),
+        FilterStep(
+            name="lowpass_accelproj",
+            inputs=("accel/hp/proj",),
+            outputs=("accel/lpfhp/proj",),
+            fc_hz=LP_FREQ,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
         FilterStep(
-            name="highpass_accelproj",
-            inputs=("accel/lpf/proj",),
-            outputs=("accel/lpfhp/proj",),
-            fc_hz=1,
-            btype="high",
+            name="lowpass_accelproj_solver",
+            inputs=("accel/hp/proj",),
+            outputs=("accel/lpfhp/proj/solver",),
+            fc_hz=SOLVER_LP_FREQ,
+            btype="low",
+            dec_freq=DEC_FREQ,
         ),
         
         # Angle data to travel
@@ -215,7 +225,7 @@ def main() -> None:
             inputs=("angle",),
             outputs=("angle/lpf",),
             plot_keys=("angle","angle/lpf"),
-            fc_hz=20,
+            fc_hz=40,
             btype="low",
             dec_freq=DEC_FREQ,
         ),
@@ -226,14 +236,16 @@ def main() -> None:
         ),
         GetAccelError(
             name="accel_proj_error",
-            inputs=("accel/lpf/proj", "travel"),
+            inputs=("accel/lpfhp/proj", "travel"),
             outputs=(),
         ),
         FindBoringRegions(
             name="find_boring_regions",
             inputs=("travel",),
             outputs=("boring_regions", "active_mask", "boring_mask"),
-            read_cache=True
+            read_cache=True,
+            min_region_len_samp=100,
+            padding=10,
         ),
 
         # Magnetometer processing
@@ -325,7 +337,7 @@ def main() -> None:
         TravelSolver(
             name="travel_solver",
             inputs=(
-                "accel/lpfhp/proj", 
+                "accel/lpfhp/proj/solver", 
                 "mag/norm/corr/lpf",
                 "travel/mag_model",
                 "mag_zv_points", 
@@ -410,7 +422,7 @@ def main() -> None:
         TravelSolver(
             name="travel_solver_mag_nuisance",
             inputs=(
-                "accel/lpfhp/proj",
+                "accel/lpfhp/proj/solver",
                 "mag/nuisance/corrected/norm",
                 "travel/mag_nuisance/corrected/adj",
                 "mag_zv_points",
