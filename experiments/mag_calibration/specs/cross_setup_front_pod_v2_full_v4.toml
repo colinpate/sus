@@ -1,0 +1,87 @@
+schema_version = 1
+experiment_type = "cross_log"
+name = "cross-setup-front-pod-v2-full-v4"
+pipeline = "front"
+time_basis = "active"
+training_window = "full_log"
+evaluation_window = "full_log"
+include_diagonal = true
+trainers = ["self-supervised", "oracle-power", "oracle-binned-median"]
+oracle_bins = 100
+
+# Complete usable pod-v2 cohort from front-default on 2026-09-20. Pod-v1
+# Stumpjumper logs are intentionally excluded. The seven Slayer derived chunks
+# represent five parent recordings and are parent-balanced during analysis.
+# This revision reruns the frozen v3 cohort after merging the 200 Hz/front
+# pipeline changes; self-supervised training now applies the production bad mask.
+cohort = "front-default, usable, pod_version=2"
+cohort_date = "2026-09-20"
+
+logs = [
+  # Specialized Stumpjumper, pod v2
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+
+  # Transition TR11, pod v2 (Jamaal)
+  "log-0078-valid",
+  "log-0079",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+
+  # Transition TR11 2025, pod v2 (Harry)
+  "log-0113",
+  "log-0115",
+  "log-0116",
+  "log-0117",
+  "log-0118",
+  "log-0119",
+  "log-0120",
+  "log-0122",
+  "log-0125",
+  "log-0126",
+  "log-0127",
+  "log-0129",
+  "log-0132",
+  "log-0133",
+
+  # Rocky Mountain Slayer, pod v2; seven chunks from five parent recordings.
+  "log-0145-filtered-c01",
+  "log-0147-filtered-c01",
+  "log-0147-filtered-c02",
+  "log-0151-filtered-c01",
+  "log-0152-filtered-c01",
+  "log-0152-filtered-c02",
+  "log-0155-filtered-c01",
+]
+
+[setup_logs]
+stumpjumper_pod_v2 = ["log-0046", "log-0048", "log-0049", "log-0054", "log-0055", "log-0056", "log-0058", "log-0063", "log-0071_183", "log-0072_184", "log-0073_185"]
+tr11_pod_v2 = ["log-0078-valid", "log-0079", "log-0080-valid", "log-0081", "log-0098", "log-0099"]
+tr11_2025_pod_v2 = ["log-0113", "log-0115", "log-0116", "log-0117", "log-0118", "log-0119", "log-0120", "log-0122", "log-0125", "log-0126", "log-0127", "log-0129", "log-0132", "log-0133"]
+slayer_pod_v2 = ["log-0145-filtered-c01", "log-0147-filtered-c01", "log-0147-filtered-c02", "log-0151-filtered-c01", "log-0152-filtered-c01", "log-0152-filtered-c02", "log-0155-filtered-c01"]
+
+[setup_labels]
+stumpjumper_pod_v2 = "Stumpjumper / pod v2"
+tr11_pod_v2 = "TR11 / pod v2 (Jamaal)"
+tr11_2025_pod_v2 = "TR11 2025 / pod v2 (Harry)"
+slayer_pod_v2 = "Slayer / pod v2"
+
+[analysis_units]
+"log-0145-filtered-c01" = "log-0145"
+"log-0147-filtered-c01" = "log-0147"
+"log-0147-filtered-c02" = "log-0147"
+"log-0151-filtered-c01" = "log-0151"
+"log-0152-filtered-c01" = "log-0152"
+"log-0152-filtered-c02" = "log-0152"
+"log-0155-filtered-c01" = "log-0155"

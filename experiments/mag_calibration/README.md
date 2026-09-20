@@ -37,7 +37,8 @@ rebuild row-level tables until that study has been rerun.
 | `cross-log-front-*` | Same-setup calibration-transfer controls. |
 | `cross-setup-front-three-setup-v1` | Only retained study containing Stumpjumper/pod-v1. |
 | `cross-setup-front-pod-v2-sample-v2` | Balanced pilot retained to quantify sampling efficiency. |
-| `cross-setup-front-pod-v2-full-v3` | Primary complete pod-v2 cross-setup result. |
+| `cross-setup-front-pod-v2-full-v4` | Primary complete pod-v2 cross-setup result after the 200 Hz/front-pipeline merge. |
+| `cross-setup-front-pod-v2-full-v3` | Pre-merge complete matrix retained as a sensitivity baseline. |
 | `solver-window-front-phase1` | Pilot and repeat-0 provenance for the downstream study. |
 | `solver-window-front-phase2` | Primary repeated downstream-solver result. |
 
@@ -199,17 +200,20 @@ evaluations:
 
 ```bash
 venv/bin/python tools/mag_calibration_transfer_sweep.py run \
-  experiments/mag_calibration/specs/cross_setup_front_pod_v2_full_v3.toml \
-  --output-dir experiments/mag_calibration/runs/cross-setup-front-pod-v2-full-v3
+  experiments/mag_calibration/specs/cross_setup_front_pod_v2_full_v4.toml \
+  --output-dir experiments/mag_calibration/runs/cross-setup-front-pod-v2-full-v4
 
 venv/bin/python tools/analyze_mag_calibration_cross_setup.py \
-  --spec experiments/mag_calibration/specs/cross_setup_front_pod_v2_full_v3.toml \
-  --run-dir experiments/mag_calibration/runs/cross-setup-front-pod-v2-full-v3
+  --spec experiments/mag_calibration/specs/cross_setup_front_pod_v2_full_v4.toml \
+  --run-dir experiments/mag_calibration/runs/cross-setup-front-pod-v2-full-v4
 ```
 
-This complete run is the primary pod-v2 cross-setup result. The sampled v2 run
-is retained as a pilot and as evidence that five independent recordings per
-setup recovered the same qualitative result efficiently.
+The v4 run is the primary pod-v2 cross-setup result. It uses the same frozen
+38-log cohort as v3 after merging the 200 Hz/front-pipeline changes and applying
+the production bad mask during self-supervised training. The v3 run is retained
+as a sensitivity baseline. The sampled v2 run remains a pilot showing that five
+independent recordings per setup recovered the same qualitative result under
+the earlier pipeline revision.
 
 The three evaluation scopes answer different questions:
 

@@ -130,7 +130,12 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     fields.extend(sorted(keys - set(fields)))
     temporary = path.with_name(f".{path.name}.tmp")
     with temporary.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=fields,
+            extrasaction="ignore",
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
     os.replace(temporary, path)
