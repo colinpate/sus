@@ -161,7 +161,7 @@ class CorrectBadMag(Step):
         if len(self.inputs) > 2:
             mask = ws[self.inputs[2]].x[:, 0]
         else:
-            mask = np.zeros_like(mag_proj)
+            mask = np.zeros_like(mag_proj, dtype=np.bool)
 
         # Check that mag norm is not too different from scalar mag to filter out bad data
         mag_raw_norm = np.linalg.norm(mag_raw, axis=1)

@@ -259,7 +259,8 @@ def main() -> None:
             inputs=("travel",),
             outputs=("boring_regions", "active_mask", "boring_mask"),
             read_cache=True,
-            min_region_len_samp=100,
+            min_region_len_samp=200,
+            travel_delta_threshold=5,
             padding=10,
         ),
 
