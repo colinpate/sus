@@ -51,8 +51,7 @@ class MagToTravelModelCore:
     chunk_min_dx: float = 10
     chunk_max_dx: float = 1500
     chunk_rad: int = 20
-    train_with_mask: bool = False
-    bad_thresh: float = 0.5
+    max_bad_ratio: float = 0.5
     dm_dx_thresh: float | None = 0.05
     pred_soft_mg: float = 50.0
     power_weight: float = 1000.0
@@ -141,7 +140,7 @@ class MagToTravelModelCore:
         return chunk.metrics["dm/dx_median"] >= self.dm_dx_thresh
     
     def filter_chunk_badmask(self, chunk: MagToTravelChunk):
-        return chunk.metrics["badmask_mean"] <= self.bad_thresh
+        return chunk.metrics["badmask_mean"] <= self.max_bad_ratio
     
     def filter_chunk_minmag(self, chunk: MagToTravelChunk, min_mag: float):
         return chunk.metrics["mag_min"] >= min_mag
@@ -260,14 +259,10 @@ class MagToTravelModelCore:
             idxs,
             sample_range: tuple[int, int] | None = None,
         ):
-        if self.train_with_mask:
-            print("Training with mask, shape of bad mask", train_mask.shape, "num bad samples", np.sum(train_mask))
-            training_mask = train_mask
-        else:
-            training_mask = np.zeros(mag.shape[0], dtype=bool)
+        print("Training with mask, shape of bad mask", train_mask.shape, "num bad samples", np.sum(train_mask))
 
         self.min_mag = baseline_min_mag
-        eligible_chunks = self.get_eligible_chunks(idxs, mag, accel, t, training_mask)
+        eligible_chunks = self.get_eligible_chunks(idxs, mag, accel, t, train_mask)
         eligible_chunks_all = eligible_chunks
         eligible_chunks = self.select_chunks_by_sample_range(eligible_chunks, sample_range)
         if sample_range is not None:

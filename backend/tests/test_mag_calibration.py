@@ -121,19 +121,16 @@ class CalibrationArtifactTests(unittest.TestCase):
         feature = "mag/norm/corr/lpf"
         step = GetMagToTravelModel(
             name="front_provided",
-            inputs=(feature, "accel", "travel", "bad", "zv", "ref", "baseline"),
-            outputs=("raw", "adjusted", "scatter", "coeffs", "offset"),
-            apply_ref_point=False,
+            inputs=(feature, "accel", "bad", "zv", "baseline"),
+            outputs=("raw", "adjusted", "coeffs", "offset"),
             provided_calibration=calibration("front", feature),
         )
         t = np.arange(3, dtype=float)
         ws = {
             feature: TimeSeries(t=t, x=np.array([1.0, 2.0, 3.0])),
             "accel": TimeSeries(t=t, x=np.zeros(3)),
-            "travel": TimeSeries(t=t, x=np.zeros(3)),
             "bad": TimeSeries(t=t, x=np.zeros(3, dtype=bool)),
             "zv": np.array([], dtype=int),
-            "ref": np.array([0.0, 0.0]),
             "baseline": np.array([0.0]),
         }
         with patch.object(step, "train", side_effect=AssertionError("training should be bypassed")):

@@ -9,6 +9,12 @@ position = "front"
 pod_version = 1
 accelerometer = "lsm6dso32"
 
+# Pooled optimum across the 45 front-default logs after adding trapezoidal
+# solver integration. This replaces the legacy -1 sample (-5 ms at 200 Hz)
+# angle lag with its -2.310391 ms residual correction included.
+[profiles.front-pod-v1.config.signals.angle]
+lag_s = -0.007310391440865912
+
 [profiles.front-pod-v2]
 pipeline = "front"
 record_format = "dual_mag"
@@ -17,6 +23,9 @@ record_format = "dual_mag"
 position = "front"
 pod_version = 2
 accelerometer = "lsm6dso32"
+
+[profiles.front-pod-v2.config.signals.angle]
+lag_s = -0.007310391440865912
 
 [profiles.rear-pod-v0]
 pipeline = "rear"
@@ -98,9 +107,19 @@ ref_max_offset_delta_mm = 40.0
 
 # Shared pod-to-pod alignment calibrated from the five complete Slayer parent
 # logs used to derive the slayer-filtered set. Individual derived logs retain
-# their own stationary-pose offset correction, but do not re-estimate rotation.
+# their own stationary-pose offset correction when possible, fall back to zero
+# offset when no stationary pair survives, and do not re-estimate rotation.
+[profiles.slayer-filtered-alignment-v1.config.steps.filter_pairs]
+allow_empty = true
+
 [profiles.slayer-filtered-alignment-v1.config.steps.filter_colinear]
 allow_underconstrained = true
+
+[profiles.slayer-filtered-alignment-v1.config.steps.correct_lis1_offset]
+allow_empty = true
+
+[profiles.slayer-filtered-alignment-v1.config.steps.correct_lis2_offset]
+allow_empty = true
 
 [profiles.slayer-filtered-alignment-v1.config.steps.accel_rot_from_pairs]
 fixed_rotation_matrix = [[0.894924041399688, 0.01647756812859, -0.445914173214327], [-0.429467114229456, 0.30304761759644, -0.850717426214219], [0.121115473496465, 0.952832950321141, 0.278281172309657]]
@@ -761,7 +780,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log103.csv"
 source = "log103.bin"
@@ -771,7 +790,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log104.csv"
 source = "log104.bin"
@@ -781,7 +800,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log106.csv"
 source = "log106.bin"
@@ -791,7 +810,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log107.csv"
 source = "log107.bin"
@@ -801,7 +820,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log109.csv"
 source = "log109.bin"
@@ -811,7 +830,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log110.csv"
 source = "log110.bin"
@@ -821,7 +840,7 @@ record_format = "dual_mag"
 pipeline = "front"
 status = "usable"
 profiles = ["front-pod-v1", "bike-stumpjumper", "fork-fox36-160", "front-angle-stumpjumper-v1"]
-sets = ["catalog", "front-default", "stumpjumper-front-pod-v1"]
+sets = ["catalog", "stumpjumper-front-pod-v1"]
 tags = []
 file = "log112.csv"
 source = "log112.bin"
@@ -1311,7 +1330,7 @@ trail = "Poppin tops"
 pipeline = "rear"
 status = "usable"
 profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
-sets = []
+sets = ["rear-default"]
 tags = []
 file = "log186_rear.csv"
 source = "log186_rear.bin"
@@ -1332,7 +1351,7 @@ reason = "needs split"
 pipeline = "rear"
 status = "usable"
 profiles = ["rear-pod-v1", "bike-stumpjumper", "rear-stumpjumper-150", "rear-linkage-current", "dual-mag-opposed"]
-sets = []
+sets = ["rear-default"]
 tags = []
 file = "log188_rear.csv"
 source = "log188_rear.bin"

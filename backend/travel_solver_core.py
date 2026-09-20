@@ -130,7 +130,11 @@ def make_initial_state(inputs: SolverInputs) -> np.ndarray:
     n = len(inputs.time_s)
     state = np.zeros(2 * n + 1)
     state[:n] = inputs.mag_preds_mm
-    state[n : 2 * n] = np.cumsum(inputs.accel_mm_s2) * np.mean(inputs.dt_s)
+    if n > 1:
+        interval_accel = 0.5 * (
+            inputs.accel_mm_s2[:-1] + inputs.accel_mm_s2[1:]
+        )
+        state[n + 1 : 2 * n] = np.cumsum(interval_accel * inputs.dt_s[1:])
     return state
 
 
@@ -165,8 +169,8 @@ def make_jac_sparsity(n: int, n_res_per_step: int = 5) -> csr_matrix:
 
         jac[r0 + 1, i] = True
         jac[r0 + 1, i - 1] = True
+        jac[r0 + 1, n + i] = True
         jac[r0 + 1, n + i - 1] = True
-        jac[r0 + 1, ix_b] = True
 
         jac[r0 + 2, i] = True
         jac[r0 + 3, n + i] = True
@@ -188,9 +192,10 @@ def calculate_solver_terms(
     b = float(state[2 * n])
 
     dt = inputs.dt_s[1:]
-    a = inputs.accel_mm_s2[: n - 1] - b
-    v_res = v[:-1] + a * dt - v[1:]
-    x_res = x[:-1] + v[:-1] * dt + 0.5 * a * dt**2 - x[1:]
+    accel = inputs.accel_mm_s2 - b
+    interval_accel = 0.5 * (accel[:-1] + accel[1:])
+    v_res = v[:-1] + interval_accel * dt - v[1:]
+    x_res = x[:-1] + 0.5 * (v[:-1] + v[1:]) * dt - x[1:]
     mag_res = (inputs.mag_preds_mm[1:] - x[1:]) * prepared.mag_gate
     zv_res = inputs.mag_zv_mask[1:] * v[1:]
     oob_res = x[1:] * (x[1:] < 0)

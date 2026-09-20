@@ -10,7 +10,12 @@ import numpy as np
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
-from accel_rotation import FilterChunkPairs, FilterColinearPairs, RotationFromPairs
+from accel_rotation import (
+    CorrectStaticOffset,
+    FilterChunkPairs,
+    FilterColinearPairs,
+    RotationFromPairs,
+)
 from classes.log_config import attach_log_config
 from classes.time_series import ChunkedTimeSeries, TimeSeries
 
@@ -83,6 +88,47 @@ class AccelerometerAlignmentValidationTests(unittest.TestCase):
         step.run(ws)
 
         self.assertEqual(ws["filtered"], pairs)
+
+    def test_fixed_alignment_zero_pair_path_uses_zero_static_offset(self):
+        good = np.tile([0.0, 0.0, 9.81], (6, 1))
+        zero = np.zeros((6, 3))
+        accel = TimeSeries(
+            t=np.arange(6, dtype=float),
+            x=good.copy(),
+            units="m/s^2",
+        )
+        ws = {
+            "a": make_chunked(good),
+            "b": make_chunked(zero),
+            "accel": accel,
+        }
+        attach_log_config(
+            ws,
+            {
+                "steps": {
+                    "pairs": {"allow_empty": True},
+                    "colinear": {"allow_underconstrained": True},
+                    "offset": {"allow_empty": True},
+                }
+            },
+        )
+
+        FilterChunkPairs(name="pairs", inputs=("a", "b"), outputs=("pairs",)).run(ws)
+        FilterColinearPairs(
+            name="colinear",
+            inputs=("pairs",),
+            outputs=("filtered", "chunks_a", "chunks_b"),
+        ).run(ws)
+        CorrectStaticOffset(
+            name="offset",
+            inputs=("chunks_a", "accel"),
+            outputs=("chunks_a", "accel"),
+        ).run(ws)
+
+        self.assertEqual(ws["pairs"], [])
+        self.assertEqual(ws["filtered"], [])
+        self.assertEqual(ws["chunks_a"].shape, (0, 0, 3))
+        np.testing.assert_allclose(ws["accel"].x, good)
 
 
 if __name__ == "__main__":

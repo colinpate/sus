@@ -158,8 +158,7 @@ def model_config(model: MagToTravelModelCore) -> dict[str, Any]:
         "chunk_min_dx",
         "chunk_max_dx",
         "chunk_rad",
-        "train_with_mask",
-        "bad_thresh",
+        "max_bad_ratio",
         "dm_dx_thresh",
         "pred_soft_mg",
         "power_weight",
@@ -200,7 +199,7 @@ def fit_calibration(
         ), resolved
 
     if data.pipeline == "front":
-        model: MagToTravelModelCore = MagToTravelModelCore(train_with_mask=False)
+        model: MagToTravelModelCore = MagToTravelModelCore()
         with fit_output(verbose):
             training_data = model.create_training_data(
                 mag=data.mag,

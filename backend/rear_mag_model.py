@@ -152,9 +152,6 @@ class RearMagModel(MagToTravelModelCore):
         idxs,
         sample_range: tuple[int, int] | None = None,
     ):
-        if self.train_with_mask:
-            print("Rear mag model ignores train_mask during chunk selection")
-
         chunks = self.create_chunks(idxs, mag, accel, t)
         self.prepare_chunks(chunks)
         filtered_chunks = self.filter_chunks(chunks, self.get_filter_fns())

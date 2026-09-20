@@ -33,32 +33,18 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
     ref_max_out_of_range_pct: float = 0.08
     ref_min_travel_mm: float = 0.0
     ref_max_travel_mm: float = 200.0
-    apply_ref_point: bool = True
     provided_calibration: MagTravelCalibration | None = None
 
     def run(self, ws: Workspace) -> None:
-        if len(self.inputs) == 7:
-            ref_point: np.ndarray | None = ws[self.inputs[5]]
-            mag_baseline: float = ws[self.inputs[6]]
-        elif len(self.inputs) == 6 and not self.apply_ref_point:
-            ref_point = None
-            mag_baseline = ws[self.inputs[5]]
-        else:
-            raise ValueError(
-                "GetMagToTravelModel expects mag, accel, travel, bad mask, ZV "
-                "points, and baseline, plus a reference point when reference "
-                "application is enabled"
-            )
+        mag_baseline = ws[self.inputs[4]]
 
         mag_ts: TimeSeries = ws[self.inputs[0]]
         accel_ts: TimeSeries = ws[self.inputs[1]]
-        travel_ts: TimeSeries = ws[self.inputs[2]]
-        mask_ts: np.ndarray = ws[self.inputs[3]]
-        idxs: np.ndarray = ws[self.inputs[4]]
+        mask_ts: np.ndarray = ws[self.inputs[2]]
+        idxs: np.ndarray = ws[self.inputs[3]]
 
         mag = mag_ts.x[:, 0]
         accel = accel_ts.x[:, 0]
-        travel = travel_ts.x[:, 0]
         mag_proj_bad_mask = mask_ts.x.flatten().astype(bool)
         t = mag_ts.t
         baseline_min_mag = mag_baseline[0]
@@ -100,24 +86,7 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
         x0, y_scale, power = coefficients
 
         x_preds = self.model.pred_x(mag)
-        
-        if self.apply_ref_point:
-            assert ref_point is not None
-            ref_fallback_mask = self.build_ref_fallback_mask(accel, mag_proj_bad_mask)
-            x_preds_adj = self.adjust_with_ref_point(
-                x_preds, 
-                ref_point[0], 
-                ref_point[1], 
-                mag, 
-                ref_fallback_mask,
-                max_offset_delta_mm=self.param(
-                    ws,
-                    "ref_max_offset_delta_mm",
-                    self.ref_max_offset_delta_mm,
-                ),
-            )
-        else:
-            x_preds_adj = x_preds
+        x_preds_adj = x_preds
 
         ws[self.outputs[0]] = TimeSeries(
             t=accel_ts.t,
@@ -133,15 +102,13 @@ class GetMagToTravelModel(Step, MagToTravelModelCore):
             frame=accel_ts.frame,
             meta={**accel_ts.meta},
         )
-        scatter_points = np.array([mag, travel, x_preds_adj]).T
-        ws[self.outputs[2]] = scatter_points
-        ws[self.outputs[3]] = np.array([x0, y_scale, power])
-        if len(self.outputs) > 4:
+        ws[self.outputs[2]] = np.array([x0, y_scale, power])
+        if len(self.outputs) > 3:
             # The reference adjustment is an additive constant. Expose it so
             # downstream models do not have to reconstruct calibration state
             # from two complete prediction arrays.
             scalar_offset_mm = float(np.median(x_preds_adj - x_preds))
-            ws[self.outputs[4]] = np.array([scalar_offset_mm])
+            ws[self.outputs[3]] = np.array([scalar_offset_mm])
 
     def build_ref_fallback_mask(self, accel: np.ndarray, mag_proj_bad_mask: np.ndarray) -> np.ndarray:
         accel = np.asarray(accel, dtype=float).reshape(-1)

@@ -21,7 +21,7 @@ from tools.stats_experiments import (
     write_metrics,
 )
 from tools.stats import print_comparison
-from tools.stats_aggregator import collect_report
+from tools.stats_aggregator import collect_report, render_report, summarize_diagnostics
 
 
 def make_log(root: Path, *, config_value: int = 1) -> ResolvedLog:
@@ -109,6 +109,37 @@ class CacheInspectionTests(unittest.TestCase):
 
 
 class ExperimentStoreTests(unittest.TestCase):
+    def test_diagnostics_exclude_imu_dropout_samples(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "sample", include_corrected=False)
+            cache_path = cache_root / "sample" / "cache" / "all.npz"
+            with np.load(cache_path) as cache:
+                payload = {key: cache[key] for key in cache.files}
+
+            time_s = payload["travel__t"]
+            payload.update(
+                {
+                    "mag/norm/corr/lpf__t": time_s,
+                    "mag/norm/corr/lpf__x": np.array([1000.0, 1100.0, 1200.0, 1300.0]),
+                    "accel/lpfhp/proj__t": time_s,
+                    "accel/lpfhp/proj__x": np.array([0.0, 1.0, 2.0, 3.0]),
+                    "imu_dropout_mask__t": time_s,
+                    "imu_dropout_mask__x": np.array([False, True, False, False]),
+                    "mag_zv_points": np.array([], dtype=int),
+                    "mag_baseline": np.array([1000.0]),
+                }
+            )
+            np.savez(cache_path, **payload)
+
+            diagnostics = summarize_diagnostics("sample", cache_root, center_errors=False)
+
+            self.assertEqual(diagnostics.stage["n"], 3)
+            np.testing.assert_array_equal(
+                diagnostics.pooled_features["travel"],
+                np.array([0.0, 20.0, 30.0]),
+            )
+
     def test_stats_accept_legacy_boring_mask_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache_root = Path(directory)
@@ -168,6 +199,33 @@ class ExperimentStoreTests(unittest.TestCase):
             self.assertEqual(len(report.error_rows["travel/solved"]), 2)
             corrected = report.error_rows["travel/solved/mag_nuisance/fusion2"]
             self.assertEqual([row["log"] for row in corrected], ["new"])
+
+    def test_centered_report_replaces_mean_error_with_normalized_rmse(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "sample", include_corrected=False)
+            cache_path = cache_root / "sample" / "cache" / "all.npz"
+            with np.load(cache_path) as cache:
+                payload = {key: cache[key] for key in cache.files}
+            payload["travel/solved__x"] = np.array([1.0, 13.0, 18.0, 32.0])
+            np.savez(cache_path, **payload)
+
+            report = collect_report(
+                ["sample"],
+                cache_root,
+                center_errors=True,
+                error_threshold=None,
+                include_diagnostics=False,
+            )
+            solved = report.error_rows["travel/solved"][0]
+            self.assertAlmostEqual(solved["nrmse"], solved["rmse"] / solved["rms_travel"])
+
+            output = render_report(report, center_errors=True, sort_key="log")
+            solved_section = output.split(
+                "Error stats on active_mask (centered): travel/solved vs travel", 1
+            )[1]
+            self.assertIn("nrmse", solved_section.splitlines()[1])
+            self.assertNotIn(" me ", f" {solved_section.splitlines()[1]} ")
 
     def test_centering_is_part_of_metric_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

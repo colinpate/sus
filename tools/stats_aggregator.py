@@ -325,6 +325,19 @@ def build_angle_bad_mask(cache: NpzFile, target_t: np.ndarray) -> np.ndarray:
     )
 
 
+def build_imu_bad_mask(cache: NpzFile, target_t: np.ndarray) -> np.ndarray:
+    target_t = flatten_1d(target_t)
+    if "imu_dropout_mask__x" not in cache or "imu_dropout_mask__t" not in cache:
+        return np.zeros(len(target_t), dtype=bool)
+
+    return project_mask_to_timeline(
+        cache["imu_dropout_mask__t"],
+        bool_1d(cache["imu_dropout_mask__x"]),
+        target_t,
+        halo_s=0.0,
+    )
+
+
 def error_vector(x: np.ndarray, gt: np.ndarray, *, center: bool = False) -> np.ndarray:
     x = flatten_1d(x)
     gt = flatten_1d(gt)
@@ -393,7 +406,7 @@ def build_mask(
         gt_time_s=gt_time_s,
     )
 
-    mask = active_mask & finite_mask(pred, gt) & ~build_angle_bad_mask(cache, gt_time_s)
+    mask = active_mask & finite_mask(pred, gt) & ~build_angle_bad_mask(cache, gt_time_s) & ~build_imu_bad_mask(cache, gt_time_s)
     if error_threshold is not None:
         mask &= np.abs(gt) > error_threshold
     return mask
@@ -453,14 +466,16 @@ def summarize_log_cache(
             error_vector(masked_pred, masked_gt, center=center_errors),
             masked_gt,
         )
+        travel_std = float(np.std(masked_gt))
         comparison_rows[pred_key] = {
             "log": log_name,
             "t": int(len(masked_pred) * dt_s),
             "rmse": stats.rmse,
+            "nrmse": stats.rmse / travel_std if travel_std > 0 else float("nan"),
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
             "me": stats.mean_error,
-            "rms_travel": float(np.std(masked_gt)),
+            "rms_travel": travel_std,
         }
 
     return LogSummary(summary=summary_row, comparison_rows=comparison_rows)
@@ -611,7 +626,7 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
 
     active_mask = load_active_mask(cache)
     travel = flatten_1d(cache["travel__x"])
-    mag_key = resolve_cache_series_key(cache, "mag/proj/corr/lpf", "mag/proj/lpf")
+    mag_key = resolve_cache_series_key(cache, "mag/norm/corr/lpf", "mag/proj/corr/lpf", "mag/proj/lpf")
     accel_hp_key = resolve_cache_series_key(cache, "accel/lphp/proj/zv", "accel/lpfhp/proj", "accel/lphp/proj")
     bad_mag_key = resolve_optional_cache_series_key(cache, "mag/proj/bad_mask")
     mag = flatten_1d(cache[f"{mag_key}__x"])
@@ -635,8 +650,10 @@ def summarize_diagnostics(log_name: str, cache_root: Path, center_errors: bool) 
         zv_mask=zv_mask,
     )
 
-    angle_bad_mask = build_angle_bad_mask(cache, cache["travel__t"])
-    mask = active_mask & finite_mask(travel, mag, accel_hp_abs) & ~angle_bad_mask
+    travel_time_s = flatten_1d(cache["travel__t"])
+    angle_bad_mask = build_angle_bad_mask(cache, travel_time_s)
+    imu_bad_mask = build_imu_bad_mask(cache, travel_time_s)
+    mask = active_mask & finite_mask(travel, mag, accel_hp_abs) & ~angle_bad_mask & ~imu_bad_mask
     if not np.any(mask):
         raise ValueError(f"{log_name}: no finite diagnostic samples on active_mask")
 
@@ -981,7 +998,7 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
         ("rmse", "rmse"),
         ("bin_rmse", "bin_rmse"),
         ("mae", "mae"),
-        ("me", "me"),
+        ("nrmse", "nrmse") if center_errors else ("me", "me"),
         ("rms_travel", "rms_trav"),
     ]
     for pred_key, gt_key in COMPARISONS:
