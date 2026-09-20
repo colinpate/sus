@@ -21,7 +21,7 @@ from tools.stats_experiments import (
     write_metrics,
 )
 from tools.stats import print_comparison
-from tools.stats_aggregator import collect_report, render_report
+from tools.stats_aggregator import collect_report, render_report, summarize_diagnostics
 
 
 def make_log(root: Path, *, config_value: int = 1) -> ResolvedLog:
@@ -109,6 +109,37 @@ class CacheInspectionTests(unittest.TestCase):
 
 
 class ExperimentStoreTests(unittest.TestCase):
+    def test_diagnostics_exclude_imu_dropout_samples(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory)
+            write_stats_cache(cache_root, "sample", include_corrected=False)
+            cache_path = cache_root / "sample" / "cache" / "all.npz"
+            with np.load(cache_path) as cache:
+                payload = {key: cache[key] for key in cache.files}
+
+            time_s = payload["travel__t"]
+            payload.update(
+                {
+                    "mag/norm/corr/lpf__t": time_s,
+                    "mag/norm/corr/lpf__x": np.array([1000.0, 1100.0, 1200.0, 1300.0]),
+                    "accel/lpfhp/proj__t": time_s,
+                    "accel/lpfhp/proj__x": np.array([0.0, 1.0, 2.0, 3.0]),
+                    "imu_dropout_mask__t": time_s,
+                    "imu_dropout_mask__x": np.array([False, True, False, False]),
+                    "mag_zv_points": np.array([], dtype=int),
+                    "mag_baseline": np.array([1000.0]),
+                }
+            )
+            np.savez(cache_path, **payload)
+
+            diagnostics = summarize_diagnostics("sample", cache_root, center_errors=False)
+
+            self.assertEqual(diagnostics.stage["n"], 3)
+            np.testing.assert_array_equal(
+                diagnostics.pooled_features["travel"],
+                np.array([0.0, 20.0, 30.0]),
+            )
+
     def test_stats_accept_legacy_boring_mask_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache_root = Path(directory)

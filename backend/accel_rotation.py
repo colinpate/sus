@@ -7,7 +7,7 @@ import numpy as np
 from angle_corruption import project_mask_to_timeline
 from classes.sensor_loader import Workspace
 from classes.time_series import TimeSeries, ChunkedTimeSeries
-from classes.step import Step
+from classes.step import Step, maybe_decimate
 
 
 def normalize_rows(V, eps=1e-9):
@@ -62,6 +62,14 @@ class FilterChunkPairs(Step):
                     continue
                 still_pairs.append([chunk_a, chunk_b])
 
+        if not still_pairs and bool(self.param(ws, "allow_empty", False)):
+            print(
+                "Accelerometer alignment found no valid stationary sensor pairs; "
+                "continuing with the configured fixed-alignment fallback"
+            )
+            ws[self.outputs[0]] = []
+            return
+
         if not still_pairs:
             raise ValueError(
                 "Accelerometer alignment found no valid stationary sensor pairs "
@@ -104,6 +112,17 @@ class FilterColinearPairs(Step):
     def run(self, ws: Workspace) -> None:
         pairs: List = ws[self.inputs[0]]
         if not pairs:
+            if bool(self.param(ws, "allow_underconstrained", False)):
+                print(
+                    "Accelerometer alignment has no stationary pose pairs; "
+                    "continuing with empty offset-calibration inputs"
+                )
+                ws[self.outputs[0]] = []
+                if len(self.outputs) == 3:
+                    empty_chunks = np.empty((0, 0, 3), dtype=float)
+                    ws[self.outputs[1]] = empty_chunks.copy()
+                    ws[self.outputs[2]] = empty_chunks.copy()
+                return
             raise ValueError(
                 "Accelerometer alignment has no stationary pose pairs to test for pose diversity."
             )
@@ -435,6 +454,24 @@ class CorrectStaticOffset(Step):
         accel: TimeSeries = ws[self.inputs[1]]
         g = 9.81
 
+        chunks = np.asarray(chunks, dtype=float)
+        if chunks.size == 0:
+            if not bool(self.param(ws, "allow_empty", False)):
+                raise ValueError(
+                    "Accelerometer static-offset correction received no stationary samples"
+                )
+            bias = np.zeros(3, dtype=float)
+            print("No stationary samples for accel offset; using zero fallback", bias)
+            ws[self.outputs[0]] = chunks
+            ws[self.outputs[1]] = TimeSeries(
+                t=accel.t,
+                x=accel.x.copy(),
+                units=accel.units,
+                frame=accel.frame,
+                meta={**accel.meta},
+            )
+            return
+
         samples = np.mean(chunks, axis=1) # Convert to N, 3
 
         samples = np.asarray(samples, dtype=float)
@@ -467,6 +504,47 @@ class CorrectStaticOffset(Step):
             units=accel.units,
             frame=accel.frame,
             meta={**accel.meta},
+        )
+
+
+@dataclass
+class GetIMUDropoutMask(Step):
+    """Find samples where the IMU output is all zeros and add them to the mask"""
+    dec_freq: Optional[float] = None
+
+    def run(self, ws: Workspace) -> None:
+        accel_ts = ws[self.inputs[0]]
+        gyro_ts = ws[self.inputs[1]]
+
+        accel = accel_ts.x
+        gyro = gyro_ts.x
+        t = accel_ts.t
+
+        fs_hz = accel_ts.meta["fs_hz"]
+        _, gyro_dec, _ = maybe_decimate(self.dec_freq, fs_hz, gyro, t)
+        fs_hz, accel_dec, t = maybe_decimate(self.dec_freq, fs_hz, accel, t)
+
+        if len(self.inputs) > 2:
+            mask = ws[self.inputs[2]].x[:, 0]
+        else:
+            mask = np.zeros_like(t, dtype=bool)
+
+        new_mask = np.zeros_like(t, dtype=bool)
+        zeros = np.zeros((3,))
+        for i in range(new_mask.shape[0]):
+            if np.allclose(accel_dec[i, :], zeros) and np.allclose(gyro_dec[i, :], zeros):
+                new_mask[i] = True
+        print(f"Masked {np.sum(new_mask)/new_mask.shape[0]*100:.1f}% of samples")
+
+        
+        mask |= new_mask
+        
+        ws[self.outputs[0]] = TimeSeries(
+            t=t,
+            x=mask,
+            units="bool",
+            frame="sensor",
+            meta={"fs_hz": fs_hz},
         )
 
 
