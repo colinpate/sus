@@ -20,10 +20,11 @@ from accel_rotation import (
     GetAccelTravelVector, 
     ProjectAccel,
     GetAccelError,
-    CorrectStaticOffset
+    CorrectStaticOffset,
+    GetIMUDropoutMask
 )
 from angle import AngleToTravel, FindBoringRegions
-from mag import ProjectMag, FindMagZVPoints, CorrectBadMagProj, MagMagnitude
+from mag import FindMagZVPoints, CorrectBadMag, MagMagnitude
 from mag_nuisance import (
     MagNuisanceFullRateCorrection,
     MagNuisanceTravelCorrection,
@@ -91,6 +92,20 @@ def main() -> None:
 
     # Define pipeline (functional core + fusion)
     steps: List[Step] = [
+        # Look for sensor dropouts
+        GetIMUDropoutMask(
+            name="get_imu2_dropout_mask",
+            inputs=("accel/lis2", "gyro/gyro2"),
+            outputs=("imu_dropout_mask",),
+            dec_freq=DEC_FREQ
+        ),
+        GetIMUDropoutMask(
+            name="get_imu1_dropout_mask",
+            inputs=("accel/lis1", "gyro/gyro1", "imu_dropout_mask"),
+            outputs=("imu_dropout_mask",),
+            dec_freq=DEC_FREQ
+        ),
+
         FilterStep(
             name="lowpass_gyro1",
             inputs=("gyro/gyro1",),
@@ -251,7 +266,7 @@ def main() -> None:
         # Magnetometer processing
         MagMagnitude(
             name="mag_magnitude",
-            inputs=("mag", "accel/proj"),
+            inputs=("mag",),
             outputs=("mag/norm",),
             plot_keys=("mag/norm",),
         ),
@@ -282,9 +297,9 @@ def main() -> None:
             btype="low",
             dec_freq=DEC_FREQ,
         ),
-        CorrectBadMagProj(
-            name="find_bad_mag_proj",
-            inputs=("mag/lpf", "mag/norm/lpf"),
+        CorrectBadMag(
+            name="find_bad_mag",
+            inputs=("mag/lpf", "mag/norm/lpf", "imu_dropout_mask"),
             outputs=("mag/norm/corr/lpf", "mag/norm/bad_mask",)
         ),
         FindMagZVPoints(
@@ -303,8 +318,7 @@ def main() -> None:
             name="mag_to_travel_model",
             inputs=(
                 "mag/norm/corr/lpf",
-                "accel/lpfhp/proj", 
-                "travel", 
+                "accel/lpfhp/proj",
                 "mag/norm/bad_mask",
                 "mag_zv_points",
                 "mag_baseline"
@@ -312,15 +326,9 @@ def main() -> None:
             outputs=(
                 "travel/mag_model",
                 "travel/mag_model/adj",
-                "fusion_scatter_points",
                 "mag_model_coeffs",
                 "mag_model_offset_mm",
-            ),
-            plot_keys=(
-                PlotSpec(kind="scatter", key="fusion_scatter_points"),
-            ),
-            train_with_mask=False,
-            apply_ref_point=False,
+            )
         ),
         GetErrorStats(
             name="x_preds_stats",
