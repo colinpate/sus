@@ -1,5 +1,7 @@
 # solver-window-front-phase2
 
+> Historical pre-merge downstream baseline. Use the [current Stumpjumper solver study](../solver-window-front-stumpy-postmerge-v1/report.md) and [post-merge consolidated analysis](../../analysis/front-window-length-postmerge/report.md) for current numerical recommendations.
+
 Status: **220/220 successful** (0 failed).
 
 ## Design

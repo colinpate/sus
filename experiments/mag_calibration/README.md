@@ -34,13 +34,17 @@ rebuild row-level tables until that study has been rerun.
 | `random-window-front-v2` | Setup-stratified source for the front window-length mechanism analysis. |
 | `random-window-front-v4` | Higher-repeat, all-LSM6DSO32 front duration study. |
 | `random-window-front-v4-jamaal` | Original-TR11 duration study. |
+| `random-window-front-stumpy-postmerge-v1` | Primary current-pipeline Stumpjumper duration study; first four deterministic centers from the original design. |
+| `random-window-front-multisetup-postmerge-v1` | Primary current-pipeline setup-balanced duration extension for Jamaal, Harry, and Slayer. |
 | `cross-log-front-*` | Same-setup calibration-transfer controls. |
 | `cross-setup-front-three-setup-v1` | Only retained study containing Stumpjumper/pod-v1. |
 | `cross-setup-front-pod-v2-sample-v2` | Balanced pilot retained to quantify sampling efficiency. |
 | `cross-setup-front-pod-v2-full-v4` | Primary complete pod-v2 cross-setup result after the 200 Hz/front-pipeline merge. |
 | `cross-setup-front-pod-v2-full-v3` | Pre-merge complete matrix retained as a sensitivity baseline. |
 | `solver-window-front-phase1` | Pilot and repeat-0 provenance for the downstream study. |
-| `solver-window-front-phase2` | Primary repeated downstream-solver result. |
+| `solver-window-front-phase2` | Pre-merge repeated downstream-solver baseline. |
+| `solver-window-front-stumpy-postmerge-v1` | Primary current-pipeline repeated downstream result on Stumpjumper. |
+| `solver-window-front-multisetup-postmerge-v1` | Current-pipeline downstream extension across the other three pod-v2 setups. |
 
 `random-window-front-v3` was retired because v4 is the higher-repeat version of
 the same 24-log question, while v1 and the Jamaal study retain the useful longer
@@ -265,4 +269,44 @@ venv/bin/python tools/mag_calibration_solver_sweep.py run \
 Its spec imports the already-completed Phase 1 center, so only missing source
 calibrations are solved. Repeats are paired across durations, collapsed within
 each log, and only then aggregated across logs. Phase 2 omits the large prediction
-arrays while retaining stagewise trial metrics and runtime diagnostics.
+arrays while retaining stagewise trial metrics and runtime diagnostics. It is
+retained as the pre-merge sensitivity baseline rather than the primary numerical
+result.
+
+### Current-pipeline duration study
+
+The post-merge update uses the production magnetic bad mask and mirrors the
+current front solver path, including the 40 Hz solver acceleration, unanchored
+first solve, nuisance-corrected magnetic scalar, recomputed baseline/reference,
+and bounded second solve. The Stumpjumper run uses four deterministic centers at
+5, 10, 20, 40, 60, and 120 active seconds. The setup-balanced extension uses
+five independent recordings each from the original TR11, TR11-2025, and Slayer;
+60 seconds is the longest common endpoint supported by all five Slayer parents.
+
+```bash
+venv/bin/python tools/mag_calibration_sweep.py run \
+  experiments/mag_calibration/specs/random_window_front_stumpy_postmerge_v1.toml \
+  --output-dir experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1
+
+venv/bin/python tools/mag_calibration_sweep.py run \
+  experiments/mag_calibration/specs/random_window_front_multisetup_postmerge_v1.toml \
+  --output-dir experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1
+
+venv/bin/python tools/mag_calibration_solver_sweep.py run \
+  experiments/mag_calibration/specs/solver_window_front_stumpy_postmerge_v1.toml \
+  --output-dir experiments/mag_calibration/runs/solver-window-front-stumpy-postmerge-v1
+
+venv/bin/python tools/mag_calibration_solver_sweep.py run \
+  experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml \
+  --output-dir experiments/mag_calibration/runs/solver-window-front-multisetup-postmerge-v1
+
+venv/bin/python tools/analyze_mag_calibration_postmerge_duration.py
+```
+
+The consolidated analysis is in
+`analysis/front-window-length-postmerge/`. It reports setup-stratified raw and
+final-solver learning curves, planned-window failure rates, fixed-core results,
+and a cohort-level sensitivity comparison with the earlier pipeline. Because
+the activity mask changed, old and new deterministic random fractions do not
+always resolve to identical physical samples; the pre/post table is not a pure
+paired code ablation.

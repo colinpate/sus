@@ -1,0 +1,51 @@
+schema_version = 1
+experiment_type = "downstream_solver_window"
+name = "solver-window-front-multisetup-postmerge-v1"
+pipeline = "front"
+cohort_description = "three setup-balanced pod-v2 cohorts (Jamaal TR11, Harry TR11, and Slayer)"
+
+source_run = "experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1"
+source_trainer = "self-supervised"
+# Repeat 0 contains one expected 10-second no-chunk failure under the
+# production bad mask. Repeats 1 and 2 provide a complete paired solver design.
+source_repeats = [1, 2]
+
+durations_s = [10, 40, 60]
+evaluation_scopes = ["training_window", "common_core", "full_log", "full_log_excluding_training"]
+common_core_s = 10
+save_predictions = false
+
+logs = [
+  "log-0078-valid",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+  "log-0113",
+  "log-0115",
+  "log-0116",
+  "log-0122",
+  "log-0129",
+  "log-0145-filtered-c01",
+  "log-0147-filtered-c02",
+  "log-0151-filtered-c01",
+  "log-0152-filtered-c01",
+  "log-0155-filtered-c01",
+]
+
+[setup_logs]
+tr11_pod_v2 = ["log-0078-valid", "log-0080-valid", "log-0081", "log-0098", "log-0099"]
+tr11_2025_pod_v2 = ["log-0113", "log-0115", "log-0116", "log-0122", "log-0129"]
+slayer_pod_v2 = ["log-0145-filtered-c01", "log-0147-filtered-c02", "log-0151-filtered-c01", "log-0152-filtered-c01", "log-0155-filtered-c01"]
+
+[setup_labels]
+tr11_pod_v2 = "TR11 / pod v2 (Jamaal)"
+tr11_2025_pod_v2 = "TR11 2025 / pod v2 (Harry)"
+slayer_pod_v2 = "Slayer / pod v2"
+
+[analysis_units]
+"log-0145-filtered-c01" = "log-0145"
+"log-0147-filtered-c02" = "log-0147"
+"log-0151-filtered-c01" = "log-0151"
+"log-0152-filtered-c01" = "log-0152"
+"log-0155-filtered-c01" = "log-0155"

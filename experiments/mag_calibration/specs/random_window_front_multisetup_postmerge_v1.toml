@@ -1,0 +1,55 @@
+schema_version = 1
+name = "random-window-front-multisetup-postmerge-v1"
+pipeline = "front"
+seed = 20260904
+time_basis = "active"
+sampling = "nested-center"
+durations_s = [5, 10, 20, 40, 60]
+repeats = 4
+trainers = ["self-supervised", "oracle-power"]
+evaluation_scopes = ["training_window", "full_log", "full_log_excluding_training"]
+oracle_bins = 100
+bootstrap_draws = 2000
+
+# Setup-balanced current-pipeline extension. Five independent recordings are
+# used per non-Stumpjumper setup. Sixty active seconds is the longest common
+# endpoint supported by all five Slayer parent recordings.
+logs = [
+  # Transition TR11, pod v2 (Jamaal)
+  "log-0078-valid",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+
+  # Transition TR11 2025, pod v2 (Harry)
+  "log-0113",
+  "log-0115",
+  "log-0116",
+  "log-0122",
+  "log-0129",
+
+  # Rocky Mountain Slayer, pod v2; one chunk per parent recording
+  "log-0145-filtered-c01",
+  "log-0147-filtered-c02",
+  "log-0151-filtered-c01",
+  "log-0152-filtered-c01",
+  "log-0155-filtered-c01",
+]
+
+[setup_logs]
+tr11_pod_v2 = ["log-0078-valid", "log-0080-valid", "log-0081", "log-0098", "log-0099"]
+tr11_2025_pod_v2 = ["log-0113", "log-0115", "log-0116", "log-0122", "log-0129"]
+slayer_pod_v2 = ["log-0145-filtered-c01", "log-0147-filtered-c02", "log-0151-filtered-c01", "log-0152-filtered-c01", "log-0155-filtered-c01"]
+
+[setup_labels]
+tr11_pod_v2 = "TR11 / pod v2 (Jamaal)"
+tr11_2025_pod_v2 = "TR11 2025 / pod v2 (Harry)"
+slayer_pod_v2 = "Slayer / pod v2"
+
+[analysis_units]
+"log-0145-filtered-c01" = "log-0145"
+"log-0147-filtered-c02" = "log-0147"
+"log-0151-filtered-c01" = "log-0151"
+"log-0152-filtered-c01" = "log-0152"
+"log-0155-filtered-c01" = "log-0155"

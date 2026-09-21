@@ -1,0 +1,43 @@
+setup,setup_label,trainer,duration_s,scheduled_trials,failed_trials,failure_rate
+slayer_pod_v2,Slayer / pod v2,oracle-power,5.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,oracle-power,10.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,oracle-power,20.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,oracle-power,40.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,oracle-power,60.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,self-supervised,5.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,self-supervised,10.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,self-supervised,20.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,self-supervised,40.0,20,0,0.0
+slayer_pod_v2,Slayer / pod v2,self-supervised,60.0,20,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,oracle-power,5.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,oracle-power,10.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,oracle-power,20.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,oracle-power,40.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,oracle-power,60.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,oracle-power,120.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,self-supervised,5.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,self-supervised,10.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,self-supervised,20.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,self-supervised,40.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,self-supervised,60.0,44,0,0.0
+stumpjumper_pod_v2,Stumpjumper / pod v2,self-supervised,120.0,44,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),oracle-power,5.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),oracle-power,10.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),oracle-power,20.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),oracle-power,40.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),oracle-power,60.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),self-supervised,5.0,20,1,0.05
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),self-supervised,10.0,20,1,0.05
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),self-supervised,20.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),self-supervised,40.0,20,0,0.0
+tr11_2025_pod_v2,TR11 2025 / pod v2 (Harry),self-supervised,60.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),oracle-power,5.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),oracle-power,10.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),oracle-power,20.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),oracle-power,40.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),oracle-power,60.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),self-supervised,5.0,20,1,0.05
+tr11_pod_v2,TR11 / pod v2 (Jamaal),self-supervised,10.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),self-supervised,20.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),self-supervised,40.0,20,0,0.0
+tr11_pod_v2,TR11 / pod v2 (Jamaal),self-supervised,60.0,20,0,0.0

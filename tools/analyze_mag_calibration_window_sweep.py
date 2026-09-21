@@ -435,6 +435,8 @@ def write_report(
     lines = [
         "# Front mag-calibration window-length analysis",
         "",
+        "> Historical pre-merge mechanism analysis. Its fixed-support interpretation remains useful, but use the [post-merge duration study](../front-window-length-postmerge/report.md) for current numerical recommendations.",
+        "",
         "## Bottom line",
         "",
         "The rise in same-window absolute RMSE is mostly an evaluation-support and local-centering effect, not evidence that the self-supervised learner simply gets worse with more data. Longer windows contain a wider travel distribution and cannot use a highly local offset correction. On an identical central evaluation core, self-supervised curves generally improve from the shortest windows and then plateau. Full-log accuracy also improves strongly before reaching a setup-dependent optimum.",

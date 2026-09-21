@@ -35,7 +35,7 @@ from classes.log_config import attach_log_config  # noqa: E402
 from classes.time_series import TimeSeries  # noqa: E402
 from log_registry import resolve_log  # noqa: E402
 from mag_calibration import MagTravelCalibration, TimeRange, resolve_window  # noqa: E402
-from mag_calibration_experiment import load_cached_log, predict_calibration, score_prediction  # noqa: E402
+from mag_calibration_experiment import load_cached_log, score_prediction  # noqa: E402
 from mag_calibration_sweep import (  # noqa: E402
     atomic_write_json,
     atomic_write_text,
@@ -50,6 +50,11 @@ from mag_nuisance import (  # noqa: E402
     MagNuisanceFullRateCorrection,
     MagNuisanceTravelCorrection,
 )
+from fusion import (  # noqa: E402
+    ApplyMagTravelRefPoint,
+    GetMagBaseline,
+    GetMagTravelRefPoint,
+)
 from travel_solver import TravelSolver  # noqa: E402
 
 
@@ -58,6 +63,7 @@ STAGES = (
     "mag_model",
     "fusion1",
     "nuisance_delta_lifted",
+    "nuisance_corrected_mag_unanchored",
     "nuisance_corrected_mag",
     "solved",
 )
@@ -213,9 +219,12 @@ def load_solver_inputs(log_name: str) -> tuple[Any, dict[str, Any]]:
     with np.load(path, allow_pickle=False) as cache:
         inputs = {
             "accel/lpfhp/proj": cached_ts(cache, "accel/lpfhp/proj", units="m/s^2", frame="travel"),
+            "accel/lpfhp/proj/solver": cached_ts(cache, "accel/lpfhp/proj/solver", units="m/s^2", frame="travel"),
             "mag/norm/corr/lpf": cached_ts(cache, "mag/norm/corr/lpf", units="milli-Gauss", frame="mag"),
+            "mag/norm/bad_mask": cached_ts(cache, "mag/norm/bad_mask", units="bool", frame="mag"),
             "mag/lpf": cached_ts(cache, "mag/lpf", units="milli-Gauss", frame="mag"),
             "gyro/lpf/gyro1": cached_ts(cache, "gyro/lpf/gyro1", units="deg/s", frame="gyro1"),
+            "travel": cached_ts(cache, "travel", units="mm", frame="travel"),
             "mag_zv_points": np.asarray(cache["mag_zv_points"], dtype=int),
             "mag_baseline": np.asarray(cache["mag_baseline"], dtype=float),
         }
@@ -234,42 +243,77 @@ def run_downstream(log_name: str, calibration: MagTravelCalibration) -> tuple[An
     data, cached = load_solver_inputs(log_name)
     ws = dict(cached)
     attach_log_config(ws, resolve_log(log_name).processing_config)
-    with contextlib.redirect_stdout(io.StringIO()):
-        raw, adjusted, offset = predict_calibration(calibration, data)
+    raw = calibration.predict(data.mag)
     t = data.time_s
-    ws["travel/mag_model/adj"] = TimeSeries(t, adjusted, "mm", "travel", {"fs_hz": 1.0 / np.median(np.diff(t))})
+    ws["travel/mag_model"] = TimeSeries(t, raw, "mm", "travel", {"fs_hz": 1.0 / np.median(np.diff(t))})
     ws["mag_model_coeffs"] = np.asarray(calibration.coefficients, dtype=float)
-    ws["mag_model_offset_mm"] = np.array([offset], dtype=float)
     runtimes: dict[str, float] = {}
     runtimes["fusion1"] = timed_step(TravelSolver(
         name="travel_solver",
-        inputs=("accel/lpfhp/proj", "mag/norm/corr/lpf", "travel/mag_model/adj", "mag_zv_points", "mag_baseline"),
+        inputs=("accel/lpfhp/proj/solver", "mag/norm/corr/lpf", "travel/mag_model", "mag_zv_points", "mag_baseline"),
         outputs=("travel/fusion1",), max_nfev=100, verbose=0,
+        weight_overrides={"oob": 0.0},
     ), ws)
     runtimes["nuisance"] = timed_step(MagNuisanceTravelCorrection(
         name="mag_nuisance_correction",
-        inputs=("mag/lpf", "gyro/lpf/gyro1", "mag/norm/corr/lpf", "mag_model_coeffs", "mag_model_offset_mm", "travel/fusion1"),
+        inputs=("mag/lpf", "gyro/lpf/gyro1", "mag/norm/corr/lpf", "mag_model_coeffs", "travel/fusion1"),
         outputs=("travel/solved/mag_nuisance/10hz", "mag/nuisance/body/10hz", "mag/nuisance/world/10hz", "mag/nuisance/xyz_path", "mag/nuisance/summary"),
     ), ws)
     runtimes["nuisance_full_rate"] = timed_step(MagNuisanceFullRateCorrection(
         name="mag_nuisance_full_rate",
-        inputs=("mag/lpf", "gyro/lpf/gyro1", "travel/fusion1", "travel/mag_model/adj", "travel/solved/mag_nuisance/10hz", "mag/nuisance/body/10hz", "mag/nuisance/world/10hz", "mag/nuisance/xyz_path"),
+        inputs=("mag/lpf", "gyro/lpf/gyro1", "travel/fusion1", "travel/mag_model", "travel/solved/mag_nuisance/10hz", "mag/nuisance/body/10hz", "mag/nuisance/world/10hz", "mag/nuisance/xyz_path"),
         outputs=(
             "travel/solved/mag_nuisance/delta_lifted",
             "travel/mag_nuisance/corrected",
             "mag/nuisance/corrected/norm",
         ),
     ), ws)
+    runtimes["corrected_baseline"] = timed_step(GetMagBaseline(
+        name="get_mag_nuisance_corrected_baseline",
+        inputs=("mag/nuisance/corrected/norm", "accel/lpfhp/proj"),
+        outputs=("mag/nuisance/corrected/baseline",),
+    ), ws)
+    runtimes["corrected_reference"] = timed_step(GetMagTravelRefPoint(
+        name="get_mag_travel_ref_point",
+        inputs=(
+            "mag/nuisance/corrected/norm",
+            "accel/lpfhp/proj",
+            "mag/nuisance/corrected/baseline",
+            "travel",
+        ),
+        outputs=("mag_travel_ref_point",),
+    ), ws)
+    runtimes["corrected_reference_apply"] = timed_step(ApplyMagTravelRefPoint(
+        name="apply_mag_travel_ref_point",
+        inputs=(
+            "travel/mag_nuisance/corrected",
+            "mag/nuisance/corrected/norm",
+            "accel/lpfhp/proj",
+            "mag/norm/bad_mask",
+            "mag_travel_ref_point",
+            "mag_model_coeffs",
+        ),
+        outputs=("travel/mag_nuisance/corrected/adj",),
+    ), ws)
     runtimes["fusion2"] = timed_step(TravelSolver(
         name="travel_solver_mag_nuisance",
-        inputs=("accel/lpfhp/proj", "mag/norm/corr/lpf", "travel/mag_nuisance/corrected", "mag_zv_points", "mag_baseline"),
+        inputs=(
+            "accel/lpfhp/proj/solver",
+            "mag/nuisance/corrected/norm",
+            "travel/mag_nuisance/corrected/adj",
+            "mag_zv_points",
+            "mag/nuisance/corrected/baseline",
+        ),
         outputs=("travel/solved",), max_nfev=100, verbose=0,
+        mag_prediction_bounds=(0, 200),
+        weight_overrides={"travel_max": 200.0},
     ), ws)
     signals = {
-        "mag_model": adjusted,
+        "mag_model": raw,
         "fusion1": ws["travel/fusion1"].x[:, 0],
         "nuisance_delta_lifted": ws["travel/solved/mag_nuisance/delta_lifted"].x[:, 0],
-        "nuisance_corrected_mag": ws["travel/mag_nuisance/corrected"].x[:, 0],
+        "nuisance_corrected_mag_unanchored": ws["travel/mag_nuisance/corrected"].x[:, 0],
+        "nuisance_corrected_mag": ws["travel/mag_nuisance/corrected/adj"].x[:, 0],
         "solved": ws["travel/solved"].x[:, 0],
     }
     summary_values = np.asarray(ws["mag/nuisance/summary"], dtype=float)
@@ -609,7 +653,8 @@ def write_report(
         "",
         "## Design",
         "",
-        f"- Front pipeline; {len(spec['logs'])} Stumpjumper/pod-v2 logs.",
+        f"- Front pipeline; {len(spec['logs'])} logs from "
+        f"{spec.get('cohort_description', 'the configured cohort')}.",
         f"- {len(repeats)} deterministic nested window(s) per log (source repeats {repeat_text}) at "
         + ", ".join(f"{duration:g} s" for duration in durations) + ".",
         "- The saved self-supervised curve is injected before the two full-log fusion solves.",
