@@ -33,6 +33,7 @@ from classes.runner import Runner, PlotSpec
 from classes.log_config import attach_log_config, get_signal_config
 from log_registry import resolve_log
 from run_provenance import build_run_provenance
+from evaluation_baselines import evaluation_steps
 
 DEC_FREQ = 200 # Hz, for decimating data to speed up optimization
 LP_FREQ = 40 # Hz, for lowpass filtering accel and gyro data
@@ -384,6 +385,8 @@ def main() -> None:
         #     gt_thresh=30
         # ),
     ]
+
+    steps.extend(evaluation_steps("rear", log_config))
 
     runner = Runner(out_dir=out_dir, write_cache=True, make_plots=False, provenance=provenance)
     ws = runner.run(ws, steps)

@@ -63,7 +63,7 @@ def write_stats_cache(cache_root: Path, log_id: str, *, include_corrected: bool)
         payload[f"{key}__t"] = time_s
         payload[f"{key}__x"] = travel + offset
     if include_corrected:
-        key = "travel/solved/mag_nuisance/fusion2"
+        key = "travel/fusion1"
         payload[f"{key}__t"] = time_s
         payload[f"{key}__x"] = travel + 0.5
     np.savez(cache_dir / "all.npz", **payload)
@@ -197,7 +197,7 @@ class ExperimentStoreTests(unittest.TestCase):
 
             self.assertFalse(report.failures)
             self.assertEqual(len(report.error_rows["travel/solved"]), 2)
-            corrected = report.error_rows["travel/solved/mag_nuisance/fusion2"]
+            corrected = report.error_rows["travel/fusion1"]
             self.assertEqual([row["log"] for row in corrected], ["new"])
 
     def test_centered_report_replaces_mean_error_with_normalized_rmse(self) -> None:

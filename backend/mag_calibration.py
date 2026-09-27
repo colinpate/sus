@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
+import scipy.optimize
 
 from mag_to_travel_model_core import MagToTravelModel
 
@@ -234,3 +235,53 @@ class MagTravelCalibration:
     @classmethod
     def load(cls, path: str | Path) -> "MagTravelCalibration":
         return cls.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+
+
+def fit_supervised_power_oracle(
+    mag: np.ndarray,
+    travel: np.ndarray,
+    *,
+    pred_soft_mg: float,
+) -> tuple[np.ndarray, float, float]:
+    """Fit the production power curve family plus its otherwise-free offset."""
+    mag = np.asarray(mag, dtype=float)
+    travel = np.asarray(travel, dtype=float)
+    if mag.ndim != 1 or travel.shape != mag.shape or len(mag) < 4:
+        raise ValueError("Oracle requires aligned one-dimensional arrays with at least four samples")
+    if not np.all(np.isfinite(mag)) or not np.all(np.isfinite(travel)) or np.ptp(mag) <= 0:
+        raise ValueError("Oracle requires finite samples and nonconstant magnetic input")
+    if not np.isfinite(pred_soft_mg) or pred_soft_mg <= 0:
+        raise ValueError("Oracle soft-tail scale must be positive")
+    mag_min = float(np.min(mag))
+    mag_max = float(np.max(mag))
+    mag_span = max(mag_max - mag_min, 1e-6)
+    curve = MagToTravelModel(pred_soft_mg=pred_soft_mg)
+
+    lower = np.array([mag_min - 2.0 * mag_span, -np.inf, 0.05, -np.inf])
+    upper = np.array([mag_max + 2.0 * mag_span, np.inf, 1.5, np.inf])
+    best_result: scipy.optimize.OptimizeResult | None = None
+    for x0 in np.quantile(mag, [0.05, 0.5, 0.95]):
+        for power in (0.2, 1.0 / 3.0, 0.5):
+            unit_feature = curve.pred_x(mag, np.array([x0, 1.0, power]))
+            design = np.column_stack([unit_feature, np.ones_like(unit_feature)])
+            linear, *_ = np.linalg.lstsq(design, travel, rcond=None)
+            initial = np.array([x0, linear[0], power, linear[1]], dtype=float)
+
+            def residual(parameters: np.ndarray) -> np.ndarray:
+                coefficients = parameters[:3]
+                return curve.pred_x(mag, coefficients) + parameters[3] - travel
+
+            result = scipy.optimize.least_squares(
+                residual,
+                x0=initial,
+                bounds=(lower, upper),
+                method="trf",
+                max_nfev=500,
+            )
+            if best_result is None or np.mean(result.fun**2) < np.mean(best_result.fun**2):
+                best_result = result
+
+    if best_result is None:
+        raise RuntimeError("Supervised power oracle fit produced no optimization result")
+    rmse = float(np.sqrt(np.mean(best_result.fun**2)))
+    return best_result.x[:3].copy(), float(best_result.x[3]), rmse

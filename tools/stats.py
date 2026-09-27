@@ -272,7 +272,10 @@ def save_experiment(
         "error_threshold": args.error_threshold,
         "deep_dive": bool(args.deep_dive),
         "sort_key": args.sort_key,
-        "metrics_schema": 1,
+        "metrics_schema": 2,
+        "comparison_keys": [key for key, _ in metrics_engine.COMPARISONS],
+        "sample_support": "common finite comparison support when IMU baseline is present; otherwise per-method",
+        "stats_engine_sha256": sha256_file(Path(metrics_engine.__file__)),
     }
     versions = {
         "run_fingerprints": unique_values(log_records, "run_fingerprint"),
@@ -367,6 +370,18 @@ def command_run(args: argparse.Namespace) -> int:
     used = [inspection for inspection in inspections if inspection.fresh]
     if not used:
         raise SystemExit("No fresh caches are available for this experiment.")
+
+    required = getattr(args, "require_comparison", [])
+    if required:
+        missing = []
+        for inspection in used:
+            with metrics_engine.load_cache(inspection.log.log_id, args.cache_root) as cache:
+                for key in required:
+                    if not metrics_engine.cache_series_exists(cache, key):
+                        missing.append(f"{inspection.log.log_id}: {key}")
+        if missing:
+            raise SystemExit("Required comparisons missing: " + "; ".join(missing))
+        selection["required_comparisons"] = required
 
     reports, metric_rows, report_body = collect_both_modes(
         [inspection.log.log_id for inspection in used],
@@ -644,6 +659,9 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--tag", dest="tags", action="append", default=[], help="Catalog tag (repeatable)")
     run_parser.add_argument("--baseline", help="Compare the new experiment to a saved experiment after creation")
     run_parser.add_argument("--compare-top", type=int, default=20)
+    run_parser.add_argument("--require-comparison", action="append", default=[],
+                            choices=[key for key, _ in metrics_engine.COMPARISONS],
+                            help="Require this output on every included log (repeatable)")
     run_parser.add_argument("--deep-dive", action="store_true", help="Include detailed stage/condition/bin diagnostics")
     run_parser.add_argument("--error-threshold", type=float)
     run_parser.add_argument("--sort-key", default="log")

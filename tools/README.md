@@ -159,3 +159,11 @@ report before rerunning the full experiment.
 - Keep reusable exports and shared reporting tools at the top level or in a focused utility folder.
 - If a script imports backend modules directly, compute `REPO_ROOT` from `__file__` and add `backend/` to `sys.path`.
 - For plotting scripts, set `MPLCONFIGDIR` to a writable temp directory before importing `matplotlib`.
+
+## Paper sensor/method baselines
+
+`tools/sweep_imu_baseline.py` selects a fixed integration high-pass cutoff and
+placement using cached recordings, with parent-recording and setup balancing.
+See `experiments/imu_baseline/README.md` for the selected defaults, oracle protocol,
+common scoring mask, and complete-cohort Table 2 commands. The front and rear
+pipelines now append evaluation-only IMU and supervised power-oracle steps.

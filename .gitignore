@@ -226,6 +226,8 @@ __marimo__/
 experiments/stats/
 # !experiments/stats/**
 
+reports/
+
 # Imported source data and deterministic conversions stay local/backed up separately.
 logs/raw/
 logs/converted/
