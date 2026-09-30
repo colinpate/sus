@@ -1,0 +1,103 @@
+{
+  "created_at": "2026-09-21T21:12:48+00:00",
+  "experiment": "solver-window-front-multisetup-postmerge-v1",
+  "git": {
+    "commit": "85c88b83e2f76851489a9e7baf15d6094a48e541",
+    "dirty": true,
+    "status_short": [
+      "?? experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1/",
+      "?? experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1/",
+      "?? experiments/mag_calibration/runs/solver-window-front-multisetup-postmerge-v1/",
+      "?? experiments/mag_calibration/runs/solver-window-front-stumpy-postmerge-v1/",
+      "?? experiments/mag_calibration/specs/random_window_front_multisetup_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/random_window_front_stumpy_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/solver_window_front_stumpy_postmerge_v1.toml"
+    ]
+  },
+  "method_note": "Each saved calibration drives both full-log fusion solves; scoring windows are applied afterward.",
+  "schedule_sha256": "3590b87b343e92194d9b417c0d03fe0fc022e7d46e2d57b36bef07663f4448f2",
+  "schema_version": 1,
+  "source_run": "experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1",
+  "spec": {
+    "analysis_units": {
+      "log-0145-filtered-c01": "log-0145",
+      "log-0147-filtered-c02": "log-0147",
+      "log-0151-filtered-c01": "log-0151",
+      "log-0152-filtered-c01": "log-0152",
+      "log-0155-filtered-c01": "log-0155"
+    },
+    "cohort_description": "three setup-balanced pod-v2 cohorts (Jamaal TR11, Harry TR11, and Slayer)",
+    "common_core_s": 10,
+    "durations_s": [
+      10,
+      40,
+      60
+    ],
+    "evaluation_scopes": [
+      "training_window",
+      "common_core",
+      "full_log",
+      "full_log_excluding_training"
+    ],
+    "experiment_type": "downstream_solver_window",
+    "logs": [
+      "log-0078-valid",
+      "log-0080-valid",
+      "log-0081",
+      "log-0098",
+      "log-0099",
+      "log-0113",
+      "log-0115",
+      "log-0116",
+      "log-0122",
+      "log-0129",
+      "log-0145-filtered-c01",
+      "log-0147-filtered-c02",
+      "log-0151-filtered-c01",
+      "log-0152-filtered-c01",
+      "log-0155-filtered-c01"
+    ],
+    "name": "solver-window-front-multisetup-postmerge-v1",
+    "pipeline": "front",
+    "save_predictions": false,
+    "schema_version": 1,
+    "setup_labels": {
+      "slayer_pod_v2": "Slayer / pod v2",
+      "tr11_2025_pod_v2": "TR11 2025 / pod v2 (Harry)",
+      "tr11_pod_v2": "TR11 / pod v2 (Jamaal)"
+    },
+    "setup_logs": {
+      "slayer_pod_v2": [
+        "log-0145-filtered-c01",
+        "log-0147-filtered-c02",
+        "log-0151-filtered-c01",
+        "log-0152-filtered-c01",
+        "log-0155-filtered-c01"
+      ],
+      "tr11_2025_pod_v2": [
+        "log-0113",
+        "log-0115",
+        "log-0116",
+        "log-0122",
+        "log-0129"
+      ],
+      "tr11_pod_v2": [
+        "log-0078-valid",
+        "log-0080-valid",
+        "log-0081",
+        "log-0098",
+        "log-0099"
+      ]
+    },
+    "source_repeats": [
+      1,
+      2
+    ],
+    "source_run": "experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1",
+    "source_trainer": "self-supervised"
+  },
+  "spec_path": "experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml",
+  "spec_sha256": "9d0d84bcdf8ef1aa541840e1ce0395d293e1a2ece5e02d9c3982f9e095158878",
+  "trial_count": 90
+}

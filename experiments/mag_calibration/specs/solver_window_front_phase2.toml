@@ -1,0 +1,33 @@
+schema_version = 1
+experiment_type = "downstream_solver_window"
+name = "solver-window-front-phase2"
+pipeline = "front"
+
+# Four independent deterministic centers per log. Repeat 0 was solved in Phase 1
+# and is imported rather than recomputed.
+source_run = "experiments/mag_calibration/runs/random-window-front-v1"
+source_trainer = "self-supervised"
+source_repeats = [0, 1, 2, 3]
+reuse_runs = ["experiments/mag_calibration/runs/solver-window-front-phase1"]
+
+durations_s = [5, 10, 20, 40, 120]
+evaluation_scopes = ["training_window", "common_core", "full_log", "full_log_excluding_training"]
+common_core_s = 5
+
+# Metrics and stage outputs are retained for every trial. Full prediction arrays
+# were useful for the Phase 1 pilot but are unnecessary for this larger repeat run.
+save_predictions = false
+
+logs = [
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+]

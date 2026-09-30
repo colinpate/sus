@@ -1,0 +1,474 @@
+{
+  "schema_version": 3,
+  "id": "20260918T221344Z-front-200hz-slayer-hybrid-2sboring-nb2",
+  "name": "front_200hz_slayer_hybrid_2sboring_nb2",
+  "created_at": "2026-09-18T23:13:44+01:00",
+  "notes": "",
+  "tags": [],
+  "experiment_fingerprint": "5c9879b28504e337c342cc7d20617645e332cfe9f66933e1c09c831d40602c97",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "a9b74aa361dca1a15e566156c31ad3845cea4e461d428984fb96c4d135e2d91c",
+    "explicit_logs": [],
+    "set": "slayer-filtered",
+    "where": {},
+    "usable_only": true,
+    "selected_logs": [
+      "log-0145-filtered-c01",
+      "log-0147-filtered-c01",
+      "log-0147-filtered-c02",
+      "log-0151-filtered-c01",
+      "log-0152-filtered-c01",
+      "log-0152-filtered-c02",
+      "log-0155-filtered-c01"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 1
+  },
+  "versions": {
+    "run_fingerprints": [
+      "0387b58a98f6ba0ac0100a96fbf913028f008dc2d006f2198f045bd4f6f67095",
+      "0d752e7c5a1641e04a361452af1ab4a22b7ae6e458fe825f8a675f7046259577",
+      "254b873c08da1483805673d6571616994def4dddc7fb99e4bc98344b06fe9308",
+      "5867225a6085841e0622e8032d5ca999221712b75e7321d8d52f2de411f49e7c",
+      "755edf5bd4cdcfd97a1c22475a6bf18b5f1bf480c63623f80bb474c7deb3ad19",
+      "99f2c625fc34651bcba7756421a4badf4a91fb9730f5bfce503efe8fb6f9bd2d",
+      "c8431e3dbb2b00b07380c79e5f4223cdc1f6091536f39c2e673d5b6de306a34c"
+    ],
+    "pipeline_code_sha256": [
+      "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083"
+    ],
+    "resolved_config_sha256": [
+      "0cbd4e11fb600f660e255e82574419274ab834028f0b5e7547559aed080ea778",
+      "a67c6c7f748064228a1f802b46d887e86cb85c91cd78af4914138242825ce6bc",
+      "cbb5ac12e1d030ec5ecb27fcb7fb29535b313a2719699224c36ed6c64da7817b",
+      "d0542fe7e45cab804acc218d20a75f956be665abd45d5c2025d6a2b386f70cc3",
+      "df36891b08393f87eb65aba01422a659db106320cdeb734dd6793951ce360b61"
+    ],
+    "input_sha256": [
+      "1cee5cec29c073d8fd724e96b077f67f29bd9ffffdc0c03eda8c6dd1b6d65ee6",
+      "2538e99f17564fa71b1c4e0bd0cab74e4f59ef7a5f5fde078c2e5acfd14b9a72",
+      "61ccc7c5b30adc9beb452f352d1de74d091fa4b5e4210ddfa8879fa0099e9824",
+      "8c52592b8c9e104cd3d1f8bab29ff0acca172695a98f276dbc0c56cf5b6eaa02",
+      "b5b68b549421eac49482287d73537cacdf6668a7dc6ceda925e0e7c660b5750f",
+      "cde3f49538d35f1555978f323aca034b52f94d0a69db6119c4cfbd867de7f58a",
+      "f472f439f7a835967e1620233629d8a0628b3895c474ba965aaf657c4a1591e8"
+    ],
+    "assets_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "d899855ed1a63bbe7f2ef73727ca5c3962e65b62"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 7,
+    "included_logs": 7,
+    "excluded_logs": 0,
+    "metric_rows": 560,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log-0145-filtered-c01",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "254b873c08da1483805673d6571616994def4dddc7fb99e4bc98344b06fe9308",
+      "input_sha256": "61ccc7c5b30adc9beb452f352d1de74d091fa4b5e4210ddfa8879fa0099e9824",
+      "resolved_config_sha256": "0cbd4e11fb600f660e255e82574419274ab834028f0b5e7547559aed080ea778",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:00:32-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0145",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 0,
+        "source_stop_index_100hz": 39029,
+        "source_start_row_200hz": 0,
+        "source_stop_row_200hz": 78058,
+        "active_s_at_selection": 348.37,
+        "selection_dropout_fraction": 0.0,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0147-filtered-c01",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "755edf5bd4cdcfd97a1c22475a6bf18b5f1bf480c63623f80bb474c7deb3ad19",
+      "input_sha256": "f472f439f7a835967e1620233629d8a0628b3895c474ba965aaf657c4a1591e8",
+      "resolved_config_sha256": "a67c6c7f748064228a1f802b46d887e86cb85c91cd78af4914138242825ce6bc",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:00:38-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0147",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 674,
+        "source_stop_index_100hz": 21512,
+        "source_start_row_200hz": 1348,
+        "source_stop_row_200hz": 43024,
+        "active_s_at_selection": 81.56,
+        "selection_dropout_fraction": 0.19997120644975525,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0147-filtered-c02",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "c8431e3dbb2b00b07380c79e5f4223cdc1f6091536f39c2e673d5b6de306a34c",
+      "input_sha256": "cde3f49538d35f1555978f323aca034b52f94d0a69db6119c4cfbd867de7f58a",
+      "resolved_config_sha256": "a67c6c7f748064228a1f802b46d887e86cb85c91cd78af4914138242825ce6bc",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:00:50-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0147",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 23132,
+        "source_stop_index_100hz": 61371,
+        "source_start_row_200hz": 46264,
+        "source_stop_row_200hz": 122742,
+        "active_s_at_selection": 319.6,
+        "selection_dropout_fraction": 0.1999790789508094,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0151-filtered-c01",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "0d752e7c5a1641e04a361452af1ab4a22b7ae6e458fe825f8a675f7046259577",
+      "input_sha256": "b5b68b549421eac49482287d73537cacdf6668a7dc6ceda925e0e7c660b5750f",
+      "resolved_config_sha256": "df36891b08393f87eb65aba01422a659db106320cdeb734dd6793951ce360b61",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:00:55-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0151",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 6573,
+        "source_stop_index_100hz": 16564,
+        "source_start_row_200hz": 13146,
+        "source_stop_row_200hz": 33128,
+        "active_s_at_selection": 86.59,
+        "selection_dropout_fraction": 0.19997998198378542,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0152-filtered-c01",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "0387b58a98f6ba0ac0100a96fbf913028f008dc2d006f2198f045bd4f6f67095",
+      "input_sha256": "2538e99f17564fa71b1c4e0bd0cab74e4f59ef7a5f5fde078c2e5acfd14b9a72",
+      "resolved_config_sha256": "d0542fe7e45cab804acc218d20a75f956be665abd45d5c2025d6a2b386f70cc3",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:01:00-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0152",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 0,
+        "source_stop_index_100hz": 16176,
+        "source_start_row_200hz": 0,
+        "source_stop_row_200hz": 32352,
+        "active_s_at_selection": 149.14,
+        "selection_dropout_fraction": 0.19998763600395647,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0152-filtered-c02",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "5867225a6085841e0622e8032d5ca999221712b75e7321d8d52f2de411f49e7c",
+      "input_sha256": "8c52592b8c9e104cd3d1f8bab29ff0acca172695a98f276dbc0c56cf5b6eaa02",
+      "resolved_config_sha256": "d0542fe7e45cab804acc218d20a75f956be665abd45d5c2025d6a2b386f70cc3",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:01:04-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0152",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 31185,
+        "source_stop_index_100hz": 41401,
+        "source_start_row_200hz": 62370,
+        "source_stop_row_200hz": 82801,
+        "active_s_at_selection": 92.55,
+        "selection_dropout_fraction": 0.1999804228660924,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0155-filtered-c01",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "99f2c625fc34651bcba7756421a4badf4a91fb9730f5bfce503efe8fb6f9bd2d",
+      "input_sha256": "1cee5cec29c073d8fd724e96b077f67f29bd9ffffdc0c03eda8c6dd1b6d65ee6",
+      "resolved_config_sha256": "cbb5ac12e1d030ec5ecb27fcb7fb29535b313a2719699224c36ed6c64da7817b",
+      "pipeline_code_sha256": "593865ded5a458265bd2b3e8b8cb524ecee3253965ac672513e948f410d42083",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-18T12:01:09-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer",
+        "slayer-filtered-alignment-v1"
+      ],
+      "sets": [
+        "slayer-filtered",
+        "front-default"
+      ],
+      "tags": [
+        "derived",
+        "paper",
+        "dropout-retained"
+      ],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "parent_log": "log-0155",
+        "derivation_manifest": "logs/slayer-filtered-manifest.json",
+        "source_start_index_100hz": 0,
+        "source_stop_index_100hz": 14580,
+        "source_start_row_200hz": 0,
+        "source_stop_row_200hz": 29160,
+        "active_s_at_selection": 133.28,
+        "selection_dropout_fraction": 0.061796982167352535,
+        "notes": "Contiguous derived log; maximal growth of the selected >=60-active-second seeds under the <20% raw core-sensor dropout criterion. No dropout samples were removed."
+      },
+      "git": {
+        "commit": "d899855ed1a63bbe7f2ef73727ca5c3962e65b62",
+        "dirty": true,
+        "status_short": [
+          "M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

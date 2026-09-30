@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-14T18:37:53-07:00",
+  "command": {
+    "logs": [
+      "log148_rear",
+      "log149_rear",
+      "log150_rear",
+      "log151_rear",
+      "log152_rear",
+      "log153_rear",
+      "log154_rear"
+    ],
+    "cache_root": "backend/run_artifacts",
+    "center_errors": true,
+    "error_threshold": null,
+    "sort_key": "solved_rmse",
+    "deep_dive": true
+  },
+  "report": {
+    "logs_summarized": 7,
+    "failures": 0,
+    "diagnostics_included": true
+  },
+  "python": "3.13.2",
+  "git": {
+    "commit": "5e6a234d886b370dcffd88672042284730499d94",
+    "branch": "rear",
+    "dirty": true,
+    "status_short": [
+      "M backend/pipeline_rear.py",
+      " M tools/stats_aggregator.py",
+      "?? backend/accel_zv.py",
+      "?? backend/rear_mag_chunk_experiments.py",
+      "?? notebooks/accel_correction.ipynb",
+      "?? notebooks/cal_nn.ipynb",
+      "?? notebooks/plot_sensors.ipynb",
+      "?? reports/",
+      "?? tools/analyze_rear_chunking_tradeoffs.py",
+      "?? tools/analyze_rear_slope_guided_methods.py",
+      "?? tools/analyze_rear_zv_accel_correction.py"
+    ]
+  },
+  "files": [
+    "report.txt",
+    "summary.csv",
+    "errors.csv",
+    "diagnostics_stage.csv",
+    "diagnostics_condition_rmse.csv",
+    "diagnostics_condition_occurrence.csv",
+    "diagnostics_solver_delta.csv",
+    "diagnostics_binned_summary.csv",
+    "diagnostics_binned_occurrence.csv",
+    "diagnostics_mag_adj_bins.csv",
+    "diagnostics_solved_bins.csv",
+    "pooled_correlations.csv",
+    "metrics.csv"
+  ]
+}

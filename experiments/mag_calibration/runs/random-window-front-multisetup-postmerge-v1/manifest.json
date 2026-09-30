@@ -1,0 +1,119 @@
+{
+  "activity_mask_note": "Active time and evaluation currently use boring_mask, which is derived from reference travel and is therefore experimental infrastructure rather than a production activity detector.",
+  "created_at": "2026-09-21T21:09:19+00:00",
+  "eligible_logs": [
+    "log-0078-valid",
+    "log-0080-valid",
+    "log-0081",
+    "log-0098",
+    "log-0099",
+    "log-0113",
+    "log-0115",
+    "log-0116",
+    "log-0122",
+    "log-0129",
+    "log-0145-filtered-c01",
+    "log-0147-filtered-c02",
+    "log-0151-filtered-c01",
+    "log-0152-filtered-c01",
+    "log-0155-filtered-c01"
+  ],
+  "excluded_logs": [],
+  "experiment": "random-window-front-multisetup-postmerge-v1",
+  "git": {
+    "commit": "85c88b83e2f76851489a9e7baf15d6094a48e541",
+    "dirty": true,
+    "status_short": [
+      "?? experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1/",
+      "?? experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1/",
+      "?? experiments/mag_calibration/specs/random_window_front_multisetup_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/random_window_front_stumpy_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/solver_window_front_stumpy_postmerge_v1.toml"
+    ]
+  },
+  "schedule_sha256": "f1c810eb650f211c30f8a794ce66c061ffb8c6c2b3f4266bedea14c388e4e7c3",
+  "schema_version": 1,
+  "spec": {
+    "analysis_units": {
+      "log-0145-filtered-c01": "log-0145",
+      "log-0147-filtered-c02": "log-0147",
+      "log-0151-filtered-c01": "log-0151",
+      "log-0152-filtered-c01": "log-0152",
+      "log-0155-filtered-c01": "log-0155"
+    },
+    "bootstrap_draws": 2000,
+    "durations_s": [
+      5,
+      10,
+      20,
+      40,
+      60
+    ],
+    "evaluation_scopes": [
+      "training_window",
+      "full_log",
+      "full_log_excluding_training"
+    ],
+    "logs": [
+      "log-0078-valid",
+      "log-0080-valid",
+      "log-0081",
+      "log-0098",
+      "log-0099",
+      "log-0113",
+      "log-0115",
+      "log-0116",
+      "log-0122",
+      "log-0129",
+      "log-0145-filtered-c01",
+      "log-0147-filtered-c02",
+      "log-0151-filtered-c01",
+      "log-0152-filtered-c01",
+      "log-0155-filtered-c01"
+    ],
+    "name": "random-window-front-multisetup-postmerge-v1",
+    "oracle_bins": 100,
+    "pipeline": "front",
+    "repeats": 4,
+    "sampling": "nested-center",
+    "schema_version": 1,
+    "seed": 20260904,
+    "setup_labels": {
+      "slayer_pod_v2": "Slayer / pod v2",
+      "tr11_2025_pod_v2": "TR11 2025 / pod v2 (Harry)",
+      "tr11_pod_v2": "TR11 / pod v2 (Jamaal)"
+    },
+    "setup_logs": {
+      "slayer_pod_v2": [
+        "log-0145-filtered-c01",
+        "log-0147-filtered-c02",
+        "log-0151-filtered-c01",
+        "log-0152-filtered-c01",
+        "log-0155-filtered-c01"
+      ],
+      "tr11_2025_pod_v2": [
+        "log-0113",
+        "log-0115",
+        "log-0116",
+        "log-0122",
+        "log-0129"
+      ],
+      "tr11_pod_v2": [
+        "log-0078-valid",
+        "log-0080-valid",
+        "log-0081",
+        "log-0098",
+        "log-0099"
+      ]
+    },
+    "time_basis": "active",
+    "trainers": [
+      "self-supervised",
+      "oracle-power"
+    ]
+  },
+  "spec_path": "experiments/mag_calibration/specs/random_window_front_multisetup_postmerge_v1.toml",
+  "spec_sha256": "7bbb758692fc9bff03aaf2d421762cbe6ed177659951b35cea1005a80dc1afad",
+  "trial_count": 600
+}

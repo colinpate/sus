@@ -1,0 +1,126 @@
+{
+  "schema_version": 3,
+  "id": "20260927T165149Z-table2-smoke-front",
+  "name": "table2-smoke-front",
+  "created_at": "2026-09-27T17:51:49+01:00",
+  "notes": "Smoke validation of baseline outputs and paired scoring; not final cohort.",
+  "tags": [],
+  "experiment_fingerprint": "58efdbc7f222f5d688e9736bb22ca98ad3202fa3e3e5905960aa85975c711b1e",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "49cb9051c202c004b336ab092a47bf64f4fcca26f6467ba3132fd56801af438c",
+    "explicit_logs": [
+      "log-0055"
+    ],
+    "set": null,
+    "where": {},
+    "usable_only": true,
+    "selected_logs": [
+      "log-0055"
+    ],
+    "required_comparisons": [
+      "travel/baseline/accel",
+      "travel/oracle/mag_power",
+      "travel/fusion1"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 1
+  },
+  "versions": {
+    "run_fingerprints": [
+      "99e4dc74b40847ddb5906925bffaa77c0bcad67b21d298604dfce69c277d2f63"
+    ],
+    "pipeline_code_sha256": [
+      "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661"
+    ],
+    "resolved_config_sha256": [
+      "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca"
+    ],
+    "input_sha256": [
+      "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba"
+    ],
+    "assets_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 1,
+    "included_logs": 1,
+    "excluded_logs": 0,
+    "metric_rows": 80,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log-0055",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "99e4dc74b40847ddb5906925bffaa77c0bcad67b21d298604dfce69c277d2f63",
+      "input_sha256": "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:49:52+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

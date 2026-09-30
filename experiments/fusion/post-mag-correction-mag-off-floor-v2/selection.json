@@ -1,0 +1,22 @@
+{
+  "held_out_values_evaluated_after_selection": [
+    0.1,
+    1000000.0
+  ],
+  "selected_mag_off_floor": 1000000.0,
+  "selected_off_gate_weight": 0.999999000001,
+  "selection_metric": "cohort-balanced low_travel_centered_rmse_mm",
+  "selection_split": "tuning",
+  "tuning_summary": {
+    "centered_rmse_mm": 5.6621831900647015,
+    "cohort": "cohort-balanced",
+    "corrected_mag_centered_rmse_mm": 5.653913963917565,
+    "low_travel_centered_rmse_mm": 7.320557332977944,
+    "mag_off_floor": 1000000.0,
+    "n_logs": 31,
+    "runtime_s": 3.0961585072017694,
+    "split": "tuning",
+    "success_fraction": 1.0,
+    "uncentered_rmse_mm": 12.654827684691886
+  }
+}

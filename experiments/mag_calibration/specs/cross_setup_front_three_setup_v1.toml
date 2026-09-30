@@ -1,0 +1,55 @@
+schema_version = 1
+experiment_type = "cross_log"
+name = "cross-setup-front-three-setup-v1"
+pipeline = "front"
+time_basis = "active"
+training_window = "full_log"
+evaluation_window = "full_log"
+include_diagonal = true
+trainers = ["self-supervised", "oracle-power", "oracle-binned-median"]
+oracle_bins = 100
+
+# The complete 24-by-24 matrix retains each target log's diagonal baseline and
+# the within-setup off-diagonal controls in the same frozen experiment.
+logs = [
+  # Stumpjumper, front pod v1
+  "log103",
+  "log104",
+  "log106",
+  "log107",
+  "log109",
+  "log110",
+  "log112",
+
+  # Stumpjumper, front pod v2
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+
+  # Transition TR11, front pod v2
+  "log-0078-valid",
+  "log-0079",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+]
+
+# Consumed by the cross-setup analysis; ignored by the generic transfer runner.
+[setup_logs]
+stumpjumper_pod_v1 = ["log103", "log104", "log106", "log107", "log109", "log110", "log112"]
+stumpjumper_pod_v2 = ["log-0046", "log-0048", "log-0049", "log-0054", "log-0055", "log-0056", "log-0058", "log-0063", "log-0071_183", "log-0072_184", "log-0073_185"]
+tr11_pod_v2 = ["log-0078-valid", "log-0079", "log-0080-valid", "log-0081", "log-0098", "log-0099"]
+
+[setup_labels]
+stumpjumper_pod_v1 = "Stumpjumper / pod v1"
+stumpjumper_pod_v2 = "Stumpjumper / pod v2"
+tr11_pod_v2 = "TR11 / pod v2"

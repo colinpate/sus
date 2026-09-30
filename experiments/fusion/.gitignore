@@ -1,0 +1,3 @@
+# Fusion experiment tables and frozen selections are part of the experiment record.
+!**/*.csv
+!**/*.json

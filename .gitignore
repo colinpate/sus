@@ -221,10 +221,9 @@ __marimo__/
 !config/linkages/
 !config/linkages/*.json
 
-# Versioned stats experiments are the durable, reviewable results catalog.
-# !experiments/
-experiments/stats/
-# !experiments/stats/**
+# Versioned experiment records and curated reports are source artifacts.
+# Their local .gitignore files re-include compact CSV/JSON evidence while
+# excluding generated caches and unselected report output.
 
 # Imported source data and deterministic conversions stay local/backed up separately.
 logs/raw/

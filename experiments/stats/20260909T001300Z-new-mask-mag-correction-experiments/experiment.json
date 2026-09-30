@@ -1,0 +1,1755 @@
+{
+  "schema_version": 2,
+  "id": "20260909T001300Z-new-mask-mag-correction-experiments",
+  "name": "new_mask_mag_correction_experiments",
+  "created_at": "2026-09-08T17:13:00-07:00",
+  "notes": "",
+  "tags": [],
+  "experiment_fingerprint": "3fb310c7e7b66dbf4686a2a0b09e3cc1b8ef385215dfe42f70307cfcc31d2380",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "012381b4568d6a934a376fdb5bfd12d26848d87ebe75413b8a627a99cfbaedc7",
+    "explicit_logs": [],
+    "set": "front-default",
+    "where": {},
+    "usable_only": true,
+    "selected_logs": [
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185",
+      "log-0078-valid",
+      "log-0079",
+      "log-0080-valid",
+      "log-0081",
+      "log103",
+      "log104",
+      "log106",
+      "log107",
+      "log109",
+      "log110",
+      "log112",
+      "log-0098",
+      "log-0099",
+      "log-0113",
+      "log-0115",
+      "log-0116",
+      "log-0117",
+      "log-0118",
+      "log-0119",
+      "log-0120",
+      "log-0122",
+      "log-0125",
+      "log-0126",
+      "log-0127",
+      "log-0129",
+      "log-0132",
+      "log-0133"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 1
+  },
+  "versions": {
+    "run_fingerprints": [
+      "055a1dd9b786f59102111ef8372d5e57cc8db4e5ceb896327a468aafbf36f8a9",
+      "1fcffd7ce7e2b866ebd87fd4ce33473b2221def720dfc8974cbe2fc7740c1dc9",
+      "236249ca607a2bdfcd04a6f95a5aa4cce25172b28921150105dad275a8f117e5",
+      "2646fe48f2d57b053abe43ced09c8f9a9e8376d7e6aa028728fcab8682932ecd",
+      "26cc7d59b0c79a6c71c614c46f9793dd08cf7c8638764372bc842bed95241d28",
+      "2a50b660c8f88d804f7236b9bdcb791559fe6f1190312614c0e76b4e5480ba11",
+      "2d26460e2a6fe2a5c192d93a6d4aebb28667b3c258df5308891be11ba93f5cec",
+      "2e28442a6558835a3eaf54af99355f592e31d4f8915612fe6894dfa8d1c6bf7d",
+      "2f20404b33e58d6e3b15e41c4b2ab7e58c91f3a7da5a7dfdadc9c869743c5784",
+      "3a63295556e695414947f2b38364c0f72064c2ef6a92e51462e97955eb00eb69",
+      "3b2b852a0ae12dec7b75b14122d510f55d527b0a594a1c7cf5a4560a9fbd4f4e",
+      "3d03374c81f14ebf97fbeac5feb798e737d0ad8288b7c5aaddd48ed9b4631a8f",
+      "4d0bc7a4e5b7079b7160e2e0d786cb873fde00f544fa99ab3c5c07c4ed91df1e",
+      "4fddd278e6720053f710fd890e5612ab693addc01fcc6293b22284f335ddc375",
+      "5a16f603a73f5ca460d5576058726faf208626c8aecaa1b412a34b60af448a08",
+      "5afedad3ba8ef29b6f7fdd8a87d1f3749189476a818bafed5501b820858aaf08",
+      "6166605d57d5be146fe790df19c5b8ec8a34180c5b272d180116d8230137f228",
+      "65ef41f0eece81f364af369922feb66e5e014b41639940fb0aff7037b336aafc",
+      "6c838e1ecd9ca551c6535607b236fdb1249b45c2ba4f0587113669309bdd707d",
+      "6e50a767ae0a0ae219399fcaa960187466e59ef4e93e8e8369845f62edb05cbd",
+      "6f8ba05e420319b57a9d5351a7ccb59643518f18a8c3dc0f2a0062e13b1f9275",
+      "743989b012d006b18b41c8fc02c8b4ef454a13e6e11df12fa0403f605fd53af0",
+      "7a496abc522cc3de378b57fb5edb3a63b55b618b6ba73772fdad72099ff509cf",
+      "92cd671940dbf754664b00f3e183f5a5dec0d9ae9d7230a945a468cc0c38ea66",
+      "956823f90783ee6edf3884d4e3395b9fd9e1dbc93161f20d47c4f8cb37b04329",
+      "a70b78c0190c970ec5d455cb4cd09100fd36e277e88a6d2785f2ac0c0dd251d2",
+      "a763a83e491ad75801b5864fead204720f1f73c8b6212c0ed39808c8c77143d8",
+      "b26f8ba658c561ae73175c13eba535bcb0f1020098c7ee7648be6ab1c3ff72f5",
+      "cb18733f1739b971dc6e5265a5fc2e85bd69e794f2f4559ea9fbf253cbf7b554",
+      "cb47f7f7ce843bd9d3a93115f64d9cb6ba16092a889b55c725d39149ed5782f1",
+      "ce5c8b60447167156d2e0e39008bb7bf12f894ac7a44a315789f3d119a4ec685",
+      "d578bfd1e3a0db31159f18bdfdde4ab7d52e1023ece114f22c4791f46fc40c14",
+      "e3f5faf765ec678cce6e130cb2898e5f91a702f637972c85439daa016624ceb7",
+      "e60f95d45d3a60fe0867875440298bc879d4253289326674c1d1c6ff25b7bb0b",
+      "e744093c3efc25ffa43a9ff18614487aa07fa9c02dda52867b7c76466ec20b34",
+      "eec5a4f5e0419c5604c687a042feb6e88c915f60779825193d193e84db629620",
+      "f0ab76db54ef4c9b1ee914ac4aed05186144991c4703273205b119d6d32b10cb",
+      "f4e10990eae45700c2d574d71378db17f12731ce20d2b5ed3ad7c5fb70d3aa05"
+    ],
+    "pipeline_code_sha256": [
+      "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62"
+    ],
+    "resolved_config_sha256": [
+      "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef"
+    ],
+    "input_sha256": [
+      "01744f7ff89213445e131d98a7607c2e863f70b0f5858def1984e80dcdb88384",
+      "1acee7988f92dcd77fc653f8223d703c186307ca79fa87e5c064c1888697a619",
+      "1f5b62fcbbdeb4e1c6f24d28f406a24be8e15d83a4e14909ecf5708ab75bc220",
+      "2598724b6678ed6e68a5e3617bcd242d64f2241396abd6e74eadd11d4e71fef5",
+      "2ae9539fbed86ab955490a14303a588098c629df3530417ec9a0644ffda8ccd1",
+      "2dfca84ee2309b44669abd1152d0a609a008b924ea2fce5cdcc09af21bdebfd5",
+      "393d64274166f8c6412a3459fe9beadf49408e0575fd1472566c9a980dbd6392",
+      "3dec5726b38a0c68f622c68ddc6ae46e4edec182fddc28bb81376cedfc97b80c",
+      "4303a956ccdbf754ff728be72a1dca9fb094d8ae5e4ccfe45bab556355163d8c",
+      "44da94c0682902e9b387e2ae68545fd125fbb8002dd62b99423b98819fc41a10",
+      "566c4faaf181d3aafd0c5220a1fa5d1e2168dc6f524fa009d6be57125376deb7",
+      "58017d7bb60fc1cdbea39dae25cd81a38ef5a9f146dd2cf90605ae2fb43be798",
+      "5bf1e7f9e3f07fdacc6269d8b5673ef08a37f112621b5dc3192113d2dccc32aa",
+      "61c9b28bacb698411807e54b3f91e0bb5835ea5ed9caeb4b614bdd587d453d1f",
+      "6ac404167b4545fc74d84ae08d943955751669ca11be00669c996ea6e930a26a",
+      "6c4b4519db07777348cc88a311089a4779bb677f9ecdae9907210d20b573fef6",
+      "6e3034d180fdb0cdf8f2c0c8bb256724e09678d55554b2eded968437d12d4a76",
+      "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96",
+      "780bde9aec2a37c0132f6a6f1ab860ed8548a3abd72e2d6fc0f9bd82cde6abdd",
+      "7c610b8ee41e02ca3f942169e420e0209b8ef1218714ab3d5832c917cbd0aa4a",
+      "7e5a028bcb2d2dfc1299531dd44a7f8370b09d1b09731f72216c3583e7e55831",
+      "88791ba326078cef19bbb9e4e4ed345b8bae8b65a06137ca5384863d5f470d70",
+      "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be",
+      "930b698dd33a7759daf4379c862f1bc4a15312ac35d815e10aa3ae8d9ca524bf",
+      "93bd05266f6ac4dcbd38e8197543a9be4c847125821c4a58afdf760065e1f50c",
+      "b15a2ee5dc7b6790c44db74906e4a1acf77ac0374016b1922fd18e0695e10aff",
+      "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba",
+      "c58345821a2a824ee5580a45e792b9a30752928937cd253d655f12007ed674b7",
+      "d5a9a1a5d6996d4f39db46f81882cfa99a9d431f9219ab2cc525d6fb4ef9769d",
+      "d77e4c9ce5238b5c1f237dcaccfb6149147b512a6789654cc5b9880e19846832",
+      "da391d6594994143ecb9669221a4525b1d00e223457326976e74efa06b0d97be",
+      "e3ec7bf098ef755b357c7a0c05e586fa39b4fcc15dfbd9460ad75c2e7c959222",
+      "e5bdc615a637d9b03d286b66c317a9f5d2dc3a9eea44ecb841ac90d66a5363e6",
+      "ee5117e13822040476857bb0871abd79fd4a7009ad89bee0760b2548570c011c",
+      "f4c2aa28716003ee56ff419bf7e81c7c5b2b8124d5fbe64ef67e031de99e4c0a",
+      "f8fc3314bda6ede5f05c6398f28d3f8b7786408a8cac5fb6985e83f1748cf648",
+      "fc7202827c2f95830dc1174bf51bce98d7a5209e0505fde8f40158051cfa5ee3",
+      "fee02f09db5048cd83c848849c0a97e2405ac4c39d83f074944d1bcc0a638688"
+    ],
+    "assets_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "abffb259ff8a7cfb994a97a988e0679cd3cade77"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 38,
+    "included_logs": 38,
+    "excluded_logs": 0,
+    "metric_rows": 2660,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log-0046",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "cb47f7f7ce843bd9d3a93115f64d9cb6ba16092a889b55c725d39149ed5782f1",
+      "input_sha256": "6ac404167b4545fc74d84ae08d943955751669ca11be00669c996ea6e930a26a",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:02:34-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0048",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "6166605d57d5be146fe790df19c5b8ec8a34180c5b272d180116d8230137f228",
+      "input_sha256": "1f5b62fcbbdeb4e1c6f24d28f406a24be8e15d83a4e14909ecf5708ab75bc220",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:03:16-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0049",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "ce5c8b60447167156d2e0e39008bb7bf12f894ac7a44a315789f3d119a4ec685",
+      "input_sha256": "6c4b4519db07777348cc88a311089a4779bb677f9ecdae9907210d20b573fef6",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:03:31-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0054",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "b26f8ba658c561ae73175c13eba535bcb0f1020098c7ee7648be6ab1c3ff72f5",
+      "input_sha256": "c58345821a2a824ee5580a45e792b9a30752928937cd253d655f12007ed674b7",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:04:16-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0055",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "055a1dd9b786f59102111ef8372d5e57cc8db4e5ceb896327a468aafbf36f8a9",
+      "input_sha256": "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:04:33-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0056",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "cb18733f1739b971dc6e5265a5fc2e85bd69e794f2f4559ea9fbf253cbf7b554",
+      "input_sha256": "fee02f09db5048cd83c848849c0a97e2405ac4c39d83f074944d1bcc0a638688",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:04:57-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0058",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "6f8ba05e420319b57a9d5351a7ccb59643518f18a8c3dc0f2a0062e13b1f9275",
+      "input_sha256": "e5bdc615a637d9b03d286b66c317a9f5d2dc3a9eea44ecb841ac90d66a5363e6",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:05:14-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0063",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "4d0bc7a4e5b7079b7160e2e0d786cb873fde00f544fa99ab3c5c07c4ed91df1e",
+      "input_sha256": "566c4faaf181d3aafd0c5220a1fa5d1e2168dc6f524fa009d6be57125376deb7",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:05:25-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0071_183",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "5afedad3ba8ef29b6f7fdd8a87d1f3749189476a818bafed5501b820858aaf08",
+      "input_sha256": "b15a2ee5dc7b6790c44db74906e4a1acf77ac0374016b1922fd18e0695e10aff",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:05:46-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160,
+        "trail": "Ccdh part 1"
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0072_184",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "e744093c3efc25ffa43a9ff18614487aa07fa9c02dda52867b7c76466ec20b34",
+      "input_sha256": "f8fc3314bda6ede5f05c6398f28d3f8b7786408a8cac5fb6985e83f1748cf648",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:06:09-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160,
+        "trail": "Ccdh part 2"
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0073_185",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2646fe48f2d57b053abe43ced09c8f9a9e8376d7e6aa028728fcab8682932ecd",
+      "input_sha256": "7e5a028bcb2d2dfc1299531dd44a7f8370b09d1b09731f72216c3583e7e55831",
+      "resolved_config_sha256": "53d87a990e87275c87ac1e2263b987a97a61de15ab827e88f33e7e8b23a9dc3f",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:06:25-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160,
+        "trail": "Poppin tops"
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0078-valid",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "6c838e1ecd9ca551c6535607b236fdb1249b45c2ba4f0587113669309bdd707d",
+      "input_sha256": "5bf1e7f9e3f07fdacc6269d8b5673ef08a37f112621b5dc3192113d2dccc32aa",
+      "resolved_config_sha256": "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:06:34-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0079",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "743989b012d006b18b41c8fc02c8b4ef454a13e6e11df12fa0403f605fd53af0",
+      "input_sha256": "ee5117e13822040476857bb0871abd79fd4a7009ad89bee0760b2548570c011c",
+      "resolved_config_sha256": "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:06:53-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0080-valid",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "65ef41f0eece81f364af369922feb66e5e014b41639940fb0aff7037b336aafc",
+      "input_sha256": "93bd05266f6ac4dcbd38e8197543a9be4c847125821c4a58afdf760065e1f50c",
+      "resolved_config_sha256": "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:07:15-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0081",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "4fddd278e6720053f710fd890e5612ab693addc01fcc6293b22284f335ddc375",
+      "input_sha256": "58017d7bb60fc1cdbea39dae25cd81a38ef5a9f146dd2cf90605ae2fb43be798",
+      "resolved_config_sha256": "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:08:00-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log103",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "eec5a4f5e0419c5604c687a042feb6e88c915f60779825193d193e84db629620",
+      "input_sha256": "d5a9a1a5d6996d4f39db46f81882cfa99a9d431f9219ab2cc525d6fb4ef9769d",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:08:26-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log104",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "26cc7d59b0c79a6c71c614c46f9793dd08cf7c8638764372bc842bed95241d28",
+      "input_sha256": "44da94c0682902e9b387e2ae68545fd125fbb8002dd62b99423b98819fc41a10",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:08:50-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log106",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "1fcffd7ce7e2b866ebd87fd4ce33473b2221def720dfc8974cbe2fc7740c1dc9",
+      "input_sha256": "930b698dd33a7759daf4379c862f1bc4a15312ac35d815e10aa3ae8d9ca524bf",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:08:58-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log107",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "5a16f603a73f5ca460d5576058726faf208626c8aecaa1b412a34b60af448a08",
+      "input_sha256": "fc7202827c2f95830dc1174bf51bce98d7a5209e0505fde8f40158051cfa5ee3",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:09:08-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log109",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2e28442a6558835a3eaf54af99355f592e31d4f8915612fe6894dfa8d1c6bf7d",
+      "input_sha256": "6e3034d180fdb0cdf8f2c0c8bb256724e09678d55554b2eded968437d12d4a76",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:09:17-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log110",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "e60f95d45d3a60fe0867875440298bc879d4253289326674c1d1c6ff25b7bb0b",
+      "input_sha256": "e3ec7bf098ef755b357c7a0c05e586fa39b4fcc15dfbd9460ad75c2e7c959222",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:09:26-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log112",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2d26460e2a6fe2a5c192d93a6d4aebb28667b3c258df5308891be11ba93f5cec",
+      "input_sha256": "61c9b28bacb698411807e54b3f91e0bb5835ea5ed9caeb4b614bdd587d453d1f",
+      "resolved_config_sha256": "541aa5d7479b47e57d7ed08c81a501e70934071ca0a8301e07211615ce9dbfd7",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:09:46-07:00",
+      "profiles": [
+        "front-pod-v1",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v1"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v1"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0098",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2f20404b33e58d6e3b15e41c4b2ab7e58c91f3a7da5a7dfdadc9c869743c5784",
+      "input_sha256": "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be",
+      "resolved_config_sha256": "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:09:59-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0099",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "e3f5faf765ec678cce6e130cb2898e5f91a702f637972c85439daa016624ceb7",
+      "input_sha256": "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96",
+      "resolved_config_sha256": "715a5ac0687b605ad89e5059919cec515a864d00c36895a12279afb019e6791d",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:10:26-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0113",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "6e50a767ae0a0ae219399fcaa960187466e59ef4e93e8e8369845f62edb05cbd",
+      "input_sha256": "88791ba326078cef19bbb9e4e4ed345b8bae8b65a06137ca5384863d5f470d70",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:10:39-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0115",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "956823f90783ee6edf3884d4e3395b9fd9e1dbc93161f20d47c4f8cb37b04329",
+      "input_sha256": "d77e4c9ce5238b5c1f237dcaccfb6149147b512a6789654cc5b9880e19846832",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:10:45-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0116",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "f4e10990eae45700c2d574d71378db17f12731ce20d2b5ed3ad7c5fb70d3aa05",
+      "input_sha256": "3dec5726b38a0c68f622c68ddc6ae46e4edec182fddc28bb81376cedfc97b80c",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:10:55-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0117",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "3a63295556e695414947f2b38364c0f72064c2ef6a92e51462e97955eb00eb69",
+      "input_sha256": "f4c2aa28716003ee56ff419bf7e81c7c5b2b8124d5fbe64ef67e031de99e4c0a",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:01-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0118",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "f0ab76db54ef4c9b1ee914ac4aed05186144991c4703273205b119d6d32b10cb",
+      "input_sha256": "780bde9aec2a37c0132f6a6f1ab860ed8548a3abd72e2d6fc0f9bd82cde6abdd",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:09-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0119",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "3d03374c81f14ebf97fbeac5feb798e737d0ad8288b7c5aaddd48ed9b4631a8f",
+      "input_sha256": "da391d6594994143ecb9669221a4525b1d00e223457326976e74efa06b0d97be",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:16-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0120",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "d578bfd1e3a0db31159f18bdfdde4ab7d52e1023ece114f22c4791f46fc40c14",
+      "input_sha256": "1acee7988f92dcd77fc653f8223d703c186307ca79fa87e5c064c1888697a619",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:20-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0122",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "7a496abc522cc3de378b57fb5edb3a63b55b618b6ba73772fdad72099ff509cf",
+      "input_sha256": "4303a956ccdbf754ff728be72a1dca9fb094d8ae5e4ccfe45bab556355163d8c",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:38-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0125",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2a50b660c8f88d804f7236b9bdcb791559fe6f1190312614c0e76b4e5480ba11",
+      "input_sha256": "2dfca84ee2309b44669abd1152d0a609a008b924ea2fce5cdcc09af21bdebfd5",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:49-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0126",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "a70b78c0190c970ec5d455cb4cd09100fd36e277e88a6d2785f2ac0c0dd251d2",
+      "input_sha256": "393d64274166f8c6412a3459fe9beadf49408e0575fd1472566c9a980dbd6392",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:11:56-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0127",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "236249ca607a2bdfcd04a6f95a5aa4cce25172b28921150105dad275a8f117e5",
+      "input_sha256": "7c610b8ee41e02ca3f942169e420e0209b8ef1218714ab3d5832c917cbd0aa4a",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:12:04-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0129",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "a763a83e491ad75801b5864fead204720f1f73c8b6212c0ed39808c8c77143d8",
+      "input_sha256": "01744f7ff89213445e131d98a7607c2e863f70b0f5858def1984e80dcdb88384",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:12:35-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0132",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "3b2b852a0ae12dec7b75b14122d510f55d527b0a594a1c7cf5a4560a9fbd4f4e",
+      "input_sha256": "2ae9539fbed86ab955490a14303a588098c629df3530417ec9a0644ffda8ccd1",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:12:50-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0133",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "92cd671940dbf754664b00f3e183f5a5dec0d9ae9d7230a945a468cc0c38ea66",
+      "input_sha256": "2598724b6678ed6e68a5e3617bcd242d64f2241396abd6e74eadd11d4e71fef5",
+      "resolved_config_sha256": "f235fc3c2f6fdc022ebfcd25c09883984ec69bcc1b87058b1277f54e3a7c66ef",
+      "pipeline_code_sha256": "f340cd190dbc5b945af988c22764b0c9ff8d2f548990ac43774f25c913afdd62",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-08T17:12:55-07:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11-2025",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer-harry"
+      ],
+      "sets": [
+        "front-default",
+        "harry",
+        "tr11-2025-harry"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11 2025",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "abffb259ff8a7cfb994a97a988e0679cd3cade77",
+        "dirty": true,
+        "status_short": [
+          "?? backend/tests/test_angle.py",
+          "?? backend/tests/test_logs_cli.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

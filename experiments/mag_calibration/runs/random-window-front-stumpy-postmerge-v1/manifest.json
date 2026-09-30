@@ -1,0 +1,95 @@
+{
+  "activity_mask_note": "Active time and evaluation currently use boring_mask, which is derived from reference travel and is therefore experimental infrastructure rather than a production activity detector.",
+  "created_at": "2026-09-21T21:09:19+00:00",
+  "eligible_logs": [
+    "log-0046",
+    "log-0048",
+    "log-0049",
+    "log-0054",
+    "log-0055",
+    "log-0056",
+    "log-0058",
+    "log-0063",
+    "log-0071_183",
+    "log-0072_184",
+    "log-0073_185"
+  ],
+  "excluded_logs": [],
+  "experiment": "random-window-front-stumpy-postmerge-v1",
+  "git": {
+    "commit": "85c88b83e2f76851489a9e7baf15d6094a48e541",
+    "dirty": true,
+    "status_short": [
+      "?? experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1/",
+      "?? experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1/",
+      "?? experiments/mag_calibration/specs/random_window_front_multisetup_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/random_window_front_stumpy_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml",
+      "?? experiments/mag_calibration/specs/solver_window_front_stumpy_postmerge_v1.toml"
+    ]
+  },
+  "schedule_sha256": "61dfb91d69869f9496af9bcd2521e7bcadbd772452a78fa8a098f35c9201b361",
+  "schema_version": 1,
+  "spec": {
+    "bootstrap_draws": 2000,
+    "durations_s": [
+      5,
+      10,
+      20,
+      40,
+      60,
+      120
+    ],
+    "evaluation_scopes": [
+      "training_window",
+      "full_log",
+      "full_log_excluding_training"
+    ],
+    "logs": [
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185"
+    ],
+    "name": "random-window-front-stumpy-postmerge-v1",
+    "oracle_bins": 100,
+    "pipeline": "front",
+    "repeats": 4,
+    "sampling": "nested-center",
+    "schema_version": 1,
+    "seed": 20260904,
+    "setup_labels": {
+      "stumpjumper_pod_v2": "Stumpjumper / pod v2"
+    },
+    "setup_logs": {
+      "stumpjumper_pod_v2": [
+        "log-0046",
+        "log-0048",
+        "log-0049",
+        "log-0054",
+        "log-0055",
+        "log-0056",
+        "log-0058",
+        "log-0063",
+        "log-0071_183",
+        "log-0072_184",
+        "log-0073_185"
+      ]
+    },
+    "time_basis": "active",
+    "trainers": [
+      "self-supervised",
+      "oracle-power"
+    ]
+  },
+  "spec_path": "experiments/mag_calibration/specs/random_window_front_stumpy_postmerge_v1.toml",
+  "spec_sha256": "53d57e7f6414ae724dbdd6d1339a877a504dca882cac1658948704bda8806dfc",
+  "trial_count": 528
+}

@@ -1,0 +1,556 @@
+{
+  "schema_version": 3,
+  "id": "20260928T075256Z-method-comparison-stumpy",
+  "name": "method-comparison-stumpy",
+  "created_at": "2026-09-28T08:52:56+01:00",
+  "notes": "",
+  "tags": [],
+  "experiment_fingerprint": "208896d2071226f6ed1860840e8d59178da3bcee5d3da2165544eec6dedb0c33",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "49cb9051c202c004b336ab092a47bf64f4fcca26f6467ba3132fd56801af438c",
+    "explicit_logs": [],
+    "set": "stumpjumper-front-pod-v2",
+    "where": {},
+    "usable_only": true,
+    "selected_logs": [
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 2,
+    "comparison_keys": [
+      "travel/mag_model",
+      "travel/solved",
+      "travel/baseline/accel",
+      "travel/oracle/mag_power",
+      "travel/fusion1"
+    ],
+    "sample_support": "common finite comparison support when IMU baseline is present; otherwise per-method",
+    "stats_engine_sha256": "f085da5e06528afa1a01b0e7947025fa3cb9eeb7ed7f18c29fc71b3a558147ef"
+  },
+  "versions": {
+    "run_fingerprints": [
+      "071b7a11ec586103c42e4667869bae6c0a1ada58c9e8681cf3d49b5701b87a98",
+      "17475a3be6c276ee6d77fc2338c9bb033079d1ca9a308e8d151653c992ec7c9d",
+      "5199002adef29d6d450f75f50e17be1964f0dfcfc000139a4592bcb0e0bec890",
+      "537a10bb7283a5fa6e40aa9db00baeb570d1f36703fea0a6575a450721e2e224",
+      "64cc467ddf5e7d02c838c2dd7147774b1ca1397b670dcd36adc4e6420682bc87",
+      "6d94d7319b0a32aa29bfb4c2719fce9670c408574ac1e5cb349b8053d40bdc0f",
+      "73c7617e1143e3b47f590f9995953c0593e38973a3a02cda5fe8e563c2dd0800",
+      "8040922811c24ce7b332388f4f4cf0b009f784b1bcac878d7cbe944ca52c0caa",
+      "9fb25f52a6d2432fb8d9d024fe9ad02e3f3a3db3097e2ebd2135c1e2d3ef3218",
+      "df414544e1c0ee674dcd879f5ac013e08c4737f100511e5491c2db0559810cad",
+      "e99195ce826c8df786bbd31d5b2247002373e8ca71c6f7a3d36ebe901f6a2cb5"
+    ],
+    "pipeline_code_sha256": [
+      "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c"
+    ],
+    "resolved_config_sha256": [
+      "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca"
+    ],
+    "input_sha256": [
+      "1f5b62fcbbdeb4e1c6f24d28f406a24be8e15d83a4e14909ecf5708ab75bc220",
+      "566c4faaf181d3aafd0c5220a1fa5d1e2168dc6f524fa009d6be57125376deb7",
+      "6ac404167b4545fc74d84ae08d943955751669ca11be00669c996ea6e930a26a",
+      "6c4b4519db07777348cc88a311089a4779bb677f9ecdae9907210d20b573fef6",
+      "7e5a028bcb2d2dfc1299531dd44a7f8370b09d1b09731f72216c3583e7e55831",
+      "b15a2ee5dc7b6790c44db74906e4a1acf77ac0374016b1922fd18e0695e10aff",
+      "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba",
+      "c58345821a2a824ee5580a45e792b9a30752928937cd253d655f12007ed674b7",
+      "e5bdc615a637d9b03d286b66c317a9f5d2dc3a9eea44ecb841ac90d66a5363e6",
+      "f8fc3314bda6ede5f05c6398f28d3f8b7786408a8cac5fb6985e83f1748cf648",
+      "fee02f09db5048cd83c848849c0a97e2405ac4c39d83f074944d1bcc0a638688"
+    ],
+    "assets_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "d99bd0e7e352ee9597b2612257d62b9384c6e4ed"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 11,
+    "included_logs": 11,
+    "excluded_logs": 0,
+    "metric_rows": 880,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log-0046",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "73c7617e1143e3b47f590f9995953c0593e38973a3a02cda5fe8e563c2dd0800",
+      "input_sha256": "6ac404167b4545fc74d84ae08d943955751669ca11be00669c996ea6e930a26a",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T21:59:01+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0048",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "537a10bb7283a5fa6e40aa9db00baeb570d1f36703fea0a6575a450721e2e224",
+      "input_sha256": "1f5b62fcbbdeb4e1c6f24d28f406a24be8e15d83a4e14909ecf5708ab75bc220",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T21:59:38+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0049",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "8040922811c24ce7b332388f4f4cf0b009f784b1bcac878d7cbe944ca52c0caa",
+      "input_sha256": "6c4b4519db07777348cc88a311089a4779bb677f9ecdae9907210d20b573fef6",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T21:59:52+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0054",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "071b7a11ec586103c42e4667869bae6c0a1ada58c9e8681cf3d49b5701b87a98",
+      "input_sha256": "c58345821a2a824ee5580a45e792b9a30752928937cd253d655f12007ed674b7",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:00:30+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0055",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "e99195ce826c8df786bbd31d5b2247002373e8ca71c6f7a3d36ebe901f6a2cb5",
+      "input_sha256": "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:00:45+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0056",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "64cc467ddf5e7d02c838c2dd7147774b1ca1397b670dcd36adc4e6420682bc87",
+      "input_sha256": "fee02f09db5048cd83c848849c0a97e2405ac4c39d83f074944d1bcc0a638688",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:01:06+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0058",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "5199002adef29d6d450f75f50e17be1964f0dfcfc000139a4592bcb0e0bec890",
+      "input_sha256": "e5bdc615a637d9b03d286b66c317a9f5d2dc3a9eea44ecb841ac90d66a5363e6",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:01:21+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0063",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "6d94d7319b0a32aa29bfb4c2719fce9670c408574ac1e5cb349b8053d40bdc0f",
+      "input_sha256": "566c4faaf181d3aafd0c5220a1fa5d1e2168dc6f524fa009d6be57125376deb7",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:01:34+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0071_183",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "df414544e1c0ee674dcd879f5ac013e08c4737f100511e5491c2db0559810cad",
+      "input_sha256": "b15a2ee5dc7b6790c44db74906e4a1acf77ac0374016b1922fd18e0695e10aff",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:01:54+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160,
+        "trail": "Ccdh part 1"
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0072_184",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "17475a3be6c276ee6d77fc2338c9bb033079d1ca9a308e8d151653c992ec7c9d",
+      "input_sha256": "f8fc3314bda6ede5f05c6398f28d3f8b7786408a8cac5fb6985e83f1748cf648",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:02:15+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160,
+        "trail": "Ccdh part 2"
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0073_185",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "9fb25f52a6d2432fb8d9d024fe9ad02e3f3a3db3097e2ebd2135c1e2d3ef3218",
+      "input_sha256": "7e5a028bcb2d2dfc1299531dd44a7f8370b09d1b09731f72216c3583e7e55831",
+      "resolved_config_sha256": "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+      "pipeline_code_sha256": "023277aafea52cc836bc06ca984a4728b171fb13277cda8b0495ca65026b726c",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T22:02:30+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-stumpjumper",
+        "fork-fox36-160",
+        "front-angle-stumpjumper-v2"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "stumpjumper-front-pod-v2"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "fork_model": "Fox 36",
+        "front_travel_mm": 160,
+        "trail": "Poppin tops"
+      },
+      "git": {
+        "commit": "d99bd0e7e352ee9597b2612257d62b9384c6e4ed",
+        "dirty": true,
+        "status_short": [
+          "M backend/evaluation_baselines.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

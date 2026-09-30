@@ -1,0 +1,73 @@
+setup,method,label,metric,entries,independent_recordings,median_mm,q25_mm,q75_mm
+Stumpjumper / pod v2,travel/baseline/accel,IMU integration,centered_rmse,11,11,17.684268589914335,15.71333851700408,20.428345200737223
+Stumpjumper / pod v2,travel/baseline/accel,IMU integration,uncentered_mae,11,11,46.37812785991706,45.62454824390813,49.44254244049085
+Stumpjumper / pod v2,travel/baseline/accel,IMU integration,centered_bin_rmse,11,11,26.10997978199157,22.654732386833523,28.087731741488156
+Stumpjumper / pod v2,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_rmse,11,11,3.0460939897619816,2.585452673648631,3.5273437461901063
+Stumpjumper / pod v2,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),uncentered_mae,11,11,2.280421962580548,1.7328262355032353,2.45976080399983
+Stumpjumper / pod v2,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_bin_rmse,11,11,3.4517494322962516,2.7902770777189785,4.34534607600533
+Stumpjumper / pod v2,travel/mag_model,Self-supervised magnetic estimate,centered_rmse,11,11,4.091365123077055,3.7363340432455026,4.587044672627311
+Stumpjumper / pod v2,travel/mag_model,Self-supervised magnetic estimate,uncentered_mae,11,11,5.644391180934214,4.241595014604123,17.057397513917994
+Stumpjumper / pod v2,travel/mag_model,Self-supervised magnetic estimate,centered_bin_rmse,11,11,4.430869036148745,4.269955093984274,4.9045872977233795
+Stumpjumper / pod v2,travel/fusion1,First fusion,centered_rmse,11,11,3.774224264103808,2.9961499381749785,4.335949193054589
+Stumpjumper / pod v2,travel/fusion1,First fusion,uncentered_mae,11,11,5.537919032946983,3.953569007446684,16.801416313138258
+Stumpjumper / pod v2,travel/fusion1,First fusion,centered_bin_rmse,11,11,3.93140935433387,3.3481101469939647,4.5311287042008885
+Stumpjumper / pod v2,travel/solved,Complete pipeline,centered_rmse,11,11,2.726356485291866,2.526816471921206,3.049289901293964
+Stumpjumper / pod v2,travel/solved,Complete pipeline,uncentered_mae,11,11,2.8063200952430782,2.1910420708781566,3.5691571750822684
+Stumpjumper / pod v2,travel/solved,Complete pipeline,centered_bin_rmse,11,11,2.966949994126742,2.799967106159314,3.357686302202416
+TR11 / pod v2 (Jamaal),travel/baseline/accel,IMU integration,centered_rmse,6,6,19.31322981734385,15.264248269682433,21.814547142800226
+TR11 / pod v2 (Jamaal),travel/baseline/accel,IMU integration,uncentered_mae,6,6,52.19331959182689,51.86592625887544,52.88747569087881
+TR11 / pod v2 (Jamaal),travel/baseline/accel,IMU integration,centered_bin_rmse,6,6,28.190369747430665,27.465114497850877,32.6242499778459
+TR11 / pod v2 (Jamaal),travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_rmse,6,6,7.836227452389455,6.924300241133519,8.375835312966892
+TR11 / pod v2 (Jamaal),travel/oracle/mag_power,Supervised magnetic oracle (in-sample),uncentered_mae,6,6,5.913347947022309,5.375784442262273,6.456484348109139
+TR11 / pod v2 (Jamaal),travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_bin_rmse,6,6,7.322972813455724,6.570788934771496,9.429865679533052
+TR11 / pod v2 (Jamaal),travel/mag_model,Self-supervised magnetic estimate,centered_rmse,6,6,11.363923993525507,10.08428812438811,12.811733058108487
+TR11 / pod v2 (Jamaal),travel/mag_model,Self-supervised magnetic estimate,uncentered_mae,6,6,18.004042237637506,9.384992610594027,32.76470493720385
+TR11 / pod v2 (Jamaal),travel/mag_model,Self-supervised magnetic estimate,centered_bin_rmse,6,6,9.50758974096934,8.980602293653138,10.082284461228951
+TR11 / pod v2 (Jamaal),travel/fusion1,First fusion,centered_rmse,6,6,11.062855782991308,9.67027310392411,12.211628965808003
+TR11 / pod v2 (Jamaal),travel/fusion1,First fusion,uncentered_mae,6,6,17.485949271902125,9.222054400222394,32.69261104835496
+TR11 / pod v2 (Jamaal),travel/fusion1,First fusion,centered_bin_rmse,6,6,9.196409281907108,8.639184004241915,9.77746230705161
+TR11 / pod v2 (Jamaal),travel/solved,Complete pipeline,centered_rmse,6,6,5.533570152702353,5.452161473837244,7.690435563849487
+TR11 / pod v2 (Jamaal),travel/solved,Complete pipeline,uncentered_mae,6,6,6.295164027932134,4.780217707492032,7.567482867466
+TR11 / pod v2 (Jamaal),travel/solved,Complete pipeline,centered_bin_rmse,6,6,5.3622485683821886,5.262010503739528,6.752646132947077
+TR11 2025 / pod v2 (Harry),travel/baseline/accel,IMU integration,centered_rmse,14,14,25.8126673105593,22.786209006151225,27.652346886703306
+TR11 2025 / pod v2 (Harry),travel/baseline/accel,IMU integration,uncentered_mae,14,14,61.33741015912753,59.08539876937028,63.54080822672063
+TR11 2025 / pod v2 (Harry),travel/baseline/accel,IMU integration,centered_bin_rmse,14,14,31.920751154843977,29.186184251167123,35.553770447436264
+TR11 2025 / pod v2 (Harry),travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_rmse,14,14,5.290788959753905,4.953303367068992,5.707949915910367
+TR11 2025 / pod v2 (Harry),travel/oracle/mag_power,Supervised magnetic oracle (in-sample),uncentered_mae,14,14,4.039064475241023,3.764308632292495,4.40060159149464
+TR11 2025 / pod v2 (Harry),travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_bin_rmse,14,14,5.3673881286991065,5.181417789294468,6.324286767985899
+TR11 2025 / pod v2 (Harry),travel/mag_model,Self-supervised magnetic estimate,centered_rmse,14,14,7.560671005953402,6.743309951832289,8.096825792249348
+TR11 2025 / pod v2 (Harry),travel/mag_model,Self-supervised magnetic estimate,uncentered_mae,14,14,15.239625418646238,8.451434741097032,23.98987493984413
+TR11 2025 / pod v2 (Harry),travel/mag_model,Self-supervised magnetic estimate,centered_bin_rmse,14,14,7.6455527580607985,7.204868392513982,8.407280974541314
+TR11 2025 / pod v2 (Harry),travel/fusion1,First fusion,centered_rmse,14,14,7.031133565657638,6.2804381955954485,7.4675448758102165
+TR11 2025 / pod v2 (Harry),travel/fusion1,First fusion,uncentered_mae,14,14,14.684519379369235,8.303576322929676,22.756874493810695
+TR11 2025 / pod v2 (Harry),travel/fusion1,First fusion,centered_bin_rmse,14,14,7.158220652106921,6.41340760529406,8.010116763769416
+TR11 2025 / pod v2 (Harry),travel/solved,Complete pipeline,centered_rmse,14,14,5.495947008239671,4.756517067299457,6.039407155222694
+TR11 2025 / pod v2 (Harry),travel/solved,Complete pipeline,uncentered_mae,14,14,9.075437022065032,6.828058616960085,11.016950426273226
+TR11 2025 / pod v2 (Harry),travel/solved,Complete pipeline,centered_bin_rmse,14,14,5.439981278818594,4.966662806466757,6.7746485607140725
+Slayer / pod v2,travel/baseline/accel,IMU integration,centered_rmse,7,5,8.924788962822374,5.902714142561949,11.291880099861148
+Slayer / pod v2,travel/baseline/accel,IMU integration,uncentered_mae,7,5,31.943685264058523,31.853303952708483,32.21867708576623
+Slayer / pod v2,travel/baseline/accel,IMU integration,centered_bin_rmse,7,5,12.022980170959967,6.781742088386825,15.644386295231334
+Slayer / pod v2,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_rmse,7,5,2.2337431193703607,1.747912519026606,2.5222176800137435
+Slayer / pod v2,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),uncentered_mae,7,5,2.034233765133913,1.6446369178366904,2.7538615109802853
+Slayer / pod v2,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_bin_rmse,7,5,2.413662640266645,1.7699008586031764,2.9448503770416563
+Slayer / pod v2,travel/mag_model,Self-supervised magnetic estimate,centered_rmse,7,5,3.477318931003583,2.7092507922080697,4.57971550509579
+Slayer / pod v2,travel/mag_model,Self-supervised magnetic estimate,uncentered_mae,7,5,17.69490148083983,13.583210313425798,22.641160660757006
+Slayer / pod v2,travel/mag_model,Self-supervised magnetic estimate,centered_bin_rmse,7,5,3.3616136980709377,3.2730624220863715,6.1086599982212695
+Slayer / pod v2,travel/fusion1,First fusion,centered_rmse,7,5,3.426493740766838,2.558713061293526,4.024524068058227
+Slayer / pod v2,travel/fusion1,First fusion,uncentered_mae,7,5,17.74532108618999,13.675451619193751,22.646066957145187
+Slayer / pod v2,travel/fusion1,First fusion,centered_bin_rmse,7,5,4.05907720594218,3.257019040606324,5.588742517006152
+Slayer / pod v2,travel/solved,Complete pipeline,centered_rmse,7,5,3.8931244013582122,2.5370043783939433,5.0440592524761625
+Slayer / pod v2,travel/solved,Complete pipeline,uncentered_mae,7,5,6.591977529922035,3.915580287909515,12.725538558183304
+Slayer / pod v2,travel/solved,Complete pipeline,centered_bin_rmse,7,5,3.7437576271879776,3.121796821677511,5.6654996993291356
+Specialized Stumpjumper rear / pod v1,travel/baseline/accel,IMU integration,centered_rmse,12,9,17.034582361575982,15.184237569989314,17.747878792118794
+Specialized Stumpjumper rear / pod v1,travel/baseline/accel,IMU integration,uncentered_mae,12,9,46.059257434223326,44.67213411157704,49.226250605943505
+Specialized Stumpjumper rear / pod v1,travel/baseline/accel,IMU integration,centered_bin_rmse,12,9,39.508546764498746,38.038396101767184,39.689077027614026
+Specialized Stumpjumper rear / pod v1,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_rmse,12,9,1.6638921997194622,1.560828166123583,1.7371825797666052
+Specialized Stumpjumper rear / pod v1,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),uncentered_mae,12,9,0.9715983918133938,0.8619327309590936,1.025838635059594
+Specialized Stumpjumper rear / pod v1,travel/oracle/mag_power,Supervised magnetic oracle (in-sample),centered_bin_rmse,12,9,3.586349014006705,3.242914343729093,3.669603040319314
+Specialized Stumpjumper rear / pod v1,travel/mag_model,Self-supervised magnetic estimate,centered_rmse,12,9,2.622068659059962,2.1978375428676964,3.219486509330483
+Specialized Stumpjumper rear / pod v1,travel/mag_model,Self-supervised magnetic estimate,uncentered_mae,12,9,28.619712734666265,23.79965535662665,29.83645574285111
+Specialized Stumpjumper rear / pod v1,travel/mag_model,Self-supervised magnetic estimate,centered_bin_rmse,12,9,4.088499857154151,3.7118423220675685,4.242891164425908
+Specialized Stumpjumper rear / pod v1,travel/solved,Complete pipeline,centered_rmse,12,9,2.4813144359461172,2.1480150403171625,3.248877171456682
+Specialized Stumpjumper rear / pod v1,travel/solved,Complete pipeline,uncentered_mae,12,9,3.2703865845861286,2.5591595196446035,4.006604956181605
+Specialized Stumpjumper rear / pod v1,travel/solved,Complete pipeline,centered_bin_rmse,12,9,3.803550618503547,3.47032849138213,4.059499928137729

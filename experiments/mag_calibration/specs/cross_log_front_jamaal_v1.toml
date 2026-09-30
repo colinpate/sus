@@ -1,0 +1,21 @@
+schema_version = 1
+experiment_type = "cross_log"
+name = "cross-log-front-jamaal-v1"
+pipeline = "front"
+time_basis = "active"
+training_window = "full_log"
+evaluation_window = "full_log"
+include_diagonal = true
+trainers = ["self-supervised", "oracle-power", "oracle-binned-median"]
+oracle_bins = 100
+
+# A deliberately homogeneous cohort isolates per-recording calibration effects
+# from bike geometry and sensor-generation transfer.
+logs = [
+  "log-0078-valid",
+  "log-0079",
+  "log-0080-valid",
+  "log-0081",
+  "log-0098",
+  "log-0099",
+]

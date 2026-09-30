@@ -1,0 +1,26 @@
+{
+  "eligible_threshold_modes": [
+    "baseline"
+  ],
+  "held_out_modes_evaluated_after_selection": [
+    "baseline"
+  ],
+  "post_selection_exploratory_mode": "750",
+  "post_selection_exploratory_result": "exploratory_750_podv1.csv",
+  "selected_threshold_mode": "baseline",
+  "selection_split": "tuning",
+  "selection_summary": {
+    "centered_rmse_mm": 5.879435187515873,
+    "cohort": "cohort-balanced",
+    "corrected_mag_centered_rmse_mm": 5.653913963917565,
+    "full_weight_fraction": 0.7671458176103355,
+    "low_travel_centered_rmse_mm": 8.822020010202328,
+    "n_logs": 31,
+    "resolved_mag_x_thresh_mg": 1189.065800025645,
+    "runtime_s": 10.546596488444179,
+    "split": "tuning",
+    "success_fraction": 1.0,
+    "threshold_mode": "baseline",
+    "uncentered_rmse_mm": 12.36400076312046
+  }
+}

@@ -1,0 +1,649 @@
+{
+  "schema_version": 3,
+  "id": "20260927T170207Z-table2-rear-baselines",
+  "name": "table2-rear-baselines",
+  "created_at": "2026-09-27T18:02:07+01:00",
+  "notes": "Table 2 development-cohort comparison; fixed rear IMU filter selected in development-v3; supervised in-sample per-log power oracle; common scoring support.",
+  "tags": [],
+  "experiment_fingerprint": "471e35b4872420b86da62dfe15510d4ef3366aa76c5a5bb7a6193f17a4267e57",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "49cb9051c202c004b336ab092a47bf64f4fcca26f6467ba3132fd56801af438c",
+    "explicit_logs": [],
+    "set": "rear-default",
+    "where": {},
+    "usable_only": true,
+    "selected_logs": [
+      "log168_rear_1",
+      "log168_rear_2",
+      "log169_rear_1",
+      "log169_rear_2",
+      "log169_rear_3",
+      "log180_rear",
+      "log181_rear",
+      "log183_rear",
+      "log184_rear",
+      "log185_rear",
+      "log186_rear",
+      "log188_rear"
+    ],
+    "required_comparisons": [
+      "travel/baseline/accel",
+      "travel/oracle/mag_power"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 2,
+    "comparison_keys": [
+      "travel/mag_model",
+      "travel/solved",
+      "travel/baseline/accel",
+      "travel/oracle/mag_power",
+      "travel/fusion1"
+    ],
+    "sample_support": "common finite comparison support when IMU baseline is present; otherwise per-method",
+    "stats_engine_sha256": "f085da5e06528afa1a01b0e7947025fa3cb9eeb7ed7f18c29fc71b3a558147ef"
+  },
+  "versions": {
+    "run_fingerprints": [
+      "0f1d0e2d23db33656f5c32a80552617524a0b0a9821aa3a1c7c953d433c5e54e",
+      "1f35550f31b2188499440a79d2707543e668ff5bd1759f9aa4ba500486d97850",
+      "2201d4b5613000d94aeb570b3b7d927cce0773e19a2edde740999e4da68ea81d",
+      "2f1f320696f8e92b522612bb849c46263a90e8a080d4939c1ef1733a9536cc75",
+      "3b630f418fc99a45289993deb4a82bbc0d25d77e7894932f81967b65e523c232",
+      "41d15e1a88295b458e359e75d72c54aa2e9b17c69bab1f349408c824d4dfdf71",
+      "450d7fa411256bf42e6b254bdf05f51f8a99263fa991f9ab5f2044e63ba4cf13",
+      "832052e00f37ed55da34a112abfa7e3aedcf5fbbcac77cfec5ae630ea7429daa",
+      "96f94ce1b42921fb5a77a8ff08b2ca425b8356e177522c376875f092d384dad2",
+      "b3d31a958abe6d88fe76f4c2b0487be6df82d109b397a9c4b12675e2d3c86562",
+      "efe6aaafa6777778ce8126d55ed855172f16e76d60da52c3f4473e53229d86f7",
+      "f54efbcb945d8e90534d0d8d561028295fa8f3aae7eb00fb4c727e9969e19a0f"
+    ],
+    "pipeline_code_sha256": [
+      "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661"
+    ],
+    "resolved_config_sha256": [
+      "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361"
+    ],
+    "input_sha256": [
+      "0904e74c05abda0f7784df7ed2613b3e194d0f9dbedba77428a6331e9a2c71f4",
+      "23c96538781067e8c60266ff7bb49b09e852c0802e0ee145df3a8100cfced4e1",
+      "592a8f19991a1cc2fc841ae145b1dabbdeb0a46f4fa8c8f20ce6ceb1148f23f3",
+      "909f8c9cdf3c2d2076fd7b31a7e15731f7e0025269ba6bb7ec38c79f2a7e62eb",
+      "9ca3d79d70a7d3f383925745963b564d282f97874619e0adbdd23a85bb4860e2",
+      "abbe5823efb00388e96e5f5193656f379a46d2de770645e50eb662e4c84133ec",
+      "b246cb187595fd31f5cf52e08fb687d0e60e5a598d892790e6ff8d32e55da196",
+      "d1ab50c04d65e75fe973d8a73adacc27b177702960d4ea2ffa88d011c883aedb",
+      "e16bd59fde7cdbb3da694565d299842f5906791060b78bd2bbfa9ada596e987a",
+      "eb7c12ca5a917b098d904381e72c6504f607385aa15389b543e6ca8148afd3b2",
+      "fecb835e7a206fc8f1001a675459177f41592e69aa645db72d7c720a4a80a6d4",
+      "ffcbb1031a553bd5c73d9638dc4d482148b51d9f0a59421f7e761ece70fb5569"
+    ],
+    "assets_sha256": [
+      "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 12,
+    "included_logs": 12,
+    "excluded_logs": 0,
+    "metric_rows": 792,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log168_rear_1",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "0f1d0e2d23db33656f5c32a80552617524a0b0a9821aa3a1c7c953d433c5e54e",
+      "input_sha256": "9ca3d79d70a7d3f383925745963b564d282f97874619e0adbdd23a85bb4860e2",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:58:26+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log168_rear_2",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "b3d31a958abe6d88fe76f4c2b0487be6df82d109b397a9c4b12675e2d3c86562",
+      "input_sha256": "592a8f19991a1cc2fc841ae145b1dabbdeb0a46f4fa8c8f20ce6ceb1148f23f3",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:58:45+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log169_rear_1",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "f54efbcb945d8e90534d0d8d561028295fa8f3aae7eb00fb4c727e9969e19a0f",
+      "input_sha256": "fecb835e7a206fc8f1001a675459177f41592e69aa645db72d7c720a4a80a6d4",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:58:38+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log169_rear_2",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "450d7fa411256bf42e6b254bdf05f51f8a99263fa991f9ab5f2044e63ba4cf13",
+      "input_sha256": "23c96538781067e8c60266ff7bb49b09e852c0802e0ee145df3a8100cfced4e1",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:58:25+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log169_rear_3",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "3b630f418fc99a45289993deb4a82bbc0d25d77e7894932f81967b65e523c232",
+      "input_sha256": "e16bd59fde7cdbb3da694565d299842f5906791060b78bd2bbfa9ada596e987a",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:11+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log180_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "efe6aaafa6777778ce8126d55ed855172f16e76d60da52c3f4473e53229d86f7",
+      "input_sha256": "eb7c12ca5a917b098d904381e72c6504f607385aa15389b543e6ca8148afd3b2",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:04+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log181_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "832052e00f37ed55da34a112abfa7e3aedcf5fbbcac77cfec5ae630ea7429daa",
+      "input_sha256": "909f8c9cdf3c2d2076fd7b31a7e15731f7e0025269ba6bb7ec38c79f2a7e62eb",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:18+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log183_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "1f35550f31b2188499440a79d2707543e668ff5bd1759f9aa4ba500486d97850",
+      "input_sha256": "abbe5823efb00388e96e5f5193656f379a46d2de770645e50eb662e4c84133ec",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:20+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150,
+        "trail": "Ccdh part 1"
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log184_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "96f94ce1b42921fb5a77a8ff08b2ca425b8356e177522c376875f092d384dad2",
+      "input_sha256": "0904e74c05abda0f7784df7ed2613b3e194d0f9dbedba77428a6331e9a2c71f4",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:37+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150,
+        "trail": "Ccdh part 2"
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log185_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "41d15e1a88295b458e359e75d72c54aa2e9b17c69bab1f349408c824d4dfdf71",
+      "input_sha256": "ffcbb1031a553bd5c73d9638dc4d482148b51d9f0a59421f7e761ece70fb5569",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:33+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "catalog",
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150,
+        "trail": "Poppin tops"
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log186_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2201d4b5613000d94aeb570b3b7d927cce0773e19a2edde740999e4da68ea81d",
+      "input_sha256": "b246cb187595fd31f5cf52e08fb687d0e60e5a598d892790e6ff8d32e55da196",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:59+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log188_rear",
+      "pipeline": "rear",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "2f1f320696f8e92b522612bb849c46263a90e8a080d4939c1ef1733a9536cc75",
+      "input_sha256": "d1ab50c04d65e75fe973d8a73adacc27b177702960d4ea2ffa88d011c883aedb",
+      "resolved_config_sha256": "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:59:57+01:00",
+      "profiles": [
+        "rear-pod-v1",
+        "bike-stumpjumper",
+        "rear-stumpjumper-150",
+        "rear-linkage-current",
+        "dual-mag-opposed"
+      ],
+      "sets": [
+        "rear-default"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "rear",
+        "pod_version": 1,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Specialized Stumpjumper",
+        "rear_travel_mm": 150
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

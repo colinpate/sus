@@ -1,0 +1,34 @@
+schema_version = 1
+experiment_type = "downstream_solver_window"
+name = "solver-window-front-stumpy-postmerge-v1"
+pipeline = "front"
+cohort_description = "the 11-log Stumpjumper/pod-v2 cohort"
+
+source_run = "experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1"
+source_trainer = "self-supervised"
+source_repeats = [0, 1, 2, 3]
+
+durations_s = [5, 10, 20, 40, 120]
+evaluation_scopes = ["training_window", "common_core", "full_log", "full_log_excluding_training"]
+common_core_s = 5
+save_predictions = false
+
+logs = [
+  "log-0046",
+  "log-0048",
+  "log-0049",
+  "log-0054",
+  "log-0055",
+  "log-0056",
+  "log-0058",
+  "log-0063",
+  "log-0071_183",
+  "log-0072_184",
+  "log-0073_185",
+]
+
+[setup_logs]
+stumpjumper_pod_v2 = ["log-0046", "log-0048", "log-0049", "log-0054", "log-0055", "log-0056", "log-0058", "log-0063", "log-0071_183", "log-0072_184", "log-0073_185"]
+
+[setup_labels]
+stumpjumper_pod_v2 = "Stumpjumper / pod v2"

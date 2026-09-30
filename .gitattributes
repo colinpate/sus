@@ -1,0 +1,5 @@
+/experiments/stats/**/*.csv text eol=lf
+/experiments/fusion/**/*.csv text eol=lf
+/experiments/legacy_stats/**/*.csv text eol=lf
+/experiments/imu_baseline/**/*.csv text eol=lf
+/reports/error_vs_travel/*.csv text eol=lf

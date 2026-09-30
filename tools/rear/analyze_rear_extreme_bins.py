@@ -527,7 +527,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--stats-dir",
         type=Path,
-        default=Path("reports/stats_aggregator/rear/rear_all_4hz_accel"),
+        default=Path("experiments/legacy_stats/rear/rear_extreme_bin_current_stats"),
     )
     parser.add_argument(
         "--out-dir",

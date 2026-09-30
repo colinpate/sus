@@ -67,16 +67,15 @@ NEW_LOGS = [
 
 REQUIRED_COMPARISONS = (
     ("travel/mag_model", "travel"),
-    ("travel/mag_model/adj", "travel"),
     ("travel/solved", "travel"),
 )
 
 # New pipeline variants can expose these outputs while older/baseline caches do not.
 # Missing optional comparisons are skipped per log instead of invalidating the experiment.
 OPTIONAL_COMPARISONS = (
-    ("travel/solved/mag_nuisance/delta_lifted", "travel"),
-    ("travel/mag_nuisance/corrected", "travel"),
-    ("travel/solved/mag_nuisance/fusion2", "travel"),
+    ("travel/baseline/accel", "travel"),
+    ("travel/oracle/mag_power", "travel"),
+    ("travel/fusion1", "travel"),
 )
 
 COMPARISONS = REQUIRED_COMPARISONS + OPTIONAL_COMPARISONS
@@ -91,9 +90,9 @@ ANGLE_ERROR_HALO_S = 0.08
 MIN_MAG_ANCHOR_MG = 500.0
 
 TRAVEL_BIN_MIN_MM = 0.0
-TRAVEL_BIN_MAX_MM = 150.0
-TRAVEL_BIN_COUNT = 5
-TRAVEL_BIN_MIN_POINTS = 100
+TRAVEL_BIN_MAX_MM = 200.0
+TRAVEL_BIN_COUNT = 10
+TRAVEL_BIN_MIN_POINTS = 40
 
 LOW_TRAVEL_MAX_MM = 30.0
 HIGH_TRAVEL_MIN_MM = 100.0
@@ -129,6 +128,7 @@ class ErrorStats:
     rmse: float
     mae: float
     mean_error: float
+    abs_mean_error: float
 
 
 @dataclass(frozen=True)
@@ -370,6 +370,7 @@ def summarize_error(
         rmse=float(np.sqrt(np.mean(err**2))),
         mae=float(np.mean(np.abs(err))),
         mean_error=float(np.mean(err)),
+        abs_mean_error=float(np.abs(np.mean(err))),
     )
 
 
@@ -380,7 +381,7 @@ def get_error_stats(
     thresh: float | None = None,
 ) -> tuple[float, float, float]:
     stats = summarize_error(x, gt, center=center, threshold=thresh)
-    return stats.rmse, stats.mae, stats.mean_error
+    return stats.rmse, stats.mae, stats.mean_error, stats.abs_mean_error
 
 
 def get_error_vector(x: np.ndarray, gt: np.ndarray, center: bool = False) -> np.ndarray:
@@ -407,6 +408,18 @@ def build_mask(
     )
 
     mask = active_mask & finite_mask(pred, gt) & ~build_angle_bad_mask(cache, gt_time_s) & ~build_imu_bad_mask(cache, gt_time_s)
+    if cache_series_exists(cache, "travel/baseline/accel"):
+        # Baseline edge/gap exclusions apply to every method for paired scoring.
+        for key, _ in COMPARISONS:
+            if cache_series_exists(cache, key):
+                values = flatten_1d(cache[f"{key}__x"])
+                require_same_shape("common comparison support", values=values, gt=gt)
+                # Existing solver caches use elapsed time with a different origin;
+                # their samples still correspond one-to-one with reference samples.
+                pred_time_s = flatten_1d(cache[f"{key}__t"])
+                if not np.allclose(pred_time_s - pred_time_s[0], gt_time_s - gt_time_s[0], rtol=0, atol=1e-7):
+                    raise ValueError(f"Comparison timeline differs from reference: {key}")
+                mask &= np.isfinite(values)
     if error_threshold is not None:
         mask &= np.abs(gt) > error_threshold
     return mask
@@ -474,7 +487,7 @@ def summarize_log_cache(
             "nrmse": stats.rmse / travel_std if travel_std > 0 else float("nan"),
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
-            "me": stats.mean_error,
+            "ame": stats.abs_mean_error,
             "rms_travel": travel_std,
         }
 
@@ -998,7 +1011,7 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
         ("rmse", "rmse"),
         ("bin_rmse", "bin_rmse"),
         ("mae", "mae"),
-        ("nrmse", "nrmse") if center_errors else ("me", "me"),
+        ("nrmse", "nrmse") if center_errors else ("ame", "ame"),
         ("rms_travel", "rms_trav"),
     ]
     for pred_key, gt_key in COMPARISONS:
@@ -1328,7 +1341,7 @@ def save_report(
     written: list[Path] = []
 
     report_text_path = output_dir / REPORT_TEXT_FILENAME
-    report_text_path.write_text(report_text, encoding="utf-8")
+    report_text_path.write_text(report_text.rstrip() + "\n", encoding="utf-8")
     written.append(report_text_path)
 
     for filename, rows, fieldnames in wide_report_tables(report):

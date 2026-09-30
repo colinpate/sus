@@ -1,0 +1,588 @@
+{
+  "sources": [
+    {
+      "path": "experiments/imu_baseline/table2-current/source_experiments/20260927T170342Z-table2-method-comparison-front",
+      "experiment_fingerprint": "4dd373fabe21f68f77047758138288ef83f7bb558c96364d2cee1688459d4062",
+      "experiment_manifest_sha256": "3acc456427feab52beca8e7da0ac4d492675bc31e9f668c050d2487c859d1a40",
+      "metrics_sha256": "794948a29c451826fae11f52b4f6453fd7e7e8c0fd117db103eb393099ef5426",
+      "selection": {
+        "registry": "logs/registry.toml",
+        "registry_sha256": "49cb9051c202c004b336ab092a47bf64f4fcca26f6467ba3132fd56801af438c",
+        "explicit_logs": [],
+        "set": "front-default",
+        "where": {},
+        "usable_only": true,
+        "selected_logs": [
+          "log-0046",
+          "log-0048",
+          "log-0049",
+          "log-0054",
+          "log-0055",
+          "log-0056",
+          "log-0058",
+          "log-0063",
+          "log-0071_183",
+          "log-0072_184",
+          "log-0073_185",
+          "log-0078-valid",
+          "log-0079",
+          "log-0080-valid",
+          "log-0081",
+          "log-0098",
+          "log-0099",
+          "log-0113",
+          "log-0115",
+          "log-0116",
+          "log-0117",
+          "log-0118",
+          "log-0119",
+          "log-0120",
+          "log-0122",
+          "log-0125",
+          "log-0126",
+          "log-0127",
+          "log-0129",
+          "log-0132",
+          "log-0133",
+          "log-0145-filtered-c01",
+          "log-0147-filtered-c01",
+          "log-0147-filtered-c02",
+          "log-0151-filtered-c01",
+          "log-0152-filtered-c01",
+          "log-0152-filtered-c02",
+          "log-0155-filtered-c01"
+        ],
+        "required_comparisons": [
+          "travel/baseline/accel",
+          "travel/oracle/mag_power",
+          "travel/fusion1"
+        ]
+      },
+      "stats": {
+        "centering": [
+          "uncentered",
+          "centered"
+        ],
+        "error_threshold": null,
+        "deep_dive": false,
+        "sort_key": "log",
+        "metrics_schema": 2,
+        "comparison_keys": [
+          "travel/mag_model",
+          "travel/solved",
+          "travel/baseline/accel",
+          "travel/oracle/mag_power",
+          "travel/fusion1"
+        ],
+        "sample_support": "common finite comparison support when IMU baseline is present; otherwise per-method",
+        "stats_engine_sha256": "f085da5e06528afa1a01b0e7947025fa3cb9eeb7ed7f18c29fc71b3a558147ef"
+      },
+      "versions": {
+        "run_fingerprints": [
+          "03fc7174da851694fc04f9248aa1cf46dc1dffe88fc67b6e5abe709824395a58",
+          "0b97933e3e82d4fd9698292ce46c86c6a948d9d993659bba2cdab939ec3bc62f",
+          "0d9c1d66f524b412eab31093062f8b7e4b435a39e0b85f3c2cf7fc19af44e331",
+          "14a83cb513b2f136547dbfad34216ac12d66c99c905e9c1d2715faa6a53c6606",
+          "17cb377d3ec4dfdcb1e36f9d3d7e14aa97618c2992d9a30ac84a122eb97bd27c",
+          "188d02f21eeb48dad04656ecfb7322cbc7c2fb03cafe978e25790bf4f0c8ce6b",
+          "19bd707bfd4ab0ae18356caed74a2c4dcab412ed494a0da7ffea31372d4ae3f5",
+          "1e32e6d379974e2d575224d5b860a4077137e6dbb8ca7c4fec4d9ae9e7580b80",
+          "2cc6856dbc53c939e90408618b6c291e84eb729752c00806ee656038e5236422",
+          "3d5bcefe3731db63d9a29e25563a5a95847759b57c5e3b758dc2c60f0b8ce3c8",
+          "40c71bddcad1e4863491f0d25add4a475de0bd9b261522904cd5cfb63a97a5e3",
+          "441650c7778eb52dfbfd464b52c66c1d16171c2e3fa27899dee42154452f83d3",
+          "5eac8900a2bd0502912cdf6eed5864415a5975d80f06409526003260332d27f8",
+          "67544a55c250958c13647dbabdc74eed1778242c7bfe59011533c7cd28b5df0a",
+          "6e37b4ddedade06fc32f0094a4bd6cbd45740efe3df3ee96591109d1adc64863",
+          "6fd52530d584df531cc416c9b7644712df4187155e82cae238ec54016b6333ad",
+          "7aabd7c0216e76b2caa64a811591149d241d9f85e33ba46acfa3863361ce739c",
+          "80996a0eb48fe12ab176da1ca3ff160b3a2c11f12734dc0e0f6f1fe995c3dfd0",
+          "819824c4e214bcd2d10719bc209fe331985077c256bb47178e77cbdf61d42785",
+          "85a264f81b57fee2dec78638ce589c5acacca93305006a732ee6b4c98fcf369b",
+          "895e88cc0a1d4a219c63a596780325cc617436d95039a1091195ce00015e4c94",
+          "95bee5546c41ad50b6fbde22b6a5b9c07abfb58cdde5ac61088ab3a8747b873e",
+          "99e4dc74b40847ddb5906925bffaa77c0bcad67b21d298604dfce69c277d2f63",
+          "9bc17109eed6f9f575540aaf715195cb7cb702ae9b6b4386653d93f9f86f0227",
+          "9e8f38dcb930e62f504f685038bced22ab34fd369dc817d54f28da7c7695cdd9",
+          "a458c0a8b0ba5a1424bc90eb451616d5076f8d7780b11af258d48722f05ad983",
+          "aa0069317c73095b66b8eead857066807fe417c5f54c0db38d4bb80bfd9334e1",
+          "b5643b040ead18eaf7d3ca15e35b175164dbe470bd50c72fc796e1885e658ddb",
+          "c287ac884a9ae5980b6f37ee12ae9b0637cee04e4688cd125484861e88826aa1",
+          "d1530d31b14c1b341d1592bd8f63e8974fc197adacadce1f2be39cda20b75f0c",
+          "d3227a03b884165e2c04077513308620c94ff8fb71e19ed5354d85c1d5096200",
+          "d4724d562c8d6f61bef3df6cc7438ebe2f34ca42aa42cdcb0cfcb6f4454865c8",
+          "dbd2aa5d27d5d2fcfd9069577cfbf02c2f21dc821cd75c2b1ba17d64e919d05f",
+          "dc2493f84a7ad798870cc1fb33e54b7018a6828994cce3235fc3ffd2800445d8",
+          "deda63c8ed69e1903f0d124238229369fe076ca22450ee2fcd58c1b816580cde",
+          "e1e87c7a71f273d7f1fbf28b81a1cf80a98adf312cfcb570607e6572dde1ff0f",
+          "f5d9d266170b2ce321736a97a600d4087fdbd3149bbed1b6d1e5bceafa40f408",
+          "f6aee4341809dbf16e35d998ef154b0eb43df9bb3336fb176a7d94a0fe76f272"
+        ],
+        "pipeline_code_sha256": [
+          "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661"
+        ],
+        "resolved_config_sha256": [
+          "0cbd4e11fb600f660e255e82574419274ab834028f0b5e7547559aed080ea778",
+          "2d7e393cbe22c88fc2ac7bb7e3e3cd2e96e2bf95b3bb18c087327b3c04bb4c29",
+          "6a93fd5f47e6c3f81487a8cac1931cd62395f25f29fb6964cfac4b01c102aeca",
+          "a67c6c7f748064228a1f802b46d887e86cb85c91cd78af4914138242825ce6bc",
+          "cbb5ac12e1d030ec5ecb27fcb7fb29535b313a2719699224c36ed6c64da7817b",
+          "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+          "d0542fe7e45cab804acc218d20a75f956be665abd45d5c2025d6a2b386f70cc3",
+          "df36891b08393f87eb65aba01422a659db106320cdeb734dd6793951ce360b61"
+        ],
+        "input_sha256": [
+          "01744f7ff89213445e131d98a7607c2e863f70b0f5858def1984e80dcdb88384",
+          "1acee7988f92dcd77fc653f8223d703c186307ca79fa87e5c064c1888697a619",
+          "1cee5cec29c073d8fd724e96b077f67f29bd9ffffdc0c03eda8c6dd1b6d65ee6",
+          "1f5b62fcbbdeb4e1c6f24d28f406a24be8e15d83a4e14909ecf5708ab75bc220",
+          "2538e99f17564fa71b1c4e0bd0cab74e4f59ef7a5f5fde078c2e5acfd14b9a72",
+          "2598724b6678ed6e68a5e3617bcd242d64f2241396abd6e74eadd11d4e71fef5",
+          "2ae9539fbed86ab955490a14303a588098c629df3530417ec9a0644ffda8ccd1",
+          "2dfca84ee2309b44669abd1152d0a609a008b924ea2fce5cdcc09af21bdebfd5",
+          "393d64274166f8c6412a3459fe9beadf49408e0575fd1472566c9a980dbd6392",
+          "3dec5726b38a0c68f622c68ddc6ae46e4edec182fddc28bb81376cedfc97b80c",
+          "4303a956ccdbf754ff728be72a1dca9fb094d8ae5e4ccfe45bab556355163d8c",
+          "566c4faaf181d3aafd0c5220a1fa5d1e2168dc6f524fa009d6be57125376deb7",
+          "58017d7bb60fc1cdbea39dae25cd81a38ef5a9f146dd2cf90605ae2fb43be798",
+          "5bf1e7f9e3f07fdacc6269d8b5673ef08a37f112621b5dc3192113d2dccc32aa",
+          "61ccc7c5b30adc9beb452f352d1de74d091fa4b5e4210ddfa8879fa0099e9824",
+          "6ac404167b4545fc74d84ae08d943955751669ca11be00669c996ea6e930a26a",
+          "6c4b4519db07777348cc88a311089a4779bb677f9ecdae9907210d20b573fef6",
+          "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96",
+          "780bde9aec2a37c0132f6a6f1ab860ed8548a3abd72e2d6fc0f9bd82cde6abdd",
+          "7c610b8ee41e02ca3f942169e420e0209b8ef1218714ab3d5832c917cbd0aa4a",
+          "7e5a028bcb2d2dfc1299531dd44a7f8370b09d1b09731f72216c3583e7e55831",
+          "88791ba326078cef19bbb9e4e4ed345b8bae8b65a06137ca5384863d5f470d70",
+          "8c52592b8c9e104cd3d1f8bab29ff0acca172695a98f276dbc0c56cf5b6eaa02",
+          "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be",
+          "93bd05266f6ac4dcbd38e8197543a9be4c847125821c4a58afdf760065e1f50c",
+          "b15a2ee5dc7b6790c44db74906e4a1acf77ac0374016b1922fd18e0695e10aff",
+          "b5b68b549421eac49482287d73537cacdf6668a7dc6ceda925e0e7c660b5750f",
+          "be1b6911ab93e3a894c27b3b32901fd532f1af00ea041a3a17008812dbfffaba",
+          "c58345821a2a824ee5580a45e792b9a30752928937cd253d655f12007ed674b7",
+          "cde3f49538d35f1555978f323aca034b52f94d0a69db6119c4cfbd867de7f58a",
+          "d77e4c9ce5238b5c1f237dcaccfb6149147b512a6789654cc5b9880e19846832",
+          "da391d6594994143ecb9669221a4525b1d00e223457326976e74efa06b0d97be",
+          "e5bdc615a637d9b03d286b66c317a9f5d2dc3a9eea44ecb841ac90d66a5363e6",
+          "ee5117e13822040476857bb0871abd79fd4a7009ad89bee0760b2548570c011c",
+          "f472f439f7a835967e1620233629d8a0628b3895c474ba965aaf657c4a1591e8",
+          "f4c2aa28716003ee56ff419bf7e81c7c5b2b8124d5fbe64ef67e031de99e4c0a",
+          "f8fc3314bda6ede5f05c6398f28d3f8b7786408a8cac5fb6985e83f1748cf648",
+          "fee02f09db5048cd83c848849c0a97e2405ac4c39d83f074944d1bcc0a638688"
+        ],
+        "assets_sha256": [
+          "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        ],
+        "environment_sha256": [
+          "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+        ],
+        "git_commits": [
+          "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac"
+        ],
+        "any_dirty": true
+      }
+    },
+    {
+      "path": "experiments/imu_baseline/table2-current/source_experiments/20260927T170338Z-table2-method-comparison-rear",
+      "experiment_fingerprint": "ba7c4cd37329eaf3ff1108c161bf03c7ecbc62b943c848c1206514aaaa4a36a7",
+      "experiment_manifest_sha256": "ed2e16d5cf58eccf92289a74ae1b6b913b7c778dd8a22475af16e0aba50ffa62",
+      "metrics_sha256": "f47304b4eedb80e879d061c73e4a97ae4a570ef38d9966443c887af0a548777a",
+      "selection": {
+        "registry": "logs/registry.toml",
+        "registry_sha256": "49cb9051c202c004b336ab092a47bf64f4fcca26f6467ba3132fd56801af438c",
+        "explicit_logs": [],
+        "set": "rear-default",
+        "where": {},
+        "usable_only": true,
+        "selected_logs": [
+          "log168_rear_1",
+          "log168_rear_2",
+          "log169_rear_1",
+          "log169_rear_2",
+          "log169_rear_3",
+          "log180_rear",
+          "log181_rear",
+          "log183_rear",
+          "log184_rear",
+          "log185_rear",
+          "log186_rear",
+          "log188_rear"
+        ],
+        "required_comparisons": [
+          "travel/baseline/accel",
+          "travel/oracle/mag_power"
+        ]
+      },
+      "stats": {
+        "centering": [
+          "uncentered",
+          "centered"
+        ],
+        "error_threshold": null,
+        "deep_dive": false,
+        "sort_key": "log",
+        "metrics_schema": 2,
+        "comparison_keys": [
+          "travel/mag_model",
+          "travel/solved",
+          "travel/baseline/accel",
+          "travel/oracle/mag_power",
+          "travel/fusion1"
+        ],
+        "sample_support": "common finite comparison support when IMU baseline is present; otherwise per-method",
+        "stats_engine_sha256": "f085da5e06528afa1a01b0e7947025fa3cb9eeb7ed7f18c29fc71b3a558147ef"
+      },
+      "versions": {
+        "run_fingerprints": [
+          "0f1d0e2d23db33656f5c32a80552617524a0b0a9821aa3a1c7c953d433c5e54e",
+          "1f35550f31b2188499440a79d2707543e668ff5bd1759f9aa4ba500486d97850",
+          "2201d4b5613000d94aeb570b3b7d927cce0773e19a2edde740999e4da68ea81d",
+          "2f1f320696f8e92b522612bb849c46263a90e8a080d4939c1ef1733a9536cc75",
+          "3b630f418fc99a45289993deb4a82bbc0d25d77e7894932f81967b65e523c232",
+          "41d15e1a88295b458e359e75d72c54aa2e9b17c69bab1f349408c824d4dfdf71",
+          "450d7fa411256bf42e6b254bdf05f51f8a99263fa991f9ab5f2044e63ba4cf13",
+          "832052e00f37ed55da34a112abfa7e3aedcf5fbbcac77cfec5ae630ea7429daa",
+          "96f94ce1b42921fb5a77a8ff08b2ca425b8356e177522c376875f092d384dad2",
+          "b3d31a958abe6d88fe76f4c2b0487be6df82d109b397a9c4b12675e2d3c86562",
+          "efe6aaafa6777778ce8126d55ed855172f16e76d60da52c3f4473e53229d86f7",
+          "f54efbcb945d8e90534d0d8d561028295fa8f3aae7eb00fb4c727e9969e19a0f"
+        ],
+        "pipeline_code_sha256": [
+          "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661"
+        ],
+        "resolved_config_sha256": [
+          "202e5901f0bcf6757f98e8b265ca7f852e55f98c60ece9fc6ce8c1672fe71361"
+        ],
+        "input_sha256": [
+          "0904e74c05abda0f7784df7ed2613b3e194d0f9dbedba77428a6331e9a2c71f4",
+          "23c96538781067e8c60266ff7bb49b09e852c0802e0ee145df3a8100cfced4e1",
+          "592a8f19991a1cc2fc841ae145b1dabbdeb0a46f4fa8c8f20ce6ceb1148f23f3",
+          "909f8c9cdf3c2d2076fd7b31a7e15731f7e0025269ba6bb7ec38c79f2a7e62eb",
+          "9ca3d79d70a7d3f383925745963b564d282f97874619e0adbdd23a85bb4860e2",
+          "abbe5823efb00388e96e5f5193656f379a46d2de770645e50eb662e4c84133ec",
+          "b246cb187595fd31f5cf52e08fb687d0e60e5a598d892790e6ff8d32e55da196",
+          "d1ab50c04d65e75fe973d8a73adacc27b177702960d4ea2ffa88d011c883aedb",
+          "e16bd59fde7cdbb3da694565d299842f5906791060b78bd2bbfa9ada596e987a",
+          "eb7c12ca5a917b098d904381e72c6504f607385aa15389b543e6ca8148afd3b2",
+          "fecb835e7a206fc8f1001a675459177f41592e69aa645db72d7c720a4a80a6d4",
+          "ffcbb1031a553bd5c73d9638dc4d482148b51d9f0a59421f7e761ece70fb5569"
+        ],
+        "assets_sha256": [
+          "7d031e7baea031035c5042f72f85a9e9a78da1426ecfa637e586d70bd90aad18"
+        ],
+        "environment_sha256": [
+          "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+        ],
+        "git_commits": [
+          "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac"
+        ],
+        "any_dirty": true
+      }
+    }
+  ],
+  "cohort": [
+    {
+      "log": "log-0046",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0046"
+    },
+    {
+      "log": "log-0048",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0048"
+    },
+    {
+      "log": "log-0049",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0049"
+    },
+    {
+      "log": "log-0054",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0054"
+    },
+    {
+      "log": "log-0055",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0055"
+    },
+    {
+      "log": "log-0056",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0056"
+    },
+    {
+      "log": "log-0058",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0058"
+    },
+    {
+      "log": "log-0063",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0063"
+    },
+    {
+      "log": "log-0071_183",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0071_183"
+    },
+    {
+      "log": "log-0072_184",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0072_184"
+    },
+    {
+      "log": "log-0073_185",
+      "pipeline": "front",
+      "setup": "Stumpjumper / pod v2",
+      "unit": "log-0073_185"
+    },
+    {
+      "log": "log-0078-valid",
+      "pipeline": "front",
+      "setup": "TR11 / pod v2 (Jamaal)",
+      "unit": "log-0078-valid"
+    },
+    {
+      "log": "log-0079",
+      "pipeline": "front",
+      "setup": "TR11 / pod v2 (Jamaal)",
+      "unit": "log-0079"
+    },
+    {
+      "log": "log-0080-valid",
+      "pipeline": "front",
+      "setup": "TR11 / pod v2 (Jamaal)",
+      "unit": "log-0080-valid"
+    },
+    {
+      "log": "log-0081",
+      "pipeline": "front",
+      "setup": "TR11 / pod v2 (Jamaal)",
+      "unit": "log-0081"
+    },
+    {
+      "log": "log-0098",
+      "pipeline": "front",
+      "setup": "TR11 / pod v2 (Jamaal)",
+      "unit": "log-0098"
+    },
+    {
+      "log": "log-0099",
+      "pipeline": "front",
+      "setup": "TR11 / pod v2 (Jamaal)",
+      "unit": "log-0099"
+    },
+    {
+      "log": "log-0113",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0113"
+    },
+    {
+      "log": "log-0115",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0115"
+    },
+    {
+      "log": "log-0116",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0116"
+    },
+    {
+      "log": "log-0117",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0117"
+    },
+    {
+      "log": "log-0118",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0118"
+    },
+    {
+      "log": "log-0119",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0119"
+    },
+    {
+      "log": "log-0120",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0120"
+    },
+    {
+      "log": "log-0122",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0122"
+    },
+    {
+      "log": "log-0125",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0125"
+    },
+    {
+      "log": "log-0126",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0126"
+    },
+    {
+      "log": "log-0127",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0127"
+    },
+    {
+      "log": "log-0129",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0129"
+    },
+    {
+      "log": "log-0132",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0132"
+    },
+    {
+      "log": "log-0133",
+      "pipeline": "front",
+      "setup": "TR11 2025 / pod v2 (Harry)",
+      "unit": "log-0133"
+    },
+    {
+      "log": "log-0145-filtered-c01",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0145"
+    },
+    {
+      "log": "log-0147-filtered-c01",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0147"
+    },
+    {
+      "log": "log-0147-filtered-c02",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0147"
+    },
+    {
+      "log": "log-0151-filtered-c01",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0151"
+    },
+    {
+      "log": "log-0152-filtered-c01",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0152"
+    },
+    {
+      "log": "log-0152-filtered-c02",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0152"
+    },
+    {
+      "log": "log-0155-filtered-c01",
+      "pipeline": "front",
+      "setup": "Slayer / pod v2",
+      "unit": "log-0155"
+    },
+    {
+      "log": "log168_rear_1",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log168"
+    },
+    {
+      "log": "log168_rear_2",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log168"
+    },
+    {
+      "log": "log169_rear_1",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log169"
+    },
+    {
+      "log": "log169_rear_2",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log169"
+    },
+    {
+      "log": "log169_rear_3",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log169"
+    },
+    {
+      "log": "log180_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log180_rear"
+    },
+    {
+      "log": "log181_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log181_rear"
+    },
+    {
+      "log": "log183_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log183_rear"
+    },
+    {
+      "log": "log184_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log184_rear"
+    },
+    {
+      "log": "log185_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log185_rear"
+    },
+    {
+      "log": "log186_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log186_rear"
+    },
+    {
+      "log": "log188_rear",
+      "pipeline": "rear",
+      "setup": "Specialized Stumpjumper rear / pod v1",
+      "unit": "log188_rear"
+    }
+  ],
+  "aggregation": "Mean across derived chunks within parent, median and quartiles across parents within setup",
+  "tool_sha256": "5ad96b4ecbd5d2517baae2705d91963ae602f8acf3985c10b0599ab0d0a9cdee"
+}

@@ -6,4 +6,5 @@ future comparisons after caches are overwritten, `logs.csv` is a compact fingerp
 and `report.txt` plus `tables/` make the result readable without rerunning the pipeline.
 
 Pipeline caches in `backend/run_artifacts/` are disposable and are not the experiment catalog.
-Old reports under `reports/stats_aggregator/` are retained as a legacy backup.
+Older direct-aggregator bundles that remain cited are isolated under
+`experiments/legacy_stats/`; they are not interchangeable with this versioned catalog.
