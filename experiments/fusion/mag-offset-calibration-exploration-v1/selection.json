@@ -1,0 +1,24 @@
+{
+  "selected_method": "chunk_confidence_n10_cap0.5",
+  "selection_metric": "cohort-balanced corrected_uncentered_rmse_mm",
+  "tuning_cohorts": [
+    "jamaal",
+    "stumpjumper-front-pod-v2",
+    "stumpjumper-front-pod-v1"
+  ],
+  "tuning_summary": {
+    "abs_offset_error_mm": 7.7941093346269765,
+    "cohort": "cohort-balanced",
+    "corrected_low_uncentered_rmse_mm": 9.984526149772256,
+    "corrected_mean_error_mm": -2.304877830056843,
+    "corrected_uncentered_rmse_mm": 8.987302795712514,
+    "method": "chunk_confidence_n10_cap0.5",
+    "n_logs": 24,
+    "offset_error_mm": -3.4419780977282977,
+    "offset_mm": 18.43834624118823,
+    "scalar_mean_error_mm": -3.441978097728297,
+    "scalar_uncentered_rmse_mm": 10.889989382236534,
+    "split": "tuning"
+  },
+  "validation_cohort": "harry"
+}

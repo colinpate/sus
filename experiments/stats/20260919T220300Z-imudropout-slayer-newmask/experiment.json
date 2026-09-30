@@ -1,0 +1,456 @@
+{
+  "schema_version": 3,
+  "id": "20260919T220300Z-imudropout-slayer-newmask",
+  "name": "imudropout_slayer_newmask",
+  "created_at": "2026-09-19T23:03:00+01:00",
+  "notes": "",
+  "tags": [],
+  "experiment_fingerprint": "b46ded58e3706cb4b0a8a345bc1b7282b6d6af1405509db798a5a06479c5de55",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "a9b74aa361dca1a15e566156c31ad3845cea4e461d428984fb96c4d135e2d91c",
+    "explicit_logs": [
+      "log-0145",
+      "log-0146",
+      "log-0147",
+      "log-0148",
+      "log-0149",
+      "log-0150",
+      "log-0151",
+      "log-0152"
+    ],
+    "set": null,
+    "where": {},
+    "usable_only": false,
+    "selected_logs": [
+      "log-0145",
+      "log-0146",
+      "log-0147",
+      "log-0148",
+      "log-0149",
+      "log-0150",
+      "log-0151",
+      "log-0152"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 1
+  },
+  "versions": {
+    "run_fingerprints": [
+      "016b822de124539e493ec8c4bb5b43ee6b567301ae9fb43a0af8b9355effbe27",
+      "201695464b5876c27fcb62b5afc372c918c9cb2cc873aa77de34634f71d445f3",
+      "3e8f473a8442882e0c595c9300bd6cb3cc3c20c5e34b10783ff9b2f18808121e",
+      "43dbc53185384c0d3da5648741a40295c5f4484d1d4017121d8cf85c74a354c0",
+      "725415a5ea753f640be538bf4a2bf6e4b0962498f022b2feee909d914dd9d4ed",
+      "bc218cb7417038ea1d7c236d44d2ae0a0b4cf98c05932e2d8285483d81c99a90",
+      "ccdfafc2cd38e6e2d0bbb2f280ed6069c270fefddbc91429ac862b28bfbb54d0",
+      "fb5028012e1443fcbb0646562f84d48d22f8a00af0e7ba2dbcc779562fcdd13f"
+    ],
+    "pipeline_code_sha256": [
+      "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e"
+    ],
+    "resolved_config_sha256": [
+      "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da"
+    ],
+    "input_sha256": [
+      "3e7140b04eee3f79203b7968ffd0ad99851f4fd34ca9b546dad42ce616531e5a",
+      "440687399ce93ef57776a2ee24d87f9a4f92b614d07c915e98464e4500486ce7",
+      "4ffff635fdd918dd6209311c0223a2af630a9329dad65a126af15732e7522a6f",
+      "614776f16043ae6b78a0d1b5942a30149253b470d8cd832289d65b9860241226",
+      "61ccc7c5b30adc9beb452f352d1de74d091fa4b5e4210ddfa8879fa0099e9824",
+      "9333c51ea36d522751490e44159c4905b464f1f43e4e6bbb639aa94858223188",
+      "a3a4e11011662a5d8656af5b04f627ef7d867ad7d036e3c334179a943e986750",
+      "b526dca52509d647a0e473bf9e82486b3377571f2c8e8fac524cfe256323aae2"
+    ],
+    "assets_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "4cf934027a62ec65a7f1770e97206136608c8c48"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 8,
+    "included_logs": 8,
+    "excluded_logs": 0,
+    "metric_rows": 640,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log-0145",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "fb5028012e1443fcbb0646562f84d48d22f8a00af0e7ba2dbcc779562fcdd13f",
+      "input_sha256": "61ccc7c5b30adc9beb452f352d1de74d091fa4b5e4210ddfa8879fa0099e9824",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:00:34+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0146",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "201695464b5876c27fcb62b5afc372c918c9cb2cc873aa77de34634f71d445f3",
+      "input_sha256": "b526dca52509d647a0e473bf9e82486b3377571f2c8e8fac524cfe256323aae2",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:00:39+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0147",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "bc218cb7417038ea1d7c236d44d2ae0a0b4cf98c05932e2d8285483d81c99a90",
+      "input_sha256": "614776f16043ae6b78a0d1b5942a30149253b470d8cd832289d65b9860241226",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T22:29:24+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0148",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "3e8f473a8442882e0c595c9300bd6cb3cc3c20c5e34b10783ff9b2f18808121e",
+      "input_sha256": "9333c51ea36d522751490e44159c4905b464f1f43e4e6bbb639aa94858223188",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:00:51+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0149",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "725415a5ea753f640be538bf4a2bf6e4b0962498f022b2feee909d914dd9d4ed",
+      "input_sha256": "440687399ce93ef57776a2ee24d87f9a4f92b614d07c915e98464e4500486ce7",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:01:07+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0150",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "016b822de124539e493ec8c4bb5b43ee6b567301ae9fb43a0af8b9355effbe27",
+      "input_sha256": "4ffff635fdd918dd6209311c0223a2af630a9329dad65a126af15732e7522a6f",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:01:13+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0151",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "43dbc53185384c0d3da5648741a40295c5f4484d1d4017121d8cf85c74a354c0",
+      "input_sha256": "3e7140b04eee3f79203b7968ffd0ad99851f4fd34ca9b546dad42ce616531e5a",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:01:19+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0152",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "ccdfafc2cd38e6e2d0bbb2f280ed6069c270fefddbc91429ac862b28bfbb54d0",
+      "input_sha256": "a3a4e11011662a5d8656af5b04f627ef7d867ad7d036e3c334179a943e986750",
+      "resolved_config_sha256": "cbf8ebbc753d9dbfc95bd770f71a0f045ea1ece48792202f1d81b0323f1862da",
+      "pipeline_code_sha256": "d5704544c5489d9a90dc5dcc3e59dbea5639109ca04574d7859a97d5d9daa89e",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-19T23:01:32+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-slayer",
+        "fork-boxxer-200",
+        "front-angle-slayer-boxxer"
+      ],
+      "sets": [
+        "slayer"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Rocky Mountain Slayer 30 2023",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "4cf934027a62ec65a7f1770e97206136608c8c48",
+        "dirty": true,
+        "status_short": [
+          "M backend/accel_rotation.py",
+          " M backend/classes/step.py",
+          " M backend/fusion.py",
+          " M backend/mag.py",
+          " M backend/mag_to_travel_model_core.py",
+          " M backend/pipeline.py",
+          "?? backend/tests/test_travel_solver.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

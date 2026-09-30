@@ -1,0 +1,374 @@
+{
+  "schema_version": 3,
+  "id": "20260927T201517Z-method-comparison-jamaal",
+  "name": "method-comparison-jamaal",
+  "created_at": "2026-09-27T21:15:17+01:00",
+  "notes": "",
+  "tags": [],
+  "experiment_fingerprint": "2d3f8c5217617c20f9a630668aebc73b8ede92b647243c35f6a7f6c51a0b55ac",
+  "selection": {
+    "registry": "logs/registry.toml",
+    "registry_sha256": "49cb9051c202c004b336ab092a47bf64f4fcca26f6467ba3132fd56801af438c",
+    "explicit_logs": [],
+    "set": "jamaal",
+    "where": {},
+    "usable_only": true,
+    "selected_logs": [
+      "log-0078-valid",
+      "log-0079",
+      "log-0080-valid",
+      "log-0081",
+      "log-0098",
+      "log-0099"
+    ]
+  },
+  "stats": {
+    "centering": [
+      "uncentered",
+      "centered"
+    ],
+    "error_threshold": null,
+    "deep_dive": false,
+    "sort_key": "log",
+    "metrics_schema": 2,
+    "comparison_keys": [
+      "travel/mag_model",
+      "travel/solved",
+      "travel/baseline/accel",
+      "travel/oracle/mag_power",
+      "travel/fusion1"
+    ],
+    "sample_support": "common finite comparison support when IMU baseline is present; otherwise per-method",
+    "stats_engine_sha256": "f085da5e06528afa1a01b0e7947025fa3cb9eeb7ed7f18c29fc71b3a558147ef"
+  },
+  "versions": {
+    "run_fingerprints": [
+      "188d02f21eeb48dad04656ecfb7322cbc7c2fb03cafe978e25790bf4f0c8ce6b",
+      "40c71bddcad1e4863491f0d25add4a475de0bd9b261522904cd5cfb63a97a5e3",
+      "5eac8900a2bd0502912cdf6eed5864415a5975d80f06409526003260332d27f8",
+      "6e37b4ddedade06fc32f0094a4bd6cbd45740efe3df3ee96591109d1adc64863",
+      "b5643b040ead18eaf7d3ca15e35b175164dbe470bd50c72fc796e1885e658ddb",
+      "d3227a03b884165e2c04077513308620c94ff8fb71e19ed5354d85c1d5096200"
+    ],
+    "pipeline_code_sha256": [
+      "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661"
+    ],
+    "resolved_config_sha256": [
+      "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141"
+    ],
+    "input_sha256": [
+      "58017d7bb60fc1cdbea39dae25cd81a38ef5a9f146dd2cf90605ae2fb43be798",
+      "5bf1e7f9e3f07fdacc6269d8b5673ef08a37f112621b5dc3192113d2dccc32aa",
+      "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96",
+      "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be",
+      "93bd05266f6ac4dcbd38e8197543a9be4c847125821c4a58afdf760065e1f50c",
+      "ee5117e13822040476857bb0871abd79fd4a7009ad89bee0760b2548570c011c"
+    ],
+    "assets_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    ],
+    "environment_sha256": [
+      "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244"
+    ],
+    "git_commits": [
+      "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac"
+    ],
+    "any_dirty": true
+  },
+  "results": {
+    "requested_logs": 6,
+    "included_logs": 6,
+    "excluded_logs": 0,
+    "metric_rows": 480,
+    "failures": []
+  },
+  "logs": [
+    {
+      "log": "log-0078-valid",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "188d02f21eeb48dad04656ecfb7322cbc7c2fb03cafe978e25790bf4f0c8ce6b",
+      "input_sha256": "5bf1e7f9e3f07fdacc6269d8b5673ef08a37f112621b5dc3192113d2dccc32aa",
+      "resolved_config_sha256": "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:51:00+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0079",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "6e37b4ddedade06fc32f0094a4bd6cbd45740efe3df3ee96591109d1adc64863",
+      "input_sha256": "ee5117e13822040476857bb0871abd79fd4a7009ad89bee0760b2548570c011c",
+      "resolved_config_sha256": "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:52:19+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0080-valid",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "b5643b040ead18eaf7d3ca15e35b175164dbe470bd50c72fc796e1885e658ddb",
+      "input_sha256": "93bd05266f6ac4dcbd38e8197543a9be4c847125821c4a58afdf760065e1f50c",
+      "resolved_config_sha256": "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:53:05+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0081",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "d3227a03b884165e2c04077513308620c94ff8fb71e19ed5354d85c1d5096200",
+      "input_sha256": "58017d7bb60fc1cdbea39dae25cd81a38ef5a9f146dd2cf90605ae2fb43be798",
+      "resolved_config_sha256": "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:55:15+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "catalog",
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200,
+        "legacy_setup_note": "Jamaal boxxer",
+        "legacy_travel_mm": 200
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0098",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "5eac8900a2bd0502912cdf6eed5864415a5975d80f06409526003260332d27f8",
+      "input_sha256": "90799aec5e409c58d6d293798a46ad73c280d818a4e324387ab41b35fa7fc8be",
+      "resolved_config_sha256": "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:52:49+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    },
+    {
+      "log": "log-0099",
+      "pipeline": "front",
+      "status": "fresh",
+      "reason": "matches current input, config, code/assets, and runtime",
+      "run_fingerprint": "40c71bddcad1e4863491f0d25add4a475de0bd9b261522904cd5cfb63a97a5e3",
+      "input_sha256": "6e3f1d78556be2a9631b61f9f213441837654ddd736fd1009cf06ec4963ecb96",
+      "resolved_config_sha256": "cbbac5ee88e2d376012c132c3ef912e1075dcb007fbe0c123c566532708e2141",
+      "pipeline_code_sha256": "5f2186c89a2c2861dd743a938d5ceea1323ebc279f474717867064aea9543661",
+      "assets_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "environment_sha256": "4ac7670baecfda7a00cb30b838a7dec958672038863ea51fad28a37807c04244",
+      "processed_at": "2026-09-27T17:54:44+01:00",
+      "profiles": [
+        "front-pod-v2",
+        "bike-tr11",
+        "fork-boxxer-200",
+        "front-angle-tr11-boxxer"
+      ],
+      "sets": [
+        "front-default",
+        "jamaal"
+      ],
+      "tags": [],
+      "metadata": {
+        "position": "front",
+        "pod_version": 2,
+        "accelerometer": "lsm6dso32",
+        "bike_model": "Transition TR11",
+        "fork_model": "RockShox Boxxer",
+        "front_travel_mm": 200
+      },
+      "git": {
+        "commit": "a73b769c82fa5568cae9bce8b9f7d0e4f4775fac",
+        "dirty": true,
+        "status_short": [
+          "M backend/mag_calibration.py",
+          " M backend/pipeline.py",
+          " M backend/pipeline_rear.py",
+          " M backend/tests/test_stats_experiments.py",
+          "?? backend/evaluation_baselines.py",
+          "?? backend/tests/test_evaluation_baselines.py"
+        ]
+      }
+    }
+  ],
+  "excluded": [],
+  "files": [
+    "experiment.json",
+    "metrics.csv",
+    "logs.csv",
+    "report.txt",
+    "tables/uncentered/summary.csv",
+    "tables/uncentered/errors.csv",
+    "tables/centered/summary.csv",
+    "tables/centered/errors.csv"
+  ]
+}

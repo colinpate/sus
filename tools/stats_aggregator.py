@@ -1341,7 +1341,7 @@ def save_report(
     written: list[Path] = []
 
     report_text_path = output_dir / REPORT_TEXT_FILENAME
-    report_text_path.write_text(report_text, encoding="utf-8")
+    report_text_path.write_text(report_text.rstrip() + "\n", encoding="utf-8")
     written.append(report_text_path)
 
     for filename, rows, fieldnames in wide_report_tables(report):

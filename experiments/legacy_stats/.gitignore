@@ -1,0 +1,3 @@
+# These are compact historical bundles cited by retained rear reports.
+!**/*.csv
+!**/*.json

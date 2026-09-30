@@ -1,0 +1,4 @@
+# Root-level CSV/JSON exclusions are intended for ad hoc output. Stats experiment
+# directories are the durable catalog, so retain their compact provenance and tables.
+!**/*.csv
+!**/*.json

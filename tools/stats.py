@@ -329,7 +329,8 @@ def save_experiment(
         table_files = save_tables(temporary, reports)
         files = [MANIFEST_FILENAME, METRICS_FILENAME, LOGS_FILENAME, REPORT_FILENAME, *table_files]
         manifest["files"] = files
-        (temporary / REPORT_FILENAME).write_text(build_report_header(manifest) + report_body, encoding="utf-8")
+        report_text = (build_report_header(manifest) + report_body).rstrip() + "\n"
+        (temporary / REPORT_FILENAME).write_text(report_text, encoding="utf-8")
         (temporary / MANIFEST_FILENAME).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         os.replace(temporary, destination)
     except Exception:

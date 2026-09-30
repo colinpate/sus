@@ -1,0 +1,185 @@
+Experiment: method-comparison-slayer
+ID: 20260927T201540Z-method-comparison-slayer
+Created: 2026-09-27T21:15:40+01:00
+Group: slayer-filtered
+Tags: none
+Pipeline code: 5f2186c89a2c
+Experiment fingerprint: 58f81296370a51466031efe29516b51b56dd02de79bfc9f45d667733bf05a756
+Notes: (none)
+
+======================== UNCENTERED ERRORS ========================
+
+Cache duration summary
+log                    samples  dt_ms  total_s  active_s  active_%
+---------------------  -------  -----  -------  --------  --------
+log-0145-filtered-c01    39029  10.00   390.29    371.32     95.14
+log-0147-filtered-c01    20838  10.00   208.38     92.18     44.24
+log-0147-filtered-c02    38239  10.00   382.39    347.00     90.75
+log-0151-filtered-c01     9991  10.00    99.91     91.69     91.77
+log-0152-filtered-c01    16176  10.00   161.76    161.76    100.00
+log-0152-filtered-c02    10216  10.00   102.16     94.33     92.34
+log-0155-filtered-c01    14580  10.00   145.80    136.37     93.53
+
+Error stats on active_mask (raw): travel/mag_model vs travel
+log                      t   rmse  bin_rmse    mae      me  rms_trav
+---------------------  ---  -----  --------  -----  ------  --------
+log-0145-filtered-c01  369   9.57      9.24   5.64   -4.06     17.60
+log-0147-filtered-c01    0   9.33      9.33   9.06   -9.06      2.32
+log-0147-filtered-c02   22  26.75     26.78  26.33  -26.33     10.47
+log-0151-filtered-c01    5  13.72     15.40  13.58  -13.58      9.86
+log-0152-filtered-c01    7  10.69     10.65  10.37  -10.37      6.45
+log-0152-filtered-c02    0  35.02     35.02  34.91  -34.91      2.29
+log-0155-filtered-c01   12  39.03     35.44  38.76  -38.76     15.80
+
+Median                 7.00  13.72     15.40  13.58  -13.58      9.86
+Mean                   59.29  20.59     20.27  19.81  -19.58      9.26
+Std Dev                126.64  11.83     11.01  12.39   12.65      5.59
+
+Error stats on active_mask (raw): travel/solved vs travel
+log                      t   rmse  bin_rmse    mae      me  rms_trav
+---------------------  ---  -----  --------  -----  ------  --------
+log-0145-filtered-c01  369  13.61     14.44  12.73   12.29     17.60
+log-0147-filtered-c01    0   3.39      3.39   2.31    1.61      2.32
+log-0147-filtered-c02   22   7.04      6.94   5.52   -5.14     10.47
+log-0151-filtered-c01    5   3.43      3.17   3.27    2.90      9.86
+log-0152-filtered-c01    7   2.69      2.67   2.22   -1.08      6.45
+log-0152-filtered-c02    0  11.27     11.27  10.96  -10.96      2.29
+log-0155-filtered-c01   12  16.10     12.97  15.51  -15.29     15.80
+
+Median                 7.00   7.04      6.94   5.52   -1.08      9.86
+Mean                   59.29   8.22      7.84   7.50   -2.24      9.26
+Std Dev                126.64   5.05      4.64   5.07    8.52      5.59
+
+Error stats on active_mask (raw): travel/baseline/accel vs travel
+log                      t   rmse  bin_rmse    mae      me  rms_trav
+---------------------  ---  -----  --------  -----  ------  --------
+log-0145-filtered-c01  369  38.26     50.06  35.48  -35.46     17.60
+log-0147-filtered-c01    0   3.12      3.12   2.70   -2.70      2.32
+log-0147-filtered-c02   22  25.42     22.17  23.27  -23.26     10.47
+log-0151-filtered-c01    5  33.43     30.85  32.22  -32.22      9.86
+log-0152-filtered-c01    7  33.82     35.61  33.53  -33.53      6.45
+log-0152-filtered-c02    0  30.42     30.42  30.36  -30.36      2.29
+log-0155-filtered-c01   12  33.80     39.12  31.85  -31.85     15.80
+
+Median                 7.00  33.43     30.85  31.85  -31.85      9.86
+Mean                   59.29  28.32     30.19  27.06  -27.05      9.26
+Std Dev                126.64  10.91     13.64  10.56   10.56      5.59
+
+Error stats on active_mask (raw): travel/oracle/mag_power vs travel
+log                      t  rmse  bin_rmse   mae     me  rms_trav
+---------------------  ---  ----  --------  ----  -----  --------
+log-0145-filtered-c01  369  3.52      4.05  2.75   0.03     17.60
+log-0147-filtered-c01    0  5.61      5.61  5.41   5.41      2.32
+log-0147-filtered-c02   22  3.01      3.26  2.44  -0.37     10.47
+log-0151-filtered-c01    5  2.00      1.93  1.64   0.97      9.86
+log-0152-filtered-c01    7  2.32      2.37  1.96   0.48      6.45
+log-0152-filtered-c02    0  1.15      1.15  0.98   0.86      2.29
+log-0155-filtered-c01   12  2.55      2.87  2.03   0.34     15.80
+
+Median                 7.00  2.55      2.87  2.03   0.48      9.86
+Mean                   59.29  2.88      3.03  2.46   1.10      9.26
+Std Dev                126.64  1.31      1.36  1.31   1.81      5.59
+
+Error stats on active_mask (raw): travel/fusion1 vs travel
+log                      t   rmse  bin_rmse    mae      me  rms_trav
+---------------------  ---  -----  --------  -----  ------  --------
+log-0145-filtered-c01  369   7.34      6.93   4.39   -2.83     17.60
+log-0147-filtered-c01    0   9.34      9.34   9.11   -9.11      2.32
+log-0147-filtered-c02   22  26.81     26.89  26.38  -26.38     10.47
+log-0151-filtered-c01    5  13.86     15.90  13.68  -13.68      9.86
+log-0152-filtered-c01    7  10.66     10.64  10.36  -10.36      6.45
+log-0152-filtered-c02    0  35.03     35.03  34.94  -34.94      2.29
+log-0155-filtered-c01   12  39.65     36.72  39.45  -39.45     15.80
+
+Median                 7.00  13.86     15.90  13.68  -13.68      9.86
+Mean                   59.29  20.39     20.21  19.76  -19.53      9.26
+Std Dev                126.64  12.29     11.60  12.74   13.02      5.59
+
+
+======================== CENTERED ERRORS ========================
+
+Cache duration summary
+log                    samples  dt_ms  total_s  active_s  active_%
+---------------------  -------  -----  -------  --------  --------
+log-0145-filtered-c01    39029  10.00   390.29    371.32     95.14
+log-0147-filtered-c01    20838  10.00   208.38     92.18     44.24
+log-0147-filtered-c02    38239  10.00   382.39    347.00     90.75
+log-0151-filtered-c01     9991  10.00    99.91     91.69     91.77
+log-0152-filtered-c01    16176  10.00   161.76    161.76    100.00
+log-0152-filtered-c02    10216  10.00   102.16     94.33     92.34
+log-0155-filtered-c01    14580  10.00   145.80    136.37     93.53
+
+Error stats on active_mask (centered): travel/mag_model vs travel
+log                      t  rmse  bin_rmse   mae  nrmse  rms_trav
+---------------------  ---  ----  --------  ----  -----  --------
+log-0145-filtered-c01  369  8.67      8.79  6.25   0.49     17.60
+log-0147-filtered-c01    0  2.22      2.22  1.65   0.96      2.32
+log-0147-filtered-c02   22  4.73      4.33  3.97   0.45     10.47
+log-0151-filtered-c01    5  1.94      3.36  1.33   0.20      9.86
+log-0152-filtered-c01    7  2.58      2.47  2.15   0.40      6.45
+log-0152-filtered-c02    0  2.83      2.83  2.32   1.24      2.29
+log-0155-filtered-c01   12  4.58      6.11  3.53   0.29     15.80
+
+Median                 7.00  2.83      3.36  2.32   0.45      9.86
+Mean                   59.29  3.94      4.30  3.03   0.58      9.26
+Std Dev                126.64  2.19      2.21  1.59   0.35      5.59
+
+Error stats on active_mask (centered): travel/solved vs travel
+log                      t  rmse  bin_rmse   mae  nrmse  rms_trav
+---------------------  ---  ----  --------  ----  -----  --------
+log-0145-filtered-c01  369  5.84      5.67  4.39   0.33     17.60
+log-0147-filtered-c01    0  2.98      2.98  2.71   1.28      2.32
+log-0147-filtered-c02   22  4.81      4.51  4.10   0.46     10.47
+log-0151-filtered-c01    5  1.84      3.12  1.28   0.19      9.86
+log-0152-filtered-c01    7  2.46      2.44  2.12   0.38      6.45
+log-0152-filtered-c02    0  2.61      2.61  2.17   1.14      2.29
+log-0155-filtered-c01   12  5.04      6.95  3.57   0.32     15.80
+
+Median                 7.00  2.98      3.12  2.71   0.38      9.86
+Mean                   59.29  3.65      4.04  2.91   0.59      9.26
+Std Dev                126.64  1.43      1.60  1.06   0.41      5.59
+
+Error stats on active_mask (centered): travel/baseline/accel vs travel
+log                      t   rmse  bin_rmse    mae  nrmse  rms_trav
+---------------------  ---  -----  --------  -----  -----  --------
+log-0145-filtered-c01  369  14.37     22.93  10.98   0.82     17.60
+log-0147-filtered-c01    0   1.56      1.56   1.40   0.67      2.32
+log-0147-filtered-c02   22  10.24     12.00   8.25   0.98     10.47
+log-0151-filtered-c01    5   8.92     12.02   7.72   0.91      9.86
+log-0152-filtered-c01    7   4.40      5.38   3.41   0.68      6.45
+log-0152-filtered-c02    0   1.88      1.88   1.47   0.82      2.29
+log-0155-filtered-c01   12  11.29     15.64   7.68   0.71     15.80
+
+Median                 7.00   8.92     12.00   7.68   0.82      9.86
+Mean                   59.29   7.52     10.20   5.84   0.80      9.26
+Std Dev                126.64   4.59      7.22   3.46   0.11      5.59
+
+Error stats on active_mask (centered): travel/oracle/mag_power vs travel
+log                      t  rmse  bin_rmse   mae  nrmse  rms_trav
+---------------------  ---  ----  --------  ----  -----  --------
+log-0145-filtered-c01  369  3.52      4.04  2.75   0.20     17.60
+log-0147-filtered-c01    0  1.48      1.48  1.31   0.64      2.32
+log-0147-filtered-c02   22  2.99      3.35  2.40   0.29     10.47
+log-0151-filtered-c01    5  1.75      1.77  1.57   0.18      9.86
+log-0152-filtered-c01    7  2.27      2.42  1.91   0.35      6.45
+log-0152-filtered-c02    0  0.76      0.76  0.64   0.33      2.29
+log-0155-filtered-c01   12  2.52      2.94  1.94   0.16     15.80
+
+Median                 7.00  2.27      2.42  1.91   0.29      9.86
+Mean                   59.29  2.18      2.40  1.79   0.31      9.26
+Std Dev                126.64  0.87      1.06  0.65   0.15      5.59
+
+Error stats on active_mask (centered): travel/fusion1 vs travel
+log                      t  rmse  bin_rmse   mae  nrmse  rms_trav
+---------------------  ---  ----  --------  ----  -----  --------
+log-0145-filtered-c01  369  6.78      6.75  4.71   0.38     17.60
+log-0147-filtered-c01    0  2.04      2.04  1.55   0.88      2.32
+log-0147-filtered-c02   22  4.81      4.48  4.01   0.46     10.47
+log-0151-filtered-c01    5  2.26      4.06  1.44   0.23      9.86
+log-0152-filtered-c01    7  2.51      2.46  2.14   0.39      6.45
+log-0152-filtered-c02    0  2.61      2.61  2.17   1.14      2.29
+log-0155-filtered-c01   12  4.02      5.59  2.99   0.25     15.80
+
+Median                 7.00  2.61      4.06  2.17   0.39      9.86
+Mean                   59.29  3.58      4.00  2.72   0.53      9.26
+Std Dev                126.64  1.61      1.63  1.16   0.32      5.59

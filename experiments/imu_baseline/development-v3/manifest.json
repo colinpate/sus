@@ -1,0 +1,556 @@
+{
+  "sets": [
+    "front-default",
+    "rear-default"
+  ],
+  "cutoffs_hz": [
+    0.1,
+    0.2,
+    0.3,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0,
+    3.0,
+    4.0,
+    6.0,
+    8.0,
+    12.0,
+    16.0,
+    24.0,
+    32.0
+  ],
+  "placements": [
+    "velocity",
+    "displacement",
+    "both"
+  ],
+  "filter_order": 2,
+  "lowpass_hz": 40,
+  "edge_s": 2,
+  "objective": "Mean RMSE within parent recording, then mean within setup, then equal mean across setups; separately front/rear",
+  "protocol": "Development-set tuning; zero-phase filters; zero initial velocity/displacement; fixed common scoring samples per recording across candidates",
+  "sources": [
+    {
+      "log": "log-0046",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0046",
+      "source_fingerprint": "79ab41c426a6ca76ecab26283f1fe0e5c630fdbeee7dfcd11564abb2b73a9bb9",
+      "accel_key": "accel/proj",
+      "cache_sha256": "5569ef632b03083753946e7000183c4f4a31087e87ee1927c3ede0af071a5be0",
+      "scored_samples": 41596
+    },
+    {
+      "log": "log-0048",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0048",
+      "source_fingerprint": "d1aaf9ae6121f01600e96c529c3db23baf743ef99976682790a91b069877405a",
+      "accel_key": "accel/proj",
+      "cache_sha256": "9bac8c569c99610721969250f84148bce7c115ec36dfbca828f20647f062f6cb",
+      "scored_samples": 43134
+    },
+    {
+      "log": "log-0049",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0049",
+      "source_fingerprint": "c1628ae39887b58da0a50fe341aca2e973f636d1e888bef54ab3e06a51348584",
+      "accel_key": "accel/proj",
+      "cache_sha256": "4b34cc5b77d345fb0cf7bb21353b6829f311132fc04000006cce2d75ec7b91d7",
+      "scored_samples": 24398
+    },
+    {
+      "log": "log-0054",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0054",
+      "source_fingerprint": "fa54e618d0e2f101a90dcbc53ddcaee9e6829ecca7965d43b4da3d67b2f4781c",
+      "accel_key": "accel/proj",
+      "cache_sha256": "81c0101a81090c8eeeaf9714500afd05fdb3a3d25346a03495b28eeefce3dbcc",
+      "scored_samples": 75310
+    },
+    {
+      "log": "log-0055",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0055",
+      "source_fingerprint": "c9494490404504ee411c6b00259b8a244a7b3d686c34f1535a87a070a97c0e2c",
+      "accel_key": "accel/proj",
+      "cache_sha256": "bf8a976b89edf1502810a643e262b6b5b2c3cf61b5c47394a7839b3c97ca367c",
+      "scored_samples": 25924
+    },
+    {
+      "log": "log-0056",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0056",
+      "source_fingerprint": "7e0ad01cac8628684face5b0f9f150dd6822257e27a2bdd16b631090ef1ec579",
+      "accel_key": "accel/proj",
+      "cache_sha256": "b9b8d383d4fbd08dd755ad207876dfe30b10dc079f6d1c5f2e057dcad4b52f5a",
+      "scored_samples": 29174
+    },
+    {
+      "log": "log-0058",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0058",
+      "source_fingerprint": "7dd6dac2b0c4ae6abdfb9e73dab53bbd748bb67ac08fa2ed0a867ab38b127e71",
+      "accel_key": "accel/proj",
+      "cache_sha256": "b43b732d89bab42f02018e84e10fe6a06a592afb28887b8adad6b62c096fc738",
+      "scored_samples": 40046
+    },
+    {
+      "log": "log-0063",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0063",
+      "source_fingerprint": "1f4ec9dae207bfedaa25479cec1b2be05e77d81c02adb7f7035b2b3f4e440d5d",
+      "accel_key": "accel/proj",
+      "cache_sha256": "a2b3c32d665d58a9bcd007fb1267f37e0279e3a52343c6232e4a6a90f44e07ed",
+      "scored_samples": 15121
+    },
+    {
+      "log": "log-0071_183",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0071_183",
+      "source_fingerprint": "ef29935aaadd7a59f9d40729c3740b6d8567b32ace0d1202b4024d9c37ee24da",
+      "accel_key": "accel/proj",
+      "cache_sha256": "2500afa50a1664beb39f6abcfc225e5aee242a6ee17fd6a17ae8e124a4f7a79d",
+      "scored_samples": 42468
+    },
+    {
+      "log": "log-0072_184",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0072_184",
+      "source_fingerprint": "63895bb3e6784492523a08e4f97c20ef15131b3846c70467601434b1e65c90be",
+      "accel_key": "accel/proj",
+      "cache_sha256": "0f37be1360fba9f7ab48c8f1263f633102e09dfd57b8cebe2bfd93a9cf42b8a7",
+      "scored_samples": 34441
+    },
+    {
+      "log": "log-0073_185",
+      "pipeline": "front",
+      "setup": "stumpjumper_pod_v2",
+      "unit": "log-0073_185",
+      "source_fingerprint": "80c160dd1066ae9e2a5e7a747ba5c4c72503092f7d88895515dfe5b3d381d676",
+      "accel_key": "accel/proj",
+      "cache_sha256": "9b45a15acc0a816e7b3dbfc8931eab84ef04d8bc5a47a1033cce892f08e2be8b",
+      "scored_samples": 32641
+    },
+    {
+      "log": "log-0078-valid",
+      "pipeline": "front",
+      "setup": "tr11_pod_v2",
+      "unit": "log-0078-valid",
+      "source_fingerprint": "76d1927de833397cbc23cf9e8cd9180324fc2df42786405dd6ae058e7e70d5d0",
+      "accel_key": "accel/proj",
+      "cache_sha256": "ef1fdea8096a63fa6b87a7fe85c5684c5a2823bbdd1dbeb75203697ce8a45df9",
+      "scored_samples": 14579
+    },
+    {
+      "log": "log-0079",
+      "pipeline": "front",
+      "setup": "tr11_pod_v2",
+      "unit": "log-0079",
+      "source_fingerprint": "4916d9bf29526dfc3bebc7953d447db4efe2a3307e4807d1f1f2e8550b5e920d",
+      "accel_key": "accel/proj",
+      "cache_sha256": "99a5677000a1efc6147fca1ca33b8db84603bd911465220b5c098577e6fbb628",
+      "scored_samples": 26644
+    },
+    {
+      "log": "log-0080-valid",
+      "pipeline": "front",
+      "setup": "tr11_pod_v2",
+      "unit": "log-0080-valid",
+      "source_fingerprint": "79f567eab03dfa931b7a3f8ad1bedbad8c251a704ef205ecc4e4679339138c4f",
+      "accel_key": "accel/proj",
+      "cache_sha256": "a61fb49bf584876c2fd51bbeac20296a6ce098eafdcf7a6c2fed8ed963cfbf19",
+      "scored_samples": 36568
+    },
+    {
+      "log": "log-0081",
+      "pipeline": "front",
+      "setup": "tr11_pod_v2",
+      "unit": "log-0081",
+      "source_fingerprint": "81f22b500f3c4265f9ef235a50a0adfd29a0c495db4035699007de5b30b2e3bd",
+      "accel_key": "accel/proj",
+      "cache_sha256": "e76ba3bbd19ce38dc09b9f3b963c9330be2c6d33b222f4432671f4acc6905af5",
+      "scored_samples": 82750
+    },
+    {
+      "log": "log-0098",
+      "pipeline": "front",
+      "setup": "tr11_pod_v2",
+      "unit": "log-0098",
+      "source_fingerprint": "49f2ad80e028ec18cd83515101f83de688f8cb64fd43a11d582a4c17b59aa4bc",
+      "accel_key": "accel/proj",
+      "cache_sha256": "cd247e8a4be6ff01e0e007e1c0a86b9eaf6dad201c1a1c63b40ffbc3bd278853",
+      "scored_samples": 23496
+    },
+    {
+      "log": "log-0099",
+      "pipeline": "front",
+      "setup": "tr11_pod_v2",
+      "unit": "log-0099",
+      "source_fingerprint": "fe4a647fb8a1ac94faadd774f705961db202abe30db08dfaabc3ffa8e3258454",
+      "accel_key": "accel/proj",
+      "cache_sha256": "d7dce31c46179189da9e85ee3e63769648554dc1ce599189d148de9235879ea3",
+      "scored_samples": 64590
+    },
+    {
+      "log": "log-0113",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0113",
+      "source_fingerprint": "1a23439432265b4c9d9c05f3d4bd2a2f1f091072c3c6b776c7695daef08fd8ec",
+      "accel_key": "accel/proj",
+      "cache_sha256": "dc536550bd7ae549d41df32ab12da2e7321c8490452f709035bb64f7cf41b72b",
+      "scored_samples": 26061
+    },
+    {
+      "log": "log-0115",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0115",
+      "source_fingerprint": "2066f8eafcea4ae8067f7bc0b2ddbcdcaecc5a846811dfe1d000c9fa6a54c6db",
+      "accel_key": "accel/proj",
+      "cache_sha256": "870294adfee7e5ced55a865b6cb1553ebb80b8693d585bb8e60b67423110076a",
+      "scored_samples": 17959
+    },
+    {
+      "log": "log-0116",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0116",
+      "source_fingerprint": "dce590620499e54c31e2a6201c482884e2b9ae848ef5aa0731679eff56aaa216",
+      "accel_key": "accel/proj",
+      "cache_sha256": "26d1ac3f5546c245695470e09bae58a5b3e5b16704bce256a3eb3059ac03063f",
+      "scored_samples": 19595
+    },
+    {
+      "log": "log-0117",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0117",
+      "source_fingerprint": "6bfc6bed0fcfd4740acdfba55b1dd89c47bac1e9fe11699604c89615f3761a8e",
+      "accel_key": "accel/proj",
+      "cache_sha256": "e0ed973a80f04f9346863229742de5e275e723c98c39b8c2ece4414ac6df900b",
+      "scored_samples": 12630
+    },
+    {
+      "log": "log-0118",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0118",
+      "source_fingerprint": "9a0621e56f4ac5fcbe38b8ec777cae25e8f61dd50511c6a5fc821abeb6bb37e5",
+      "accel_key": "accel/proj",
+      "cache_sha256": "6425493e953db0d34c7f782225db4be43615ce64312bc3843b56ca8592cf5779",
+      "scored_samples": 11459
+    },
+    {
+      "log": "log-0119",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0119",
+      "source_fingerprint": "d6de125ec2b9024e11a6858d7b9d3aeefea5b4749f149cc26e2508bbe0fb94a2",
+      "accel_key": "accel/proj",
+      "cache_sha256": "86c7f9452aba8e7039259118a196a523d66bcd2090b991b1dd9beae72b5758e1",
+      "scored_samples": 14966
+    },
+    {
+      "log": "log-0120",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0120",
+      "source_fingerprint": "9d7f3bb8ea3c5db356f21a94ed25ace3c6f4ca8be354452cd2646bd26f1fd437",
+      "accel_key": "accel/proj",
+      "cache_sha256": "77a66efbd2e39bd1a8e7106f4f04d5510cfe2d90cec8c8bf75e3bd49c7d7af50",
+      "scored_samples": 5081
+    },
+    {
+      "log": "log-0122",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0122",
+      "source_fingerprint": "9153506e64432bd700e43ecc637ed60863d9597f0f7c7f51965e33460a87e5a4",
+      "accel_key": "accel/proj",
+      "cache_sha256": "bfcc325a05affee9ae085521a1707b82eec6050a5ba8c93874c149dfcc8a62f3",
+      "scored_samples": 34255
+    },
+    {
+      "log": "log-0125",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0125",
+      "source_fingerprint": "a0ecaa1dc2d9b5c81755223ffa89ff66d75be7fc82376408d950106a8d457c08",
+      "accel_key": "accel/proj",
+      "cache_sha256": "0c77c1e0d8948f7aaf0567440523548824714a4665e4e47d34c7867a59bc28b1",
+      "scored_samples": 20402
+    },
+    {
+      "log": "log-0126",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0126",
+      "source_fingerprint": "dff8ac5daa04143c1ea7c602d9a4c0be64d908915833c48db6b801dec5dbe396",
+      "accel_key": "accel/proj",
+      "cache_sha256": "70da51c6073d5b5e97d4f524c142c8a0ae7a614bb1ae9151c086640a1bccf258",
+      "scored_samples": 5960
+    },
+    {
+      "log": "log-0127",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0127",
+      "source_fingerprint": "aaf2b643d0443a23ca8df5bbd6d181e4ae47bdd32bf5a86ffe6a200960c05bfd",
+      "accel_key": "accel/proj",
+      "cache_sha256": "7f721d28d18c2b35414883005aed1828304da35ffb434b11f822df3d8f30d443",
+      "scored_samples": 11076
+    },
+    {
+      "log": "log-0129",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0129",
+      "source_fingerprint": "5c37ae54159d7f2983db865fa277f632fbdb7644a6deea31e3d885291f24eb86",
+      "accel_key": "accel/proj",
+      "cache_sha256": "b32a7ee71bc58c2d739674459e0e2cd93bf5a4d7a37fb9d11934cd576f76c867",
+      "scored_samples": 44597
+    },
+    {
+      "log": "log-0132",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0132",
+      "source_fingerprint": "9d328851f0e58e040d19fa77778c13495aa3b146f1dce3640d09a07032101257",
+      "accel_key": "accel/proj",
+      "cache_sha256": "331fef1911c56a9de4eb73a42c250762ce4e7d5d50b8ad7591cdecb23d993220",
+      "scored_samples": 29464
+    },
+    {
+      "log": "log-0133",
+      "pipeline": "front",
+      "setup": "tr11_2025_pod_v2",
+      "unit": "log-0133",
+      "source_fingerprint": "d36babfdd2dac0f380adaa1c0c78b0fe042b97510997b0a6d6cba47da717b0bc",
+      "accel_key": "accel/proj",
+      "cache_sha256": "ddc2615697cf6cbd17a0e8d1fc69db504cce066a1c3dcd077c78ec441f9bfdf4",
+      "scored_samples": 9260
+    },
+    {
+      "log": "log-0145-filtered-c01",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0145",
+      "source_fingerprint": "b4567ddc89cca7ed1bb415d4da87ae50c5a47ff64bb696265444027945e01e38",
+      "accel_key": "accel/proj",
+      "cache_sha256": "4edb1ee05d1bf56dc1f31950959c7665cd4a18fab0c65090ffcdbef724890626",
+      "scored_samples": 36922
+    },
+    {
+      "log": "log-0147-filtered-c01",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0147",
+      "source_fingerprint": "5232cc6c8982dbad41856f8bd17d588837760eeaa65956ff85e93617cf6d33dd",
+      "accel_key": "accel/proj",
+      "cache_sha256": "3cbe23bd2ed22fde0250ce1a7a90b07b4dc114309b5cb896c74f9d99fcf2b909",
+      "scored_samples": 60
+    },
+    {
+      "log": "log-0147-filtered-c02",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0147",
+      "source_fingerprint": "bbdb09466a7f628ba2daedc3b8f07662679b8058ea82622232113c6049ce7107",
+      "accel_key": "accel/proj",
+      "cache_sha256": "5c6e2d8451748acd53c2da0fa9def8f60ec1b3e178f0bb01b0946bf0de2de27f",
+      "scored_samples": 2229
+    },
+    {
+      "log": "log-0151-filtered-c01",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0151",
+      "source_fingerprint": "c7028a2ca555fa1c8682812a7c0c365eef5252db00dbfe8b82c0a85636b6e18a",
+      "accel_key": "accel/proj",
+      "cache_sha256": "94b4ea13f2512c92952abd849136bd40a359d627e2e02e969983066524f9d4e5",
+      "scored_samples": 584
+    },
+    {
+      "log": "log-0152-filtered-c01",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0152",
+      "source_fingerprint": "6c886c57da3e76a9e09b70d929665c09a68fb44a1952809e91c6c4d6878563bb",
+      "accel_key": "accel/proj",
+      "cache_sha256": "97247c1505570038ce8d736ebc83e0166aa185de3007c290134a08a7337c8444",
+      "scored_samples": 798
+    },
+    {
+      "log": "log-0152-filtered-c02",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0152",
+      "source_fingerprint": "15f963cdf8e721a9e36ed42188988dcb4948c5038c801c37f6dab4f05f327820",
+      "accel_key": "accel/proj",
+      "cache_sha256": "28cf8b7f80cc245c1aeeb2d93dc3aeb5660976407d0127fe9f83832d11e26b51",
+      "scored_samples": 73
+    },
+    {
+      "log": "log-0155-filtered-c01",
+      "pipeline": "front",
+      "setup": "slayer_pod_v2",
+      "unit": "log-0155",
+      "source_fingerprint": "5c12247f21d20579163480f92b437b0765e499b642ed380a1d4726c8fd3b35e9",
+      "accel_key": "accel/proj",
+      "cache_sha256": "d1bb0581321eff5d160748c6653da9ed3a07e89313367aa169b5d2a16cd5be5e",
+      "scored_samples": 1249
+    },
+    {
+      "log": "log168_rear_1",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log168",
+      "source_fingerprint": "d5d0c3db317f65c00df01a15fd4be050147e99f4acc4327a89ed48c9135ae0be",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "5ec9def0f6c49ac3de3974538b8871feb71a71c95f9103b2c60f4057b7c158ff",
+      "scored_samples": 75707
+    },
+    {
+      "log": "log168_rear_2",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log168",
+      "source_fingerprint": "35d4d8958356035804278900ead168f98b5ecd3f592dbfac43709169df2a8498",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "2755bb2e95165c5cacb7286fd59ea20f130eeaa8f5a39a2d1fb522abad450af9",
+      "scored_samples": 75122
+    },
+    {
+      "log": "log169_rear_1",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log169",
+      "source_fingerprint": "a5acacbfd1991c823c61b6a13c0c199804ab720de5933497c97f509ba480f0e7",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "2b9c1f36164380cacb94028791f21ab66da96a0021d5bcda72d8fd0c5ccffe27",
+      "scored_samples": 75184
+    },
+    {
+      "log": "log169_rear_2",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log169",
+      "source_fingerprint": "7edeb0c8ae302dc7d63b7ba2bbe206a6a018d2d220e044832cf03b7d192d47b9",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "84ffb9895af8882e3de2df442d687af4603c7cafc6d46140ef61e6b02ee9b70a",
+      "scored_samples": 45451
+    },
+    {
+      "log": "log169_rear_3",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log169",
+      "source_fingerprint": "e6d6f1f1d0218688c83dc947c03d9f530cbbeb2e30aeeb7f3c8812ac50845f3f",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "f50e46f9e54f05afc68d5ac2d30c94a43c96cf32156358b787c274402a43496e",
+      "scored_samples": 75774
+    },
+    {
+      "log": "log180_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log180_rear",
+      "source_fingerprint": "7f41f4d6ed2ac029c50e5af9f9404dd0b9ee1854a77f518b76239a8372b39ef0",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "66b30bc13bbcd006b3b7d54602e883501e735f583e9e0d99052b3f4e3c576db3",
+      "scored_samples": 42805
+    },
+    {
+      "log": "log181_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log181_rear",
+      "source_fingerprint": "c9bfc359b4a6d99df0c3748dbdd1d276b4d81a7ad83ef22487901c48f1f494f5",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "c4f3699a873ac5ea5e112007df3a2aa12a7c710866efde9c5402d921da7d6b28",
+      "scored_samples": 47899
+    },
+    {
+      "log": "log183_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log183_rear",
+      "source_fingerprint": "04e8970d5b967345c766fe8764474341677a7c0bc20a605d8c41f817ac2feb5b",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "65419b56062613d860b19ecc13459f44d00e5fea30bbb05ea2682a00a1115126",
+      "scored_samples": 80153
+    },
+    {
+      "log": "log184_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log184_rear",
+      "source_fingerprint": "4bf21d6c02d807812d850ba5d71f03f405ae40e1a8c64d91fd71193d8213168b",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "e0536f82175fa3f1fccf9a0202fe080ca0141f0589f23f3374d1700754c1a74c",
+      "scored_samples": 64073
+    },
+    {
+      "log": "log185_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log185_rear",
+      "source_fingerprint": "43e07da734909e2169e674e2741ea20d74d967df25799e46f0d58ba74a985a70",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "583732c1d957c56835d49720b9bf746b483b0b7915a56f2b04cca32c409d651f",
+      "scored_samples": 58125
+    },
+    {
+      "log": "log186_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log186_rear",
+      "source_fingerprint": "e1c92635367e7e1d1ee0a8916250391af87cad11ab0b958608bfb18236e760dd",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "98511e58420aad0b479949a609173c7242885655d466f7eb748ae60a53092788",
+      "scored_samples": 103840
+    },
+    {
+      "log": "log188_rear",
+      "pipeline": "rear",
+      "setup": "rear-Specialized Stumpjumper-pod1",
+      "unit": "log188_rear",
+      "source_fingerprint": "0b14933d7b540f14ed954342ef99b45d8d9530a6aedfd3d851d6e5c5e55950cd",
+      "accel_key": "accel/lpf/proj",
+      "cache_sha256": "e8041afd6810b104de9f8de2d7d048143fe0e245c461b3f5d5319993808aa9fc",
+      "scored_samples": 82420
+    }
+  ],
+  "failures": [],
+  "selected": {
+    "front": {
+      "pipeline": "front",
+      "placement": "both",
+      "cutoff_hz": 1.0,
+      "setup_balanced_rmse_mm": 17.651022330949868
+    },
+    "rear": {
+      "pipeline": "rear",
+      "placement": "displacement",
+      "cutoff_hz": 4.0,
+      "setup_balanced_rmse_mm": 15.9384429303186
+    }
+  },
+  "code_sha256": {
+    "tools/sweep_imu_baseline.py": "ee5c68b4e441759873045c53e60ed7f4086a27f24c5797a88941112766609059",
+    "backend/evaluation_baselines.py": "1625ec9bfb5bdc209d06772b00a1a89a1cf4ff3ec068cb8fdc76606a24375300",
+    "tools/stats_aggregator.py": "09108ec399c5a793dba60123a735a41d44e35873a4df941274f6deac24b14d84"
+  }
+}

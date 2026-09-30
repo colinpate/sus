@@ -21,6 +21,10 @@ mask without changing the canonical cache.
 The post-correction fusion sweeps and magnetic offset-calibration investigation
 are grouped under `mag_offset_calibration/`.
 
+Completed Slayer import and chunk-pipeline diagnostics live under
+`archive/slayer/`. They reproduce the narrative reports under `reports/` but
+are not default production-analysis entry points.
+
 These scripts assume front cache keys such as `accel/lpfhp/proj`, `mag/proj/corr/lpf`,
 and `mag_baseline`. For rear logs, start with `tools/stats_aggregator.py` or `tools/rear/`.
 

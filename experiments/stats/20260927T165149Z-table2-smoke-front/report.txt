@@ -1,0 +1,113 @@
+Experiment: table2-smoke-front
+ID: 20260927T165149Z-table2-smoke-front
+Created: 2026-09-27T17:51:49+01:00
+Group: log-0055
+Tags: none
+Pipeline code: 5f2186c89a2c
+Experiment fingerprint: 58efdbc7f222f5d688e9736bb22ca98ad3202fa3e3e5905960aa85975c711b1e
+Notes: Smoke validation of baseline outputs and paired scoring; not final cohort.
+
+======================== UNCENTERED ERRORS ========================
+
+Cache duration summary
+log       samples  dt_ms  total_s  active_s  active_%
+--------  -------  -----  -------  --------  --------
+log-0055    43808  10.00   438.08    263.36     60.12
+
+Error stats on active_mask (raw): travel/mag_model vs travel
+log         t  rmse  bin_rmse   mae     me  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  5.40      4.82  3.60  -0.28     24.42
+
+Median    259.00  5.40      4.82  3.60  -0.28     24.42
+Mean      259.00  5.40      4.82  3.60  -0.28     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+Error stats on active_mask (raw): travel/solved vs travel
+log         t  rmse  bin_rmse   mae     me  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  3.02      3.03  2.25  -0.12     24.42
+
+Median    259.00  3.02      3.03  2.25  -0.12     24.42
+Mean      259.00  3.02      3.03  2.25  -0.12     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+Error stats on active_mask (raw): travel/baseline/accel vs travel
+log         t   rmse  bin_rmse    mae      me  rms_trav
+--------  ---  -----  --------  -----  ------  --------
+log-0055  259  46.89     60.96  42.29  -42.28     24.42
+
+Median    259.00  46.89     60.96  42.29  -42.28     24.42
+Mean      259.00  46.89     60.96  42.29  -42.28     24.42
+Std Dev   0.00   0.00      0.00   0.00    0.00      0.00
+
+Error stats on active_mask (raw): travel/oracle/mag_power vs travel
+log         t  rmse  bin_rmse   mae     me  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  3.52      5.18  2.75  -0.02     24.42
+
+Median    259.00  3.52      5.18  2.75  -0.02     24.42
+Mean      259.00  3.52      5.18  2.75  -0.02     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+Error stats on active_mask (raw): travel/fusion1 vs travel
+log         t  rmse  bin_rmse   mae     me  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  5.16      4.53  3.44  -0.09     24.42
+
+Median    259.00  5.16      4.53  3.44  -0.09     24.42
+Mean      259.00  5.16      4.53  3.44  -0.09     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+
+======================== CENTERED ERRORS ========================
+
+Cache duration summary
+log       samples  dt_ms  total_s  active_s  active_%
+--------  -------  -----  -------  --------  --------
+log-0055    43808  10.00   438.08    263.36     60.12
+
+Error stats on active_mask (centered): travel/mag_model vs travel
+log         t  rmse  bin_rmse   mae  nrmse  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  5.39      4.84  3.60   0.22     24.42
+
+Median    259.00  5.39      4.84  3.60   0.22     24.42
+Mean      259.00  5.39      4.84  3.60   0.22     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+Error stats on active_mask (centered): travel/solved vs travel
+log         t  rmse  bin_rmse   mae  nrmse  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  3.02      3.03  2.24   0.12     24.42
+
+Median    259.00  3.02      3.03  2.24   0.12     24.42
+Mean      259.00  3.02      3.03  2.24   0.12     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+Error stats on active_mask (centered): travel/baseline/accel vs travel
+log         t   rmse  bin_rmse    mae  nrmse  rms_trav
+--------  ---  -----  --------  -----  -----  --------
+log-0055  259  20.28     28.31  15.96   0.83     24.42
+
+Median    259.00  20.28     28.31  15.96   0.83     24.42
+Mean      259.00  20.28     28.31  15.96   0.83     24.42
+Std Dev   0.00   0.00      0.00   0.00   0.00      0.00
+
+Error stats on active_mask (centered): travel/oracle/mag_power vs travel
+log         t  rmse  bin_rmse   mae  nrmse  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  3.52      5.19  2.75   0.14     24.42
+
+Median    259.00  3.52      5.19  2.75   0.14     24.42
+Mean      259.00  3.52      5.19  2.75   0.14     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00
+
+Error stats on active_mask (centered): travel/fusion1 vs travel
+log         t  rmse  bin_rmse   mae  nrmse  rms_trav
+--------  ---  ----  --------  ----  -----  --------
+log-0055  259  5.16      4.53  3.44   0.21     24.42
+
+Median    259.00  5.16      4.53  3.44   0.21     24.42
+Mean      259.00  5.16      4.53  3.44   0.21     24.42
+Std Dev   0.00  0.00      0.00  0.00   0.00      0.00

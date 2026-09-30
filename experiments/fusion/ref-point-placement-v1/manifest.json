@@ -1,0 +1,236 @@
+{
+  "generated_at": "2026-09-14T19:21:51.598391+00:00",
+  "git_revision": "4bbc6229b4ca3e119f43bd79ecb17115b496cefd",
+  "jobs": [
+    {
+      "cohort": "front-default",
+      "log": "log-0046",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0048",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0049",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0054",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0055",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0056",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0058",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0063",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0071_183",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0072_184",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0073_185",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0078-valid",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0079",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0080-valid",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0081",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log103",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log104",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log106",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log107",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log109",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log110",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log112",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0098",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0099",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0113",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0115",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0116",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0117",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0118",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0119",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0120",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0122",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0125",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0126",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0127",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0129",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0132",
+      "split": "tuning"
+    },
+    {
+      "cohort": "front-default",
+      "log": "log-0133",
+      "split": "tuning"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0145-filtered-c01",
+      "split": "validation"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0147-filtered-c01",
+      "split": "validation"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0147-filtered-c02",
+      "split": "validation"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0151-filtered-c01",
+      "split": "validation"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0152-filtered-c01",
+      "split": "validation"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0152-filtered-c02",
+      "split": "validation"
+    },
+    {
+      "cohort": "slayer-filtered",
+      "log": "log-0155-filtered-c01",
+      "split": "validation"
+    }
+  ],
+  "max_nfev": 100,
+  "protocol": "Common cached upstream signals; rerun first solver, nuisance fit, full-rate correction, reference application, and final solver.",
+  "tuning_set": "front-default",
+  "validation_set": "slayer-filtered",
+  "workers": 8
+}

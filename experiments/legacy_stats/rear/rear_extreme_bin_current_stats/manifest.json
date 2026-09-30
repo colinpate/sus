@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-16T22:57:03-07:00",
+  "command": {
+    "logs": [
+      "log140_rear",
+      "log141_rear",
+      "log142_rear",
+      "log143_rear",
+      "log144_rear",
+      "log145_rear",
+      "log148_rear",
+      "log149_rear",
+      "log150_rear",
+      "log151_rear",
+      "log152_rear",
+      "log153_rear",
+      "log154_rear"
+    ],
+    "cache_root": "backend/run_artifacts",
+    "center_errors": true,
+    "error_threshold": null,
+    "sort_key": "solved_rmse",
+    "deep_dive": true
+  },
+  "report": {
+    "logs_summarized": 13,
+    "failures": 0,
+    "diagnostics_included": true
+  },
+  "python": "3.13.2",
+  "git": {
+    "commit": "f74dffaf560f119b1c2909faf5cc39819af20d4b",
+    "branch": "rear_zv_accel_corr",
+    "dirty": true,
+    "status_short": [
+      "?? notebooks/accel_correction.ipynb",
+      "?? notebooks/cal_nn.ipynb",
+      "?? notebooks/plot_sensors.ipynb",
+      "?? reports/",
+      "?? tools/rear/analyze_rear_accel_filtering.py",
+      "?? tools/rear/analyze_rear_extreme_bins.py"
+    ]
+  },
+  "files": [
+    "report.txt",
+    "summary.csv",
+    "errors.csv",
+    "diagnostics_stage.csv",
+    "diagnostics_condition_rmse.csv",
+    "diagnostics_condition_occurrence.csv",
+    "diagnostics_solver_delta.csv",
+    "diagnostics_binned_summary.csv",
+    "diagnostics_binned_occurrence.csv",
+    "diagnostics_mag_adj_bins.csv",
+    "diagnostics_solved_bins.csv",
+    "pooled_correlations.csv",
+    "metrics.csv"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "cache_root": "/Users/colin/Documents/projects/sus/backend/run_artifacts",
+  "candidate_mag_off_floors": [
+    0.03,
+    0.1,
+    0.3,
+    1.0,
+    3.0,
+    10.0,
+    1000000.0
+  ],
+  "created_at": "2026-09-09T02:50:07.972126+00:00",
+  "current_mag_off_floor": 0.1,
+  "git_revision": "3da7c2b75a5d9b16bfaae72365c81763122d7005",
+  "held_out_cohorts": {
+    "stumpjumper-front-pod-v1": [
+      "log103",
+      "log104",
+      "log106",
+      "log107",
+      "log109",
+      "log110",
+      "log112"
+    ]
+  },
+  "low_travel_max_mm": 30.0,
+  "max_nfev": 100,
+  "registry": "/Users/colin/Documents/projects/sus/logs/registry.toml",
+  "script": "/Users/colin/Documents/projects/sus/tools/front/mag_offset_calibration/sweep_post_mag_correction_fusion.py",
+  "selection_rule": "minimum cohort-balanced 0-30 mm centered RMSE among fully converged tuning candidates; overall centered RMSE then distance from current are tie-breakers",
+  "tuning_cohorts": {
+    "harry": [
+      "log-0113",
+      "log-0115",
+      "log-0116",
+      "log-0117",
+      "log-0118",
+      "log-0119",
+      "log-0120",
+      "log-0122",
+      "log-0125",
+      "log-0126",
+      "log-0127",
+      "log-0129",
+      "log-0132",
+      "log-0133"
+    ],
+    "jamaal": [
+      "log-0078-valid",
+      "log-0079",
+      "log-0080-valid",
+      "log-0081",
+      "log-0098",
+      "log-0099"
+    ],
+    "stumpjumper-front-pod-v2": [
+      "log-0046",
+      "log-0048",
+      "log-0049",
+      "log-0054",
+      "log-0055",
+      "log-0056",
+      "log-0058",
+      "log-0063",
+      "log-0071_183",
+      "log-0072_184",
+      "log-0073_185"
+    ]
+  }
+}
