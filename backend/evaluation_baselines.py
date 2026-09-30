@@ -28,7 +28,7 @@ def project_bad_mask(source_t, source_bad, target_t, halo_s=0.):
     return bad
 
 
-def integrate_imu(t, accel, *, cutoff_hz, placement, bad=None, lowpass_hz=40., order=2, edge_s=2.):
+def integrate_imu(t, accel, *, cutoff_hz, placement, bad=None, lowpass_hz=40., order=2, edge_s=1.):
     """m/s^2 -> mm, zero initial x/v per segment, zero-phase offline filtering.
 
     Restart at dropouts/nonfinite samples/time gaps. A fixed two-second margin
@@ -136,7 +136,7 @@ def evaluation_steps(pipeline, log_config):
     front = pipeline == 'front'
     steps = [
         IMUIntegrationBaseline(name='imu_integration_baseline', pipeline=pipeline,
-            inputs=('accel/proj', 'travel', 'imu_dropout_mask') if front else ('accel/lpf/proj', 'travel'),
+            inputs=('accel/proj', 'travel') if front else ('accel/lpf/proj', 'travel'),
             outputs=('travel/baseline/accel',)),
         MagneticPowerOracle(name='magnetic_power_oracle',
             pred_soft_mg=float(MagToTravelModelCore.pred_soft_mg if front else RearMagModel.pred_soft_mg),

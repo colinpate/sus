@@ -128,6 +128,7 @@ class ErrorStats:
     rmse: float
     mae: float
     mean_error: float
+    abs_mean_error: float
 
 
 @dataclass(frozen=True)
@@ -369,6 +370,7 @@ def summarize_error(
         rmse=float(np.sqrt(np.mean(err**2))),
         mae=float(np.mean(np.abs(err))),
         mean_error=float(np.mean(err)),
+        abs_mean_error=float(np.abs(np.mean(err))),
     )
 
 
@@ -379,7 +381,7 @@ def get_error_stats(
     thresh: float | None = None,
 ) -> tuple[float, float, float]:
     stats = summarize_error(x, gt, center=center, threshold=thresh)
-    return stats.rmse, stats.mae, stats.mean_error
+    return stats.rmse, stats.mae, stats.mean_error, stats.abs_mean_error
 
 
 def get_error_vector(x: np.ndarray, gt: np.ndarray, center: bool = False) -> np.ndarray:
@@ -485,7 +487,7 @@ def summarize_log_cache(
             "nrmse": stats.rmse / travel_std if travel_std > 0 else float("nan"),
             "bin_rmse": binned["bin_rmse"],
             "mae": stats.mae,
-            "me": stats.mean_error,
+            "ame": stats.abs_mean_error,
             "rms_travel": travel_std,
         }
 
@@ -1009,7 +1011,7 @@ def print_error_summaries(report: AggregatedReport, *, center_errors: bool, sort
         ("rmse", "rmse"),
         ("bin_rmse", "bin_rmse"),
         ("mae", "mae"),
-        ("nrmse", "nrmse") if center_errors else ("me", "me"),
+        ("nrmse", "nrmse") if center_errors else ("ame", "ame"),
         ("rms_travel", "rms_trav"),
     ]
     for pred_key, gt_key in COMPARISONS:

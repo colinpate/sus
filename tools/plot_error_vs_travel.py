@@ -78,6 +78,7 @@ def per_log_bins(
     metric: str,
     centered: bool,
     min_samples: int,
+    mag: bool,
 ) -> np.ndarray:
     with load_cache(log.log_id, cache_root) as cache:
         prediction_key = f"{prediction}__x"
@@ -85,6 +86,10 @@ def per_log_bins(
             raise KeyError(f"{log.log_id}: cache is missing {prediction}")
         predicted = flatten_1d(cache[prediction_key])
         reference = flatten_1d(cache["travel__x"])
+        if mag:
+            x_axis = flatten_1d(cache["mag/norm/lpf__x"])
+        else:
+            x_axis = reference
         mask = build_mask(cache, prediction, "travel")
 
     error = predicted - reference
@@ -94,8 +99,8 @@ def per_log_bins(
 
     values = np.full(len(edges) - 1, np.nan)
     for index, (lower, upper) in enumerate(zip(edges[:-1], edges[1:])):
-        in_bin = mask & (reference >= lower)
-        in_bin &= reference <= upper if index == len(values) - 1 else reference < upper
+        in_bin = mask & (x_axis >= lower)
+        in_bin &= x_axis <= upper if index == len(values) - 1 else x_axis < upper
         if int(np.sum(in_bin)) >= min_samples:
             values[index] = metric_value(error[in_bin], metric)
     return values
@@ -147,6 +152,7 @@ def plot_setups(
     min_units: int,
     show_individuals: bool,
     output: Path,
+    mag: bool,
 ) -> None:
     setups = sorted(setup_units, key=lambda key: (key[0] == "Rear", key))
     centers = (edges[:-1] + edges[1:]) / 2.0
@@ -211,7 +217,10 @@ def plot_setups(
         axis.remove()
     for axis in axes[-1, :]:
         if axis in fig.axes:
-            axis.set_xlabel("Reference travel (mm)")
+            if mag:
+                axis.set_xlabel("Magnetometer norm (mG)")
+            else:
+                axis.set_xlabel("Reference travel (mm)")
     for axis in axes[:, 0]:
         if axis in fig.axes:
             axis.set_ylabel(METRIC_LABELS[metric])
@@ -246,7 +255,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prediction", default="travel/solved")
     parser.add_argument("--metric", choices=tuple(METRIC_LABELS), default="signed-median")
     parser.add_argument("--centering", choices=("aligned", "absolute"), default="aligned")
-    parser.add_argument("--bin-width-mm", type=float, default=20.0)
+    parser.add_argument("--bin-width", type=float, default=20.0)
     parser.add_argument("--min-samples", type=int, default=40)
     parser.add_argument("--min-units", type=int, default=3)
     parser.add_argument(
@@ -261,12 +270,16 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=REPO_ROOT / "reports" / "error_vs_travel" / "error_vs_travel.png",
     )
+    parser.add_argument(
+        "--mag",
+        action="store_true"
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    if args.bin_width_mm <= 0:
+    if args.bin_width <= 0:
         raise ValueError("--bin-width-mm must be positive")
     if args.min_samples <= 0 or args.min_units <= 0:
         raise ValueError("--min-samples and --min-units must be positive")
@@ -283,11 +296,14 @@ def main() -> None:
         float(log.metadata.get(f"{log.pipeline}_travel_mm", 0.0))
         for log in selected.values()
     ]
-    max_stroke = max(strokes)
+    if args.mag:
+        max_stroke = 30000 # mG
+    else:
+        max_stroke = max(strokes)
     if max_stroke <= 0:
         raise ValueError("Selected logs do not define front_travel_mm or rear_travel_mm")
-    stop = math.ceil(max_stroke / args.bin_width_mm) * args.bin_width_mm
-    edges = np.arange(0.0, stop + args.bin_width_mm * 0.5, args.bin_width_mm)
+    stop = math.ceil(max_stroke / args.bin_width) * args.bin_width
+    edges = np.arange(0.0, stop + args.bin_width * 0.5, args.bin_width)
 
     raw_rows: dict[tuple[str, ...], list[tuple[str, np.ndarray]]] = {}
     skipped: list[str] = []
@@ -301,6 +317,7 @@ def main() -> None:
                 metric=args.metric,
                 centered=args.centering == "aligned",
                 min_samples=args.min_samples,
+                mag=args.mag
             )
         except (FileNotFoundError, KeyError, ValueError) as exc:
             skipped.append(f"{log.log_id}: {exc}")
@@ -321,6 +338,7 @@ def main() -> None:
         min_units=args.min_units,
         show_individuals=not args.no_individuals,
         output=args.output,
+        mag=args.mag,
     )
     write_values_csv(args.output.with_suffix(".csv"), setup_units, edges)
 
