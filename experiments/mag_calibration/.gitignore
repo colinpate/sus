@@ -6,6 +6,19 @@ runs/*/calibrations/
 runs/*/predictions/
 runs/*/trial_metrics.csv
 
+# Generic per-run plots are regenerated locally. Keep only figures selected for
+# direct review or paper use.
+runs/*/learning_curve.png
+runs/*/learning_curve.pdf
+runs/*/solver_learning_curve.png
+runs/*/solver_learning_curve.pdf
+runs/*/cross_setup_transfer_matrix.png
+runs/*/cross_setup_transfer_matrix.pdf
+!runs/cross-setup-front-three-setup-v1/cross_setup_transfer_matrix.png
+!runs/cross-setup-front-three-setup-v1/cross_setup_transfer_matrix.pdf
+!runs/cross-setup-front-pod-v2-full-v4/cross_setup_transfer_matrix.png
+!runs/cross-setup-front-pod-v2-full-v4/cross_setup_transfer_matrix.pdf
+
 # The repository-wide ignore rules exclude CSV and JSON by default. Re-include
 # the compact result tables and provenance needed to audit the paper results.
 !analysis/**/*.csv

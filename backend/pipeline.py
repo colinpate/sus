@@ -347,7 +347,7 @@ def main() -> None:
         TravelSolver(
             name="travel_solver",
             inputs=(
-                "accel/lpfhp/proj/solver",
+                "accel/lpfhp/proj/solver", 
                 "mag/norm/corr/lpf",
                 "travel/mag_model",
                 "mag_zv_points", 

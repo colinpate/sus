@@ -18,7 +18,7 @@
   "method_note": "Each saved calibration drives both full-log fusion solves; scoring windows are applied afterward.",
   "schedule_sha256": "3590b87b343e92194d9b417c0d03fe0fc022e7d46e2d57b36bef07663f4448f2",
   "schema_version": 1,
-  "source_run": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1",
+  "source_run": "experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1",
   "spec": {
     "analysis_units": {
       "log-0145-filtered-c01": "log-0145",
@@ -97,7 +97,7 @@
     "source_run": "experiments/mag_calibration/runs/random-window-front-multisetup-postmerge-v1",
     "source_trainer": "self-supervised"
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml",
+  "spec_path": "experiments/mag_calibration/specs/solver_window_front_multisetup_postmerge_v1.toml",
   "spec_sha256": "9d0d84bcdf8ef1aa541840e1ce0395d293e1a2ece5e02d9c3982f9e095158878",
   "trial_count": 90
 }

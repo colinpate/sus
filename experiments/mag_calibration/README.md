@@ -8,8 +8,8 @@ Track:
 - every specification in `specs/`;
 - `manifest.json`, `status.json`, and `trial_schedule.csv` for provenance and
   exact randomization;
-- reports, figures, aggregate/per-log/setup summaries, failure tables, and the
-  derived tables in `analysis/`;
+- reports, selected paper/review figures, aggregate/per-log/setup summaries,
+  nonempty failure tables, and the derived tables in `analysis/`;
 - the experiment runners and analysis tools under `tools/`.
 
 Do not track:
@@ -18,6 +18,10 @@ Do not track:
   caches and can be regenerated;
 - `trial_metrics.csv`, the large row-level analysis table. Keep it locally while
   actively analyzing a run, then regenerate it from the spec when necessary;
+- generic per-run learning-curve and transfer-matrix figures when a selected
+  consolidated or paper-facing figure already records the result;
+- empty failure tables; `status.json` records that a completed run had zero
+  failures;
 - `.DS_Store` or ad hoc copies of plots and tables.
 
 The local `.gitignore` enforces this split while overriding the repository-wide
@@ -104,7 +108,8 @@ Fresh run directories contain:
 - `trial_metrics.csv`: one row per fit and evaluation scope.
 - `per_log_summary.csv`: repeat-level results collapsed within each log.
 - `aggregate_summary.csv`: equally weighted log-level estimates and bootstrap CIs.
-- `learning_curve.png` / `.pdf`: aligned RMSE versus training duration.
+- `learning_curve.png` / `.pdf`: locally generated aligned-RMSE plots (not
+  normally versioned; use the selected figures in `analysis/` for review).
 - `report.md` and `status.json`: readable results and completion state.
 
 With the local row-level results and trial caches present, the front

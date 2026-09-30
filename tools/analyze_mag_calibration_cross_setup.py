@@ -8,9 +8,12 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import tomllib
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 import matplotlib
 matplotlib.use("Agg")

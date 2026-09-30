@@ -147,7 +147,7 @@ class FindBadMagProj(Step):
         )
 
 
-class CorrectBadMag(Step):
+class CorrectBadMag(Step): 
     raw_norm_maxdiff: int = 500  # mG
     min_corr_mg: int = 1000  # mG
 

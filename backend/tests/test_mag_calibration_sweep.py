@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import sys
+import tempfile
 from types import SimpleNamespace
 import unittest
 
@@ -10,7 +11,9 @@ import numpy as np
 import pandas as pd
 
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
@@ -20,7 +23,12 @@ from mag_calibration import ResolvedWindow
 from analyze_mag_calibration_cross_setup import crossed_bootstrap, source_balanced_median
 from mag_calibration_experiment import score_prediction
 from mag_calibration_solver_sweep import endpoint_change
-from mag_calibration_sweep import nested_windows, stable_uniform
+from mag_calibration_sweep import (
+    nested_windows,
+    require_cache_fingerprint,
+    stable_uniform,
+)
+from plot_error_vs_travel import aggregation_unit, collapse_children, write_values_csv
 
 
 class SweepScheduleTests(unittest.TestCase):
@@ -44,8 +52,66 @@ class SweepScheduleTests(unittest.TestCase):
         self.assertGreaterEqual(windows[-1][1], 0.0)
         self.assertLessEqual(windows[-1][2], 300.0)
 
+    def test_frozen_cache_fingerprint_is_enforced(self):
+        data = SimpleNamespace(source_fingerprint="current")
+        require_cache_fingerprint(data, "current", label="log-a")
+        with self.assertRaisesRegex(ValueError, "cache fingerprint changed"):
+            require_cache_fingerprint(data, "scheduled", label="log-a")
+
+    def test_missing_legacy_fingerprint_is_allowed(self):
+        data = SimpleNamespace(source_fingerprint="current")
+        require_cache_fingerprint(data, None, label="log-a")
+
 
 class DistributionAwareMetricTests(unittest.TestCase):
+    def test_error_bin_csv_headers_match_axis_units(self):
+        setup_units = {
+            ("Front", "Test bike"): {"recording": np.array([1.5])}
+        }
+        edges = np.array([0.0, 20.0])
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "values.csv"
+            write_values_csv(output, setup_units, edges, mag=False)
+            self.assertEqual(
+                output.read_text(encoding="utf-8").splitlines()[0],
+                "setup,independent_unit,bin_start_mm,bin_stop_mm,value_mm",
+            )
+            write_values_csv(output, setup_units, edges, mag=True)
+            self.assertEqual(
+                output.read_text(encoding="utf-8").splitlines()[0],
+                "setup,independent_unit,bin_start_mg,bin_stop_mg,value_mm",
+            )
+
+    def test_error_bins_collapse_children_to_parent_recording(self):
+        child_a = SimpleNamespace(
+            log_id="child-a", metadata={"parent_log": "parent"}
+        )
+        child_b = SimpleNamespace(
+            log_id="child-b", metadata={"parent_log": "parent"}
+        )
+        rows = [
+            (
+                aggregation_unit(child_a, separate_segments=False),
+                np.array([1.0, 4.0]),
+            ),
+            (
+                aggregation_unit(child_b, separate_segments=False),
+                np.array([3.0, 8.0]),
+            ),
+        ]
+        collapsed = collapse_children(rows)
+        self.assertEqual(list(collapsed), ["parent"])
+        np.testing.assert_array_equal(collapsed["parent"], np.array([2.0, 6.0]))
+
+    def test_error_bins_can_keep_split_segments_separate(self):
+        child = SimpleNamespace(
+            log_id="child-a", metadata={"parent_log": "parent"}
+        )
+        self.assertEqual(
+            aggregation_unit(child, separate_segments=True),
+            "child-a",
+        )
+
     def test_local_and_fixed_alignment_are_reported_separately(self):
         target = SimpleNamespace(
             time_s=np.arange(3, dtype=float),

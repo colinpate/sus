@@ -58,7 +58,7 @@
     ],
     "training_window": "full_log"
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/cross_log_front_stumpjumper_pod_v2_v1.toml",
+  "spec_path": "experiments/mag_calibration/specs/cross_log_front_stumpjumper_pod_v2_v1.toml",
   "spec_sha256": "9df45add2ad2f7131dd5f293fc15998f4d4ef9eb9aa0fc8a01c5233a626de533",
   "trial_count": 363
 }
