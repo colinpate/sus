@@ -31,7 +31,7 @@ def project_bad_mask(source_t, source_bad, target_t, halo_s=0.):
 def integrate_imu(t, accel, *, cutoff_hz, placement, bad=None, lowpass_hz=40., order=2, edge_s=1.):
     """m/s^2 -> mm, zero initial x/v per segment, zero-phase offline filtering.
 
-    Restart at dropouts/nonfinite samples/time gaps. A fixed two-second margin
+    Restart at dropouts/nonfinite samples/time gaps. A fixed one-second margin
     at every segment boundary is excluded for every candidate (not a guarantee
     of complete filter settling). No reference or magnetic signal is consulted.
     """

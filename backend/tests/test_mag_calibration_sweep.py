@@ -28,7 +28,7 @@ from mag_calibration_sweep import (
     require_cache_fingerprint,
     stable_uniform,
 )
-from plot_error_vs_travel import aggregation_unit, collapse_children
+from plot_error_vs_travel import aggregation_unit, collapse_children, write_values_csv
 
 
 class SweepScheduleTests(unittest.TestCase):
@@ -64,6 +64,24 @@ class SweepScheduleTests(unittest.TestCase):
 
 
 class DistributionAwareMetricTests(unittest.TestCase):
+    def test_error_bin_csv_headers_match_axis_units(self):
+        setup_units = {
+            ("Front", "Test bike"): {"recording": np.array([1.5])}
+        }
+        edges = np.array([0.0, 20.0])
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "values.csv"
+            write_values_csv(output, setup_units, edges, mag=False)
+            self.assertEqual(
+                output.read_text(encoding="utf-8").splitlines()[0],
+                "setup,independent_unit,bin_start_mm,bin_stop_mm,value_mm",
+            )
+            write_values_csv(output, setup_units, edges, mag=True)
+            self.assertEqual(
+                output.read_text(encoding="utf-8").splitlines()[0],
+                "setup,independent_unit,bin_start_mg,bin_stop_mg,value_mm",
+            )
+
     def test_error_bins_collapse_children_to_parent_recording(self):
         child_a = SimpleNamespace(
             log_id="child-a", metadata={"parent_log": "parent"}

@@ -136,11 +136,22 @@ def write_values_csv(
     path: Path,
     setup_units: dict[tuple[str, ...], dict[str, np.ndarray]],
     edges: np.ndarray,
+    *,
+    mag: bool,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    bin_unit = "mg" if mag else "mm"
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(("setup", "independent_unit", "bin_start_mm", "bin_stop_mm", "value_mm"))
+        writer.writerow(
+            (
+                "setup",
+                "independent_unit",
+                f"bin_start_{bin_unit}",
+                f"bin_stop_{bin_unit}",
+                "value_mm",
+            )
+        )
         for setup, units in setup_units.items():
             for unit, values in units.items():
                 for lower, upper, value in zip(edges[:-1], edges[1:], values):
@@ -359,7 +370,9 @@ def main() -> None:
         output=args.output,
         mag=args.mag,
     )
-    write_values_csv(args.output.with_suffix(".csv"), setup_units, edges)
+    write_values_csv(
+        args.output.with_suffix(".csv"), setup_units, edges, mag=args.mag
+    )
 
     units = sum(len(values) for values in setup_units.values())
     print(f"Wrote {args.output}, {args.output.with_suffix('.pdf')}, and {args.output.with_suffix('.csv')}")

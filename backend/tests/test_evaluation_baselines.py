@@ -20,7 +20,7 @@ class BaselineTests(unittest.TestCase):
         valid = (t>8)&(t<32)
         e = p[valid]-x[valid]*1000
         self.assertLess(np.std(e), .2)
-        self.assertTrue(np.isnan(p[t<2]).all())
+        self.assertTrue(np.isnan(p[t<1]).all())
 
     def test_dropout_restarts_and_resampling_does_not_bridge(self):
         t=np.arange(0,30,.01); a=np.sin(t)
