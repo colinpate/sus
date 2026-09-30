@@ -12,9 +12,12 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 import sys
+import tempfile
 from typing import Any, Iterable
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 import numpy as np
 from sklearn.isotonic import IsotonicRegression

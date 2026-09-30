@@ -70,7 +70,7 @@
       "oracle-power"
     ]
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/random_window_front_v1_shorter.toml",
+  "spec_path": "experiments/mag_calibration/specs/random_window_front_v1_shorter.toml",
   "spec_sha256": "2493cfea5707367aaaea19a4334c8f078cee71f59e5efe10e2cd08eae235f8c1",
   "trial_count": 1100
 }

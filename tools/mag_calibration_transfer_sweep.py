@@ -12,10 +12,13 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import tomllib
 from typing import Any
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 import numpy as np
 
@@ -37,6 +40,8 @@ from mag_calibration_sweep import (  # noqa: E402
     atomic_write_json,
     atomic_write_text,
     git_snapshot,
+    repo_relative_path,
+    require_cache_fingerprint,
     sha256_bytes,
     stable_id,
     utc_now,
@@ -58,6 +63,15 @@ def load_data(log_name: str) -> Any:
     if log_name not in _DATA_CACHE:
         _DATA_CACHE[log_name] = load_cached_log(log_name)
     return _DATA_CACHE[log_name]
+
+
+def validate_schedule_cache_fingerprints(rows: list[dict[str, Any]]) -> None:
+    expected: dict[str, object] = {}
+    for row in rows:
+        expected.setdefault(row["train_log"], row.get("train_cache_fingerprint"))
+        expected.setdefault(row["eval_log"], row.get("eval_cache_fingerprint"))
+    for log_name, fingerprint in expected.items():
+        require_cache_fingerprint(load_data(log_name), fingerprint, label=log_name)
 
 
 def read_spec(path: Path) -> tuple[dict[str, Any], str]:
@@ -161,7 +175,7 @@ def prepare_run(spec_path: Path, output_dir: Path) -> tuple[dict[str, Any], list
         "schema_version": SCHEMA_VERSION,
         "created_at": utc_now(),
         "experiment": spec["name"],
-        "spec_path": str(spec_path.resolve()),
+        "spec_path": repo_relative_path(spec_path),
         "spec_sha256": spec_hash,
         "schedule_sha256": schedule_hash(schedule_path),
         "spec": spec,
@@ -187,9 +201,21 @@ def fit_or_load_calibration(
         payload = json.loads(path.read_text(encoding="utf-8"))
         if payload.get("status") != "success":
             raise ValueError(payload.get("error", "Calibration fit previously failed"))
-        return MagTravelCalibration.from_dict(payload["calibration"])
+        calibration = MagTravelCalibration.from_dict(payload["calibration"])
+        expected = row.get("train_cache_fingerprint")
+        if (
+            expected not in (None, "")
+            and calibration.source_fingerprint != expected
+        ):
+            raise ValueError(
+                f"{row['train_log']} calibration fingerprint does not match the frozen schedule"
+            )
+        return calibration
 
     data = load_data(row["train_log"])
+    require_cache_fingerprint(
+        data, row.get("train_cache_fingerprint"), label=row["train_log"]
+    )
     window = RecordingWindow(
         log_name=row["train_log"],
         time_range=TimeRange(),
@@ -234,6 +260,9 @@ def execute_trial(
     try:
         calibration = fit_or_load_calibration(row, spec, output_dir)
         target = load_data(row["eval_log"])
+        require_cache_fingerprint(
+            target, row.get("eval_cache_fingerprint"), label=row["eval_log"]
+        )
         with contextlib.redirect_stdout(io.StringIO()):
             _, prediction, anchor_offset = predict_calibration(calibration, target)
         resolved = resolve_window(
@@ -456,6 +485,7 @@ def main() -> None:
         )
         return
     if args.command == "run":
+        validate_schedule_cache_fingerprints(rows)
         run_rows = rows if args.trainer is None else [
             row for row in rows if row["trainer"] == args.trainer
         ]

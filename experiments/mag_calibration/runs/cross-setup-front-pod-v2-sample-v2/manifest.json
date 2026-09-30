@@ -121,7 +121,7 @@
     ],
     "training_window": "full_log"
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/cross_setup_front_pod_v2_sample_v2.toml",
+  "spec_path": "experiments/mag_calibration/specs/cross_setup_front_pod_v2_sample_v2.toml",
   "spec_sha256": "48cff04b06d0503f3eba195c5400bf746eaef69d51be7bc566c8311d000563ce",
   "trial_count": 1200
 }

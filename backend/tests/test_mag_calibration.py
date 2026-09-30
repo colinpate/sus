@@ -10,7 +10,9 @@ from unittest.mock import patch
 import numpy as np
 
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]

@@ -126,7 +126,7 @@ class FilterColinearPairs(Step):
             raise ValueError(
                 "Accelerometer alignment has no stationary pose pairs to test for pose diversity."
             )
-
+        
         # Normalize chunks to get unit direction vectors
         chunks_u = []
         for (chunk_a, _) in pairs:
@@ -165,7 +165,7 @@ class FilterColinearPairs(Step):
                 f"after filtering {len(pairs)} candidates; at least {min_pairs} are required. "
                 "Record stationary samples in several substantially different bike orientations."
             )
-
+        
         ws[self.outputs[0]] = filt_pairs
         if len(self.outputs) == 3:
             pair_array = np.asarray([[pair[0].x, pair[1].x] for pair in pairs])
@@ -536,8 +536,9 @@ class GetIMUDropoutMask(Step):
                 new_mask[i] = True
         print(f"Masked {np.sum(new_mask)/new_mask.shape[0]*100:.1f}% of samples")
 
+        
         mask |= new_mask
-
+        
         ws[self.outputs[0]] = TimeSeries(
             t=t,
             x=mask,
