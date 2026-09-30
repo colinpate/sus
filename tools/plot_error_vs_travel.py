@@ -57,6 +57,11 @@ def independent_unit(log: ResolvedLog) -> str:
     return str(log.metadata.get("parent_log", log.log_id))
 
 
+def aggregation_unit(log: ResolvedLog, *, separate_segments: bool) -> str:
+    """Choose whether split segments count separately or as one recording."""
+    return log.log_id if separate_segments else independent_unit(log)
+
+
 def metric_value(error: np.ndarray, metric: str) -> float:
     if metric == "signed-median":
         return float(np.median(error))
@@ -257,6 +262,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--no-individuals", action="store_true")
     parser.add_argument(
+        "--separate-segments",
+        action="store_true",
+        help=(
+            "Treat split child-log segments as independent units instead of "
+            "collapsing them to their parent recording."
+        ),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=REPO_ROOT / "reports" / "error_vs_travel" / "error_vs_travel.png",
@@ -305,8 +318,14 @@ def main() -> None:
         except (FileNotFoundError, KeyError, ValueError) as exc:
             skipped.append(f"{log.log_id}: {exc}")
             continue
-        #raw_rows.setdefault(setup_key(log, args.group_by), []).append((independent_unit(log), values))
-        raw_rows.setdefault(setup_key(log, args.group_by), []).append((log.log_id, values))
+        raw_rows.setdefault(setup_key(log, args.group_by), []).append(
+            (
+                aggregation_unit(
+                    log, separate_segments=args.separate_segments
+                ),
+                values,
+            )
+        )
 
     setup_units = {setup: collapse_children(rows) for setup, rows in raw_rows.items()}
     setup_units = {setup: units for setup, units in setup_units.items() if units}

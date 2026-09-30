@@ -7,9 +7,12 @@ import argparse
 import json
 import os
 from pathlib import Path
+import tempfile
 from typing import Any
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 import matplotlib
 matplotlib.use("Agg")

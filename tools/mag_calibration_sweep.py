@@ -16,11 +16,14 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import traceback
 import tomllib
 from typing import Any, Iterable
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 import matplotlib
 matplotlib.use("Agg")
@@ -105,6 +108,26 @@ def stable_id(value: object, *, length: int = 16) -> str:
     return hashlib.sha256(payload).hexdigest()[:length]
 
 
+def repo_relative_path(path: Path) -> str:
+    """Use portable repository-relative provenance when possible."""
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(resolved)
+
+
+def require_cache_fingerprint(data: Any, expected: object, *, label: str) -> None:
+    """Reject a resumed schedule when its cached input has changed."""
+    if expected in (None, ""):
+        return
+    actual = data.source_fingerprint
+    if actual != expected:
+        raise ValueError(
+            f"{label} cache fingerprint changed: expected {expected}, found {actual}"
+        )
+
+
 def atomic_write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
@@ -119,7 +142,7 @@ def atomic_write_json(path: Path, value: object) -> None:
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
-        atomic_write_text(path, "")
+        path.unlink(missing_ok=True)
         return
     preferred = [
         "trial_id", "pipeline", "log", "repeat", "duration_s", "trainer",
@@ -317,7 +340,7 @@ def prepare_run(spec_path: Path, output_dir: Path) -> tuple[dict[str, Any], list
         "schema_version": SCHEMA_VERSION,
         "created_at": utc_now(),
         "experiment": spec["name"],
-        "spec_path": str(spec_path.resolve()),
+        "spec_path": repo_relative_path(spec_path),
         "spec_sha256": spec_hash,
         "schedule_sha256": sha256_bytes(schedule_path.read_bytes()),
         "spec": spec,
@@ -367,6 +390,15 @@ def worker_data(log_name: str) -> Any:
     if log_name not in _WORKER_CACHE:
         _WORKER_CACHE[log_name] = load_cached_log(log_name)
     return _WORKER_CACHE[log_name]
+
+
+def validate_schedule_cache_fingerprints(schedule: list[dict[str, Any]]) -> None:
+    """Validate each scheduled log once before running or refreshing."""
+    expected_by_log: dict[str, object] = {}
+    for row in schedule:
+        expected_by_log.setdefault(str(row["log"]), row.get("cache_fingerprint"))
+    for log_name, expected in expected_by_log.items():
+        require_cache_fingerprint(worker_data(log_name), expected, label=log_name)
 
 
 def compute_trial_metrics(
@@ -438,6 +470,9 @@ def execute_trial(row: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
     started = utc_now()
     try:
         data = worker_data(str(row["log"]))
+        require_cache_fingerprint(
+            data, row.get("cache_fingerprint"), label=str(row["log"])
+        )
         window = RecordingWindow(
             log_name=str(row["log"]),
             time_range=TimeRange(float(row["start_s"]), float(row["stop_s"])),
@@ -503,6 +538,9 @@ def backfill_metrics(
             continue
         try:
             data = worker_data(str(row["log"]))
+            require_cache_fingerprint(
+                data, row.get("cache_fingerprint"), label=str(row["log"])
+            )
             calibration = MagTravelCalibration.from_dict(result["calibration"])
             metrics, anchor_offset, diagnostics = compute_trial_metrics(
                 data, row, calibration, spec
@@ -930,6 +968,7 @@ def main() -> None:
     args = parse_args()
     if args.command == "refresh":
         spec, schedule = load_frozen_run(args.output_dir)
+        validate_schedule_cache_fingerprints(schedule)
         updated, errors = backfill_metrics(
             spec, schedule, args.output_dir, force=args.force
         )
@@ -950,6 +989,7 @@ def main() -> None:
             raise ValueError("--max-trials must be at least 1")
         if args.max_trials_per_log is not None and args.max_trials_per_log < 1:
             raise ValueError("--max-trials-per-log must be at least 1")
+        validate_schedule_cache_fingerprints(schedule)
         completed, failed = run_trials(
             spec,
             schedule,

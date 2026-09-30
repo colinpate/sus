@@ -17,7 +17,9 @@ import time
 import tomllib
 from typing import Any
 
-os.environ["MPLCONFIGDIR"] = "/private/tmp"
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "sus-matplotlib-cache")
+)
 
 import matplotlib
 matplotlib.use("Agg")
@@ -40,6 +42,8 @@ from mag_calibration_sweep import (  # noqa: E402
     atomic_write_json,
     atomic_write_text,
     git_snapshot,
+    repo_relative_path,
+    require_cache_fingerprint,
     sha256_bytes,
     stable_id,
     utc_now,
@@ -192,11 +196,11 @@ def prepare_run(spec_path: Path, output_dir: Path) -> tuple[dict[str, Any], list
         "created_at": utc_now(),
         "experiment": spec["name"],
         "spec": spec,
-        "spec_path": str(spec_path.resolve()),
+        "spec_path": repo_relative_path(spec_path),
         "spec_sha256": spec_hash,
         "schedule_sha256": sha256_bytes(schedule_path.read_bytes()),
         "trial_count": len(rows),
-        "source_run": str(source_directory(spec)),
+        "source_run": repo_relative_path(source_directory(spec)),
         "git": git_snapshot(),
         "method_note": "Each saved calibration drives both full-log fusion solves; scoring windows are applied afterward.",
     })
@@ -232,6 +236,15 @@ def load_solver_inputs(log_name: str) -> tuple[Any, dict[str, Any]]:
     return data, inputs
 
 
+def validate_schedule_cache_fingerprints(rows: list[dict[str, Any]]) -> None:
+    expected: dict[str, object] = {}
+    for row in rows:
+        expected.setdefault(row["log"], row.get("cache_fingerprint"))
+    for log_name, fingerprint in expected.items():
+        data, _ = load_solver_inputs(log_name)
+        require_cache_fingerprint(data, fingerprint, label=log_name)
+
+
 def timed_step(step: Any, ws: dict[str, Any]) -> float:
     started = time.perf_counter()
     with contextlib.redirect_stdout(io.StringIO()):
@@ -239,8 +252,14 @@ def timed_step(step: Any, ws: dict[str, Any]) -> float:
     return time.perf_counter() - started
 
 
-def run_downstream(log_name: str, calibration: MagTravelCalibration) -> tuple[Any, dict[str, np.ndarray], dict[str, float], dict[str, float]]:
+def run_downstream(
+    log_name: str,
+    calibration: MagTravelCalibration,
+    *,
+    expected_cache_fingerprint: object = None,
+) -> tuple[Any, dict[str, np.ndarray], dict[str, float], dict[str, float]]:
     data, cached = load_solver_inputs(log_name)
+    require_cache_fingerprint(data, expected_cache_fingerprint, label=log_name)
     ws = dict(cached)
     attach_log_config(ws, resolve_log(log_name).processing_config)
     raw = calibration.predict(data.mag)
@@ -369,7 +388,19 @@ def execute(row: dict[str, Any], spec: dict[str, Any], output_dir: Path) -> dict
         source = source_directory(spec)
         source_result = json.loads((source / "trials" / f"{row['source_trial_id']}.json").read_text(encoding="utf-8"))
         calibration = MagTravelCalibration.from_dict(source_result["calibration"])
-        data, signals, runtimes, nuisance = run_downstream(row["log"], calibration)
+        expected_fingerprint = row.get("cache_fingerprint")
+        if (
+            expected_fingerprint not in (None, "")
+            and calibration.source_fingerprint != expected_fingerprint
+        ):
+            raise ValueError(
+                f"{row['log']} calibration fingerprint does not match the frozen schedule"
+            )
+        data, signals, runtimes, nuisance = run_downstream(
+            row["log"],
+            calibration,
+            expected_cache_fingerprint=row.get("cache_fingerprint"),
+        )
         metrics = scoped_metrics(data, signals, row, spec)
         if spec.get("save_predictions", True):
             atomic_save_predictions(output_dir / "predictions" / f"{row['trial_id']}.npz", data.time_s, signals)
@@ -757,6 +788,7 @@ def main() -> None:
     args = parse_args(); spec, rows = prepare_run(args.spec, args.output_dir)
     if args.command == "schedule": print(f"Scheduled {len(rows)} full-log solver runs"); return
     if args.command == "run":
+        validate_schedule_cache_fingerprints(rows)
         count, failures = run_trials(rows, spec, args.output_dir, args.max_trials, args.workers); print(f"Executed {count} solver runs ({failures} failed)")
     print(json.dumps(summarize(rows, args.output_dir), indent=2))
 

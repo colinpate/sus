@@ -48,7 +48,7 @@
     ],
     "training_window": "full_log"
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/cross_log_front_jamaal_v1.toml",
+  "spec_path": "experiments/mag_calibration/specs/cross_log_front_jamaal_v1.toml",
   "spec_sha256": "d249eced13e9d22ebf3becc992c7af4364aececeb76133d50c1c2fa1a0260e97",
   "trial_count": 108
 }

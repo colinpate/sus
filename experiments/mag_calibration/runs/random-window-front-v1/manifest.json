@@ -71,7 +71,7 @@
       "oracle-isotonic"
     ]
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/random_window_front_v1.toml",
+  "spec_path": "experiments/mag_calibration/specs/random_window_front_v1.toml",
   "spec_sha256": "5bea0f2a1a0f8859fae10f0677c4124e757b551e54e1576787804c52f37e14c2",
   "trial_count": 3960
 }

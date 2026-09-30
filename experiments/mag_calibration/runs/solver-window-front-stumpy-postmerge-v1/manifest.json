@@ -18,7 +18,7 @@
   "method_note": "Each saved calibration drives both full-log fusion solves; scoring windows are applied afterward.",
   "schedule_sha256": "ab538d66840392a883d26fc9ac3d64c010dac2e2b2d4ee7a55c6ccf28e3e33f1",
   "schema_version": 1,
-  "source_run": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1",
+  "source_run": "experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1",
   "spec": {
     "cohort_description": "the 11-log Stumpjumper/pod-v2 cohort",
     "common_core_s": 5,
@@ -80,7 +80,7 @@
     "source_run": "experiments/mag_calibration/runs/random-window-front-stumpy-postmerge-v1",
     "source_trainer": "self-supervised"
   },
-  "spec_path": "/Users/colin/Documents/projects/sus/experiments/mag_calibration/specs/solver_window_front_stumpy_postmerge_v1.toml",
+  "spec_path": "experiments/mag_calibration/specs/solver_window_front_stumpy_postmerge_v1.toml",
   "spec_sha256": "0e49d616aef5305132e09a9133f6f3761ebe83b71f0e1067fc95504dd0425479",
   "trial_count": 220
 }
